@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.stats.apps.StatsConfig',
+    'apps.heroes.apps.HeroesConfig',
     'rest_framework'
 ]
 
