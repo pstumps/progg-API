@@ -1,8 +1,6 @@
 from django.http import JsonResponse
 from .services import proGGAPIHeroesService
-import traceback, json
-
-# Create your views here.
+import traceback
 
 def updateStats(request):
     heroes_service = proGGAPIHeroesService()
@@ -35,4 +33,15 @@ def data(request, hero_name=None):
         # TODO: Remove traceback for production
         print(traceback.format_exc())
         return JsonResponse({'stats': 'error', 'message': str(e)}, status=500)
+
+def calculateTier(request):
+    heroes_service = proGGAPIHeroesService()
+
+    try:
+        heroes_service.calculateTierForEachHero()
+        print('Heroes tier successfully calculated')
+        return JsonResponse({'stats': 'success'}, status=200)
+    except Exception as e:
+        print(traceback.format_exc())
+        print(f'Could not calculate heroes tier, {e}')
 
