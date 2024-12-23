@@ -88,6 +88,7 @@ class proGGAPIHeroesService:
                 'winrate': self.calculateWinRate(hero.wins, hero.losses),
                 'kda': self.calculateKDA(hero.kills, hero.deaths, hero.assists),
                 'pickrate': hero.pickrate,
+                'beta': hero.beta,
                 'abilities': hero.abilities
             })
 
@@ -107,6 +108,7 @@ class proGGAPIHeroesService:
             return data
         except HeroesModel.DoesNotExist:
             return None
+
 
     def calculateTierForEachHero(self):
         all_heroes = HeroesModel.objects.filter(beta=False)
