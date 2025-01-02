@@ -38,15 +38,16 @@ HeroesDict = {
 
 class proGGAPIHeroesService:
 
+    def __init__(self):
+        self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
+        self.DLAPIDataService = deadlockAPIDataService()
+        self.latest_patch_timestamp = self.DLAPIDataService.getLatestPatchUnixTimestamp()
+
     def updateHeroes(self):
         # TODO: Configure to run every 6 hours at some point
         # Updates heroes stats models in database
 
-        DLAPIAnalyticsService = deadlockAPIAnalyticsService()
-        DLAPIDataService = deadlockAPIDataService()
-
-        latest_patch_timestamp = DLAPIDataService.getLatestPatchUnixTimestamp()
-        data = DLAPIAnalyticsService.getHeroesWinLossStats(min_unix_timestamp=latest_patch_timestamp)
+        data = self.DLAPIAnalyticsService.getHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
 
         if data:
             total_matches = sum(stats['matches'] for stats in data)
@@ -77,6 +78,20 @@ class proGGAPIHeroesService:
                 hero.save()
         else:
             raise Exception('No data returned from Deadlock API')
+
+    def calculateHeroCombinationStats(self, hero_name):
+        data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
+                                                                        include_hero_ids=HeroesDict[hero_name])
+        json_data = []
+        if data:
+            for stats in data:
+                synergy_hero_name = HeroesDict[stats['hero_ids'][1]]
+                json_data.append({
+                    'name': synergy_hero_name,
+                    'winrate': self.calculateWinRate(stats['wins'], stats['losses']),
+                    'kda': self.calculateKDA(stats['total_kills'], stats['total_deaths'], stats['total_assists']),
+                })
+        return {'synergies': json_data}
 
     def getAllHeroes(self):
         heroes = HeroesModel.objects.all()
@@ -193,6 +208,9 @@ class proGGAPIHeroesService:
 
         return score
 
+
+
+    # Helper Functions
 
     def calculateWinRate(self, wins, losses):
         return round((wins / (wins + losses) * 100), 1)

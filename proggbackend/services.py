@@ -26,6 +26,31 @@ class deadlockAPIAnalyticsService:
         response = requests.get(url, params=params)
         return response.json()
 
+    def getCombinedHeroesWinLossStats(self, comb_size=None, include_hero_ids=None, exclude_hero_ids=None,
+                                      min_total_matches=None, sorted_by=None, limit=None, min_badge_level=None,
+                                      max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
+                                      match_mode=None, region=None):
+        url = self.base_url + '/v2/combined-heroes-win-loss-stats'
+
+        params = {
+            'comb_size': comb_size,
+            'include_hero_ids': include_hero_ids,
+            'exclude_hero_ids': exclude_hero_ids,
+            'min_total_matches': min_total_matches,
+            'sorted_by': sorted_by,
+            'limit': limit,
+            'min_badge_level': min_badge_level,
+            'max_badge_level': max_badge_level,
+            'min_unix_timestamp': min_unix_timestamp,
+            'max_unix_timestamp': max_unix_timestamp,
+            'match_mode': match_mode,
+            'region': region
+        }
+
+        params = {key: value for key, value in params.items() if value is not None}
+        response = requests.get(url, params=params)
+        return response.json()
+
 
 class deadlockAPIDataService:
     def __init__(self):
