@@ -38,8 +38,8 @@ def synergies(request, hero_name=None, min_rank=None, max_rank=None):
     heroes_service = proGGAPIHeroesService()
 
     try:
-        data = heroes_service.calculateHeroCombinationStats(hero_name)
-        return JsonResponse(data, status=200)
+        synergyData = heroes_service.calculateHeroCombinationStats(hero_name)
+        return JsonResponse(synergyData, status=200)
     except Exception as e:
         print(f'Could not get hero combination data, {e}')
 

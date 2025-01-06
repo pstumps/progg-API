@@ -79,15 +79,21 @@ class proGGAPIHeroesService:
         else:
             raise Exception('No data returned from Deadlock API')
 
-    def calculateHeroCombinationStats(self, hero_name):
-        data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
-                                                                        include_hero_ids=HeroesDict[hero_name])
+    def calculateHeroCombinationStats(self, hero_name=None):
+        if hero_name:
+            data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
+                                                                            include_hero_ids=HeroesDict[hero_name])
+        else:
+            data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
+
         json_data = []
         if data:
             for stats in data:
-                synergy_hero_name = HeroesDict[stats['hero_ids'][1]]
+                synergy_hero_one = HeroesDict[stats['hero_ids'][0]]
+                synergy_hero_two = HeroesDict[stats['hero_ids'][1]]
                 json_data.append({
-                    'name': synergy_hero_name,
+                    'hero1': synergy_hero_one,
+                    'hero2': synergy_hero_two,
                     'winrate': self.calculateWinRate(stats['wins'], stats['losses']),
                     'kda': self.calculateKDA(stats['total_kills'], stats['total_deaths'], stats['total_assists']),
                 })
