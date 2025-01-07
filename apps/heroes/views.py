@@ -17,14 +17,13 @@ def updateStats(request):
 
 def data(request, hero_name=None):
     heroes_service = proGGAPIHeroesService()
-
     try:
         if hero_name:
             hero = heroes_service.getHeroByName(hero_name)
             if hero:
                 return JsonResponse(hero, status=200)
             else:
-                return JsonResponse({'stats': 'error', 'message': '404'}, status=404)
+                return JsonResponse({'stats': 'error', 'message': '404 hero not found'}, status=404)
         else:
             all_heroes_data = heroes_service.getAllHeroes()
             return JsonResponse(all_heroes_data, status=200)
@@ -41,6 +40,7 @@ def synergies(request, hero_name=None, min_rank=None, max_rank=None):
         synergyData = heroes_service.calculateHeroCombinationStats(hero_name)
         return JsonResponse(synergyData, status=200)
     except Exception as e:
+        print(traceback.format_exc())
         print(f'Could not get hero combination data, {e}')
 
 def calculateTier(request):

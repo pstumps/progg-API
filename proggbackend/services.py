@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime
 
+import json
 
 class deadlockAPIAnalyticsService:
     def __init__(self):
@@ -48,8 +49,17 @@ class deadlockAPIAnalyticsService:
         }
 
         params = {key: value for key, value in params.items() if value is not None}
-        response = requests.get(url, params=params)
-        return response.json()
+
+        # Temporary json file loading for testing
+        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
+            response = json.load(f)
+        if include_hero_ids:
+            response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
+
+        return response
+
+        # response = requests.get(url, params=params)
+        # return response.json()
 
 
 class deadlockAPIDataService:

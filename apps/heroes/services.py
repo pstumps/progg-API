@@ -8,7 +8,7 @@ HeroesDict = {
     2: 'Seven',
     3: 'Vindicta',
     4: 'Lady Geist',
-    5: 'Abrams',
+    6: 'Abrams',
     7: 'Wraith',
     8: 'McGinnis',
     10: 'Paradox',
@@ -30,10 +30,45 @@ HeroesDict = {
     50: 'Pocket',
     52: 'Mirage',
     53: 'Fathom',
+    54: 'Cadence',
     58: 'Viper',
     60: 'Magician',
     61: 'Trapper',
     62: 'Raven',
+}
+
+idDict = {
+    'Infernus': 1,
+    'Seven': 2,
+    'Vindicta': 3,
+    'Lady Geist': 4,
+    'Abrams': 6,
+    'Wraith': 7,
+    'McGinnis': 8,
+    'Paradox': 10,
+    'Dynamo': 11,
+    'Kelvin': 12,
+    'Haze': 13,
+    'Holliday': 14,
+    'Bebop': 15,
+    'Calico': 16,
+    'Grey Talon': 17,
+    'Mo & Krill': 18,
+    'Shiv': 19,
+    'Ivy': 20,
+    'Warden': 25,
+    'Yamato': 27,
+    'Lash': 31,
+    'Viscous': 35,
+    'Wrecker': 48,
+    'Pocket': 50,
+    'Mirage': 52,
+    'Fathom': 53,
+    'Cadence': 54,
+    'Viper': 58,
+    'Magician': 60,
+    'Trapper': 61,
+    'Raven': 62
 }
 
 class proGGAPIHeroesService:
@@ -82,21 +117,42 @@ class proGGAPIHeroesService:
     def calculateHeroCombinationStats(self, hero_name=None):
         if hero_name:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
-                                                                            include_hero_ids=HeroesDict[hero_name])
+                                                                            include_hero_ids=idDict[hero_name])
         else:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
 
         json_data = []
         if data:
+            synergies = {}
             for stats in data:
                 synergy_hero_one = HeroesDict[stats['hero_ids'][0]]
                 synergy_hero_two = HeroesDict[stats['hero_ids'][1]]
-                json_data.append({
+                winrate = self.calculateWinRate(stats['wins'], stats['losses'])
+                kda = self.calculateKDA(stats['total_kills'], stats['total_deaths'], stats['total_assists'])
+                matches = stats['matches']
+
+                if synergy_hero_one not in synergies:
+                    synergies[synergy_hero_one] = []
+
+                synergies[synergy_hero_one].append({
                     'hero1': synergy_hero_one,
                     'hero2': synergy_hero_two,
-                    'winrate': self.calculateWinRate(stats['wins'], stats['losses']),
-                    'kda': self.calculateKDA(stats['total_kills'], stats['total_deaths'], stats['total_assists']),
+                    'winrate': winrate,
+                    'kda': kda,
+                    'matches': matches
                 })
+
+            for hero, hero_synergies in synergies.items():
+                hero_synergies.sort(key=lambda x: x['winrate'], reverse=True)
+                for rank, synergy in enumerate(hero_synergies, start=1):
+                    json_data.append({
+                        'rank': rank,
+                        'heroes': [synergy['hero1'], synergy['hero2']],
+                        'winrate': synergy['winrate'],
+                        'kda': synergy['kda'],
+                        'matches': synergy['matches']
+                    })
+
         return {'synergies': json_data}
 
     def getAllHeroes(self):
@@ -126,8 +182,9 @@ class proGGAPIHeroesService:
                 'pickrate': hero.pickrate,
                 'abilities': hero.abilities
             }
-            return data
+            return {'hero': data}
         except HeroesModel.DoesNotExist:
+            print('Hero not found')
             return None
 
 
