@@ -73,8 +73,11 @@ class deadlockAPIDataService:
 
     def getBigPatchDays(self):
         url = self.base_url + '/v1/big-patch-days'
-        response = requests.get(url)
-        return response.json()
+        # response = requests.get(url)
+        # print(response.json())
+        # return response.json()
+        # Temporary for testing
+        return ['2024-12-06T20:05:10Z']
 
     def getLatestPatchUnixTimestamp(self):
         data = self.getBigPatchDays()
