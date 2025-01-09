@@ -76,13 +76,15 @@ class proGGAPIHeroesService:
     def __init__(self):
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
-        self.latest_patch_timestamp = self.DLAPIDataService.getLatestPatchUnixTimestamp()
+        self.bigPatchDaysTimestamp = [self.DLAPIDataService.convertToUnixTimestamp(patches) for patches in self.DLAPIDataService.getBigPatchDays()]
+        self.latest_patch_timestamp = self.bigPatchDaysTimestamp[0]
 
     def updateHeroes(self):
         # TODO: Configure to run every 6 hours at some point
         # Updates heroes stats models in database
 
         data = self.DLAPIAnalyticsService.getHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
+        newHero = False
 
         if data:
             total_matches = sum(stats['matches'] for stats in data)
@@ -90,10 +92,10 @@ class proGGAPIHeroesService:
                 heroName = HeroesDict.get(stats['hero_id'])
                 if not heroName:
                     continue
-
                 try:
                     hero = HeroesModel.objects.get(name=heroName)
                 except HeroesModel.DoesNotExist:
+                    newHero = True
                     hero = HeroesModel.objects.create(name=heroName)
 
                 hero.wins = stats['wins']
@@ -111,6 +113,10 @@ class proGGAPIHeroesService:
                     hero.pickrate = round((stats['matches'] / total_matches) * 100, 2)
 
                 hero.save()
+
+                if newHero:
+                    self.calculateTierForEachHero()
+
         else:
             raise Exception('No data returned from Deadlock API')
 
@@ -118,29 +124,49 @@ class proGGAPIHeroesService:
         if hero_name:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
                                                                             include_hero_ids=idDict[hero_name])
+            patchBeforeLastData = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(
+                min_unix_timestamp=self.bigPatchDaysTimestamp[1],
+                max_unix_timestamp=self.latest_patch_timestamp,
+                include_hero_ids=idDict[hero_name])
         else:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
+            patchBeforeLastData = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(
+                min_unix_timestamp=self.bigPatchDaysTimestamp[1],
+                max_unix_timestamp=self.latest_patch_timestamp)
 
         json_data = []
-        if data:
+        if data and patchBeforeLastData:
             synergies = {}
-            for stats in data:
-                synergy_hero_one = HeroesDict[stats['hero_ids'][0]]
-                synergy_hero_two = HeroesDict[stats['hero_ids'][1]]
-                winrate = self.calculateWinRate(stats['wins'], stats['losses'])
-                kda = self.calculateKDA(stats['total_kills'], stats['total_deaths'], stats['total_assists'])
-                matches = stats['matches']
 
-                if synergy_hero_one not in synergies:
-                    synergies[synergy_hero_one] = []
+            for currentStats, previousStats in zip(data, patchBeforeLastData):
+                synergy_hero_one = HeroesDict[currentStats['hero_ids'][0]]
+                synergy_hero_two = HeroesDict[currentStats['hero_ids'][1]]
 
-                synergies[synergy_hero_one].append({
-                    'hero1': synergy_hero_one,
-                    'hero2': synergy_hero_two,
-                    'winrate': winrate,
-                    'kda': kda,
-                    'matches': matches
-                })
+                # TODO: This code should eventually be changed to get data from our own database. Since we don't have
+                # data for all heroes yet, we will use the Deadlock API data for now.
+                if not HeroesModel.objects.get(name=synergy_hero_one).beta and not HeroesModel.objects.get(name=synergy_hero_two).beta:
+                    winrate = self.calculateWinRate(currentStats['wins'], currentStats['losses'])
+                    previousWinrate = self.calculateWinRate(previousStats['wins'], previousStats['losses'])
+                    kda = self.calculateKDA(currentStats['total_kills'],
+                                            currentStats['total_deaths'],
+                                            currentStats['total_assists'])
+                    previousKda = self.calculateKDA(previousStats['total_kills'],
+                                                    previousStats['total_deaths'],
+                                                    previousStats['total_assists'])
+                    matches = currentStats['matches']
+
+                    if synergy_hero_one not in synergies:
+                        synergies[synergy_hero_one] = []
+
+                    synergies[synergy_hero_one].append({
+                        'hero1': synergy_hero_one,
+                        'hero2': synergy_hero_two,
+                        'winrate': winrate,
+                        'winrate_diff': round(winrate - previousWinrate, 1),
+                        'kda': kda,
+                        'kda_diff': round(kda - previousKda, 2),
+                        'matches': matches
+                    })
 
             for hero, hero_synergies in synergies.items():
                 hero_synergies.sort(key=lambda x: x['winrate'], reverse=True)
@@ -149,7 +175,9 @@ class proGGAPIHeroesService:
                         'rank': rank,
                         'heroes': [synergy['hero1'], synergy['hero2']],
                         'winrate': synergy['winrate'],
+                        'winrate_diff': synergy['winrate_diff'],
                         'kda': synergy['kda'],
+                        'kda_diff': synergy['kda_diff'],
                         'matches': synergy['matches']
                     })
 
@@ -270,8 +298,6 @@ class proGGAPIHeroesService:
         '''
 
         return score
-
-
 
     # Helper Functions
 

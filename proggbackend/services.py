@@ -51,14 +51,21 @@ class deadlockAPIAnalyticsService:
         params = {key: value for key, value in params.items() if value is not None}
 
         # Temporary json file loading for testing
-        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
-            response = json.load(f)
-        if include_hero_ids:
-            response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
-
+        print(min_unix_timestamp, max_unix_timestamp)
+        if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
+            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736463668744.json') as f:
+                response = json.load(f)
+            if include_hero_ids:
+                response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
+        else:
+            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
+                response = json.load(f)
+            if include_hero_ids:
+                response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
         return response
 
         # response = requests.get(url, params=params)
+        # print(response.json)
         # return response.json()
 
 
@@ -77,11 +84,16 @@ class deadlockAPIDataService:
         # print(response.json())
         # return response.json()
         # Temporary for testing
-        return ['2024-12-06T20:05:10Z']
+        return ['2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
 
     def getLatestPatchUnixTimestamp(self):
         data = self.getBigPatchDays()
         dt = datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%SZ")
         return int(dt.timestamp())
+
+    def convertToUnixTimestamp(self, date):
+        dt = datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+        return int(dt.timestamp())
+
 
 
