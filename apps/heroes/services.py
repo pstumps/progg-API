@@ -183,6 +183,65 @@ class proGGAPIHeroesService:
 
         return {'synergies': json_data}
 
+    def calculateHeroMatchupStats(self, hero_name=None):
+        if hero_name:
+            data = self.DLAPIAnalyticsService.getMatchupStats(min_unix_timestamp=self.latest_patch_timestamp)
+            patchBeforeLastData = self.DLAPIAnalyticsService.getMatchupStats(
+                min_unix_timestamp=self.bigPatchDaysTimestamp[1],
+                max_unix_timestamp=self.latest_patch_timestamp)
+        else:
+            data = self.DLAPIAnalyticsService.getMatchupStats(min_unix_timestamp=self.latest_patch_timestamp)
+            patchBeforeLastData = self.DLAPIAnalyticsService.getMatchupStats(
+                min_unix_timestamp=self.bigPatchDaysTimestamp[1],
+                max_unix_timestamp=self.latest_patch_timestamp)
+
+        filteredData = [entry['matchups'] for entry in data if entry['hero_id'] == idDict[hero_name]][0]
+        filteredPatchBeforeLastData = [entry['matchups'] for entry in patchBeforeLastData if entry['hero_id'] == idDict[hero_name]][0]
+
+        json_data = []
+        if data and patchBeforeLastData:
+            matchups = {}
+
+            for currentStats, previousStats in zip(filteredData, filteredPatchBeforeLastData):
+                opponent = HeroesDict[currentStats['hero_id']]
+                if not HeroesModel.objects.get(name=opponent).beta:
+                    winrate = self.calculateWinRate(currentStats['wins'], currentStats['losses'])
+                    previousWinrate = self.calculateWinRate(previousStats['wins'], previousStats['losses'])
+                    kda = self.calculateKDA(currentStats['total_kills'],
+                                            currentStats['total_deaths'],
+                                            currentStats['total_assists'])
+                    previousKda = self.calculateKDA(previousStats['total_kills'],
+                                                    previousStats['total_deaths'],
+                                                    previousStats['total_assists'])
+                    matches = currentStats['matches']
+
+                    if hero_name not in matchups:
+                        matchups[hero_name] = []
+
+                    matchups[hero_name].append({
+                        'hero': hero_name,
+                        'opponent': opponent,
+                        'winrate': winrate,
+                        'winrate_diff': round(winrate - previousWinrate, 1),
+                        'kda': kda,
+                        'kda_diff': round(kda - previousKda, 2),
+                        'matches': matches
+                    })
+
+            for hero, matchup_stats in matchups.items():
+                matchup_stats.sort(key=lambda x: x['winrate'], reverse=True)
+                for rank, matchup in enumerate(matchup_stats, start=1):
+                    json_data.append({
+                        'rank': rank,
+                        'heroes': [matchup['hero'], matchup['opponent']],
+                        'winrate': matchup['winrate'],
+                        'winrate_diff': matchup['winrate_diff'],
+                        'kda': matchup['kda'],
+                        'kda_diff': matchup['kda_diff'],
+                        'matches': matchup['matches']
+                    })
+        return {'matchups': json_data}
+
     def getAllHeroes(self):
         heroes = HeroesModel.objects.all()
         data = []

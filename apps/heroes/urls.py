@@ -8,4 +8,6 @@ urlpatterns = [
     path('calculate-tiers/', views.calculateTier, name='calculateTier'),
     path('synergies/', views.synergies, name='synergies'),
     path('synergies/<str:hero_name>/', views.synergies, name='synergies_by_hero'),
+    path('matchups/', views.matchups, name='matchups'),
+    path('matchups/<str:hero_name>/', views.matchups, name='matchups_by_hero'),
 ]

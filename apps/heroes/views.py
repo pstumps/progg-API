@@ -43,6 +43,16 @@ def synergies(request, hero_name=None, min_rank=None, max_rank=None):
         print(traceback.format_exc())
         print(f'Could not get hero combination data, {e}')
 
+def matchups(requese, hero_name=None, min_rank=None, max_rank=None):
+    heroes_service = proGGAPIHeroesService()
+
+    try:
+        matchupData = heroes_service.calculateHeroMatchupStats(hero_name)
+        return JsonResponse(matchupData, status=200)
+    except Exception as e:
+        print(traceback.format_exc())
+        print(f'Could not get hero matchup data, {e}')
+
 def calculateTier(request):
     heroes_service = proGGAPIHeroesService()
 

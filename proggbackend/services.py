@@ -51,22 +51,43 @@ class deadlockAPIAnalyticsService:
         params = {key: value for key, value in params.items() if value is not None}
 
         # Temporary json file loading for testing
-        print(min_unix_timestamp, max_unix_timestamp)
         if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
-            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736463668744.json') as f:
+            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736531551242.json') as f:
                 response = json.load(f)
-            if include_hero_ids:
-                response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
         else:
             with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
                 response = json.load(f)
-            if include_hero_ids:
-                response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
+
+        if include_hero_ids:
+            response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
+
         return response
 
         # response = requests.get(url, params=params)
         # print(response.json)
         # return response.json()
+
+    def getMatchupStats(self, min_badge_level=None, max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
+                        match_mode=None, region=None):
+        url = self.base_url + '/v2/hero-matchups-win-loss-stats'
+
+        params = {
+            'min_badge_level': min_badge_level,
+            'max_badge_level': max_badge_level,
+            'min_unix_timestamp': min_unix_timestamp,
+            'max_unix_timestamp': max_unix_timestamp,
+            'match_mode': match_mode,
+            'region': region
+        }
+
+        params = {key: value for key, value in params.items() if value is not None}
+
+        # Temporary json file loading for testing
+        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736789449489.json') as f:
+            response = json.load(f)
+
+        # response = requests.get(url, params=params)
+        return response
 
 
 class deadlockAPIDataService:
