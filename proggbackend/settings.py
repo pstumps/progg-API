@@ -42,8 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.heroes.apps.HeroesConfig',
+    'apps.matches.apps.MatchesConfig',
+    'apps.players.apps.PlayersConfig',
     'corsheaders',
-    'rest_framework'
+    'rest_framework',
+
 ]
 
 MIDDLEWARE = [

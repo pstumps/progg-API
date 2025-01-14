@@ -67,6 +67,33 @@ class deadlockAPIAnalyticsService:
         # print(response.json)
         # return response.json()
 
+    # def getHeroItemWinLossStats(self, hero_id=None, item_id=None, min_badge_level=None, max_badge_level=None,
+    #                            min_unix_timestamp=None, max_unix_timestamp=None, match_mode=None, region=None):
+    # WIP
+
+    def getPlayerMatchHistory(self, account_id, has_metadata=False, min_unix_timestamp=None, max_unix_timestamp=None,
+                              min_match_id=None, max_match_id=None, min_duration_s=None, max_duration_s=None,
+                              match_mode=None):
+        url = self.base_url + '/v2/players/' + str(account_id) + '/match-history'
+
+        params = {'account_id': account_id,
+                    'has_metadata': has_metadata,
+                    'min_unix_timestamp': min_unix_timestamp,
+                    'max_unix_timestamp': max_unix_timestamp,
+                    'min_match_id': min_match_id,
+                    'max_match_id': max_match_id,
+                    'min_duration_s': min_duration_s,
+                    'max_duration_s': max_duration_s,
+                    'match_mode': match_mode}
+
+        params = {key: value for key, value in params.items() if value is not None}
+
+        with open(
+                'C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736890575828.json') as f:
+            response = json.load(f)
+
+        return response
+
     def getMatchupStats(self, min_badge_level=None, max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
                         match_mode=None, region=None):
         url = self.base_url + '/v2/hero-matchups-win-loss-stats'
@@ -83,8 +110,12 @@ class deadlockAPIAnalyticsService:
         params = {key: value for key, value in params.items() if value is not None}
 
         # Temporary json file loading for testing
-        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736789449489.json') as f:
-            response = json.load(f)
+        if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
+            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885677655.json') as f:
+                response = json.load(f)
+        else:
+            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885638503.json') as f:
+                response = json.load(f)
 
         # response = requests.get(url, params=params)
         return response

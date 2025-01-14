@@ -1,5 +1,6 @@
 from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
 from .Models.HeroesModel import HeroesModel
+from .serializers import HeroSerializer
 
 import numpy as np
 
@@ -97,30 +98,34 @@ class proGGAPIHeroesService:
                 except HeroesModel.DoesNotExist:
                     newHero = True
                     hero = HeroesModel.objects.create(name=heroName)
+                heroData = {
+                    'name': heroName,
+                    'wins': stats['wins'],
+                    'losses': stats['losses'],
+                    'kills': stats['total_kills'],
+                    'deaths': stats['total_deaths'],
+                    'assists': stats['total_assists'],
+                    'matches': stats['matches'],
+                    'pickrate': round((stats['matches'] / total_matches) * 100, 2) if total_matches > 0 else 0
+                }
 
-                hero.wins = stats['wins']
-                hero.losses = stats['losses']
-                hero.kills = stats['total_kills']
-                hero.deaths = stats['total_deaths']
-                hero.assists = stats['total_assists']
-                hero.matches = stats['matches']
-
-                # active_matches = DLAPIDataService.getActiveMatches()
-                # if active_matches:
-                #    highest_match = active_matches[-1]['match_id']
-                #    hero.pickrate = round((stats['matches'] / highest_match) * 100, 2)
-                if total_matches > 0:
-                    hero.pickrate = round((stats['matches'] / total_matches) * 100, 2)
-
-                hero.save()
+                serializer = HeroSerializer(hero, data=heroData)
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    print(serializer.errors)
 
                 if newHero:
                     self.calculateTierForEachHero()
 
+                # active_matches = DLAPIDataService.getActiveMatches()
+                # if active_matches:
+                #    highest_match = active_matches[-1]['match_id']
+
         else:
             raise Exception('No data returned from Deadlock API')
 
-    def calculateHeroCombinationStats(self, hero_name=None):
+    def getHeroCombinationData(self, hero_name=None):
         if hero_name:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
                                                                             include_hero_ids=idDict[hero_name])
@@ -134,77 +139,48 @@ class proGGAPIHeroesService:
                 min_unix_timestamp=self.bigPatchDaysTimestamp[1],
                 max_unix_timestamp=self.latest_patch_timestamp)
 
-        json_data = []
-        if data and patchBeforeLastData:
-            synergies = {}
+        return data, patchBeforeLastData
 
-            for currentStats, previousStats in zip(data, patchBeforeLastData):
-                synergy_hero_one = HeroesDict[currentStats['hero_ids'][0]]
-                synergy_hero_two = HeroesDict[currentStats['hero_ids'][1]]
-
-                # TODO: This code should eventually be changed to get data from our own database. Since we don't have
-                # data for all heroes yet, we will use the Deadlock API data for now.
-                if not HeroesModel.objects.get(name=synergy_hero_one).beta and not HeroesModel.objects.get(name=synergy_hero_two).beta:
-                    winrate = self.calculateWinRate(currentStats['wins'], currentStats['losses'])
-                    previousWinrate = self.calculateWinRate(previousStats['wins'], previousStats['losses'])
-                    kda = self.calculateKDA(currentStats['total_kills'],
-                                            currentStats['total_deaths'],
-                                            currentStats['total_assists'])
-                    previousKda = self.calculateKDA(previousStats['total_kills'],
-                                                    previousStats['total_deaths'],
-                                                    previousStats['total_assists'])
-                    matches = currentStats['matches']
-
-                    if synergy_hero_one not in synergies:
-                        synergies[synergy_hero_one] = []
-
-                    synergies[synergy_hero_one].append({
-                        'hero1': synergy_hero_one,
-                        'hero2': synergy_hero_two,
-                        'winrate': winrate,
-                        'winrate_diff': round(winrate - previousWinrate, 1),
-                        'kda': kda,
-                        'kda_diff': round(kda - previousKda, 2),
-                        'matches': matches
-                    })
-
-            for hero, hero_synergies in synergies.items():
-                hero_synergies.sort(key=lambda x: x['winrate'], reverse=True)
-                for rank, synergy in enumerate(hero_synergies, start=1):
-                    json_data.append({
-                        'rank': rank,
-                        'heroes': [synergy['hero1'], synergy['hero2']],
-                        'winrate': synergy['winrate'],
-                        'winrate_diff': synergy['winrate_diff'],
-                        'kda': synergy['kda'],
-                        'kda_diff': synergy['kda_diff'],
-                        'matches': synergy['matches']
-                    })
-
-        return {'synergies': json_data}
-
-    def calculateHeroMatchupStats(self, hero_name=None):
+    def getHeroMatchupData(self, hero_name=None):
         if hero_name:
             data = self.DLAPIAnalyticsService.getMatchupStats(min_unix_timestamp=self.latest_patch_timestamp)
             patchBeforeLastData = self.DLAPIAnalyticsService.getMatchupStats(
                 min_unix_timestamp=self.bigPatchDaysTimestamp[1],
                 max_unix_timestamp=self.latest_patch_timestamp)
+            data = [entry['matchups'] for entry in data if entry['hero_id'] == idDict[hero_name]][0]
+            patchBeforeLastData = [entry['matchups'] for entry in patchBeforeLastData if entry['hero_id'] == idDict[hero_name]][0]
         else:
             data = self.DLAPIAnalyticsService.getMatchupStats(min_unix_timestamp=self.latest_patch_timestamp)
             patchBeforeLastData = self.DLAPIAnalyticsService.getMatchupStats(
                 min_unix_timestamp=self.bigPatchDaysTimestamp[1],
                 max_unix_timestamp=self.latest_patch_timestamp)
 
-        filteredData = [entry['matchups'] for entry in data if entry['hero_id'] == idDict[hero_name]][0]
-        filteredPatchBeforeLastData = [entry['matchups'] for entry in patchBeforeLastData if entry['hero_id'] == idDict[hero_name]][0]
+        return data, patchBeforeLastData
 
+    def calculateStats(self, data1, data2, hero_name=None, matchupData=False):
+        def calculateRank(wr, kda):
+            wrWeight = 0.6
+            kdaWeight = 0.25
+            return (wr * wrWeight) + (kda * kdaWeight)
         json_data = []
-        if data and patchBeforeLastData:
-            matchups = {}
+        if data1 and data2:
+            statsDict = {}
+            for currentStats, previousStats in zip(data1, data2):
+                if matchupData:
+                    if hero_name:
+                        hero_one = hero_name
+                        hero_two = HeroesDict[currentStats['hero_id']]
+                    else:
+                        raise Exception('Hero name required for matchup data')
+                else:
+                    if hero_name:
+                        hero_one = hero_name
+                        hero_two = HeroesDict[currentStats['hero_ids'][1]]
+                    else:
+                        hero_one = HeroesDict[currentStats['hero_ids'][0]]
+                        hero_two = HeroesDict[currentStats['hero_ids'][1]]
 
-            for currentStats, previousStats in zip(filteredData, filteredPatchBeforeLastData):
-                opponent = HeroesDict[currentStats['hero_id']]
-                if not HeroesModel.objects.get(name=opponent).beta:
+                if not HeroesModel.objects.get(name=hero_one).beta and not HeroesModel.objects.get(name=hero_two).beta:
                     winrate = self.calculateWinRate(currentStats['wins'], currentStats['losses'])
                     previousWinrate = self.calculateWinRate(previousStats['wins'], previousStats['losses'])
                     kda = self.calculateKDA(currentStats['total_kills'],
@@ -215,61 +191,45 @@ class proGGAPIHeroesService:
                                                     previousStats['total_assists'])
                     matches = currentStats['matches']
 
-                    if hero_name not in matchups:
-                        matchups[hero_name] = []
+                    if hero_one not in statsDict:
+                        statsDict[hero_one] = []
 
-                    matchups[hero_name].append({
-                        'hero': hero_name,
-                        'opponent': opponent,
+                    statsDict[hero_one].append({
+                        'hero1': hero_one,
+                        'hero2': hero_two,
                         'winrate': winrate,
                         'winrate_diff': round(winrate - previousWinrate, 1),
                         'kda': kda,
                         'kda_diff': round(kda - previousKda, 2),
-                        'matches': matches
+                        'matches': matches,
+                        'rank': calculateRank(winrate, kda)
                     })
 
-            for hero, matchup_stats in matchups.items():
-                matchup_stats.sort(key=lambda x: x['winrate'], reverse=True)
-                for rank, matchup in enumerate(matchup_stats, start=1):
+            for hero, heroStats in statsDict.items():
+                heroStats.sort(key=lambda x: x['rank'], reverse=True)
+                for rank, stat in enumerate(heroStats, start=1):
                     json_data.append({
                         'rank': rank,
-                        'heroes': [matchup['hero'], matchup['opponent']],
-                        'winrate': matchup['winrate'],
-                        'winrate_diff': matchup['winrate_diff'],
-                        'kda': matchup['kda'],
-                        'kda_diff': matchup['kda_diff'],
-                        'matches': matchup['matches']
+                        'heroes': [stat['hero1'], stat['hero2']],
+                        'winrate': stat['winrate'],
+                        'winrate_diff': stat['winrate_diff'],
+                        'kda': stat['kda'],
+                        'kda_diff': stat['kda_diff'],
+                        'matches': stat['matches']
                     })
-        return {'matchups': json_data}
+
+            return json_data
 
     def getAllHeroes(self):
         heroes = HeroesModel.objects.all()
-        data = []
-        for hero in heroes:
-            data.append({
-                'name': hero.name,
-                'tier': hero.tier,
-                'winrate': self.calculateWinRate(hero.wins, hero.losses),
-                'kda': self.calculateKDA(hero.kills, hero.deaths, hero.assists),
-                'pickrate': hero.pickrate,
-                'beta': hero.beta,
-                'abilities': hero.abilities
-            })
-
-        return {'heroes': data}
+        serializer = HeroSerializer(heroes, many=True)
+        return {'heroes': serializer.data}
 
     def getHeroByName(self, hero_name):
         try:
             hero = HeroesModel.objects.get(name=hero_name)
-            data = {
-                'name': hero.name,
-                'tier': hero.tier,
-                'winrate': self.calculateWinRate(hero.wins, hero.losses),
-                'kda': self.calculateKDA(hero.kills, hero.deaths, hero.assists),
-                'pickrate': hero.pickrate,
-                'abilities': hero.abilities
-            }
-            return {'hero': data}
+            serializer = HeroSerializer(hero)
+            return {'hero': serializer.data}
         except HeroesModel.DoesNotExist:
             print('Hero not found')
             return None

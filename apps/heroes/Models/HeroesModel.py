@@ -1,4 +1,5 @@
 from django.db import models
+from ...matches.Models.MatchesModel import MatchesModel
 '''
 Deadlock API hero names by ID Number:
 Infernus: 1
@@ -47,3 +48,4 @@ class HeroesModel(models.Model):
     pickrate = models.IntegerField(null=True)
     tier = models.CharField(max_length=1, null=True)
     beta = models.BooleanField(null=True)
+    matchesModel = models.ManyToManyField(MatchesModel, related_name='heroesModel', null=True)
