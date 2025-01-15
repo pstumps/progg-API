@@ -130,6 +130,16 @@ class deadlockAPIDataService:
         response = requests.get(url)
         return response.json()
 
+    def getMatchMetadata(self, dlAPIMatchId):
+        url = self.base_url + '/v2/matches/' + str(dlAPIMatchId) + '/metadata'
+
+        # For Testing only
+        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736963370054.json') as f:
+            response = json.load(f)
+        return response
+        # response = requests.get(url)
+        # return response.json()
+
     def getBigPatchDays(self):
         url = self.base_url + '/v1/big-patch-days'
         # response = requests.get(url)
