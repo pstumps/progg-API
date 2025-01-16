@@ -1,8 +1,6 @@
-from django.db.models import Prefetch
-
 from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
 from ..matches.Models.MatchesModel import MatchesModel, MatchPlayerModel
-from ..players.Models.PlayerModel import PlayerModel
+from ..players.Models.PlayerModel import PlayerModel, PlayerHeroModel
 
 
 class proGGPlayersService:
@@ -41,12 +39,18 @@ class proGGPlayersService:
 
         return proggRecentMatches[:10]
 
-    def createNewMatchPlayerFromDLAPIRecentMatch(self, data, match, player):
+    def createNewMatchPlayerFromDLAPIRecentMatch(self, data, match, steam_id3):
+        try:
+            player = PlayerModel.objects.get(steam_id3=steam_id3)
+        except:
+            player = None
+
         if data['time_abandoned_s'] > 0:
             newMatchPlayer = MatchPlayerModel.objects.create(abandoned=True,
                                                              abandonedTime=data['time_abandoned_s'],
                                                              match=match,
-                                                             player=player)
+                                                             player=player,
+                                                             steam_id3=steam_id3)
             newMatchPlayer.save()
             return newMatchPlayer
         else:
@@ -54,30 +58,21 @@ class proGGPlayersService:
                                                              deaths=data['player_deaths'],
                                                              assists=data['player_assists'],
                                                              hero=data['hero_id'],
-                                                             team=data['team'],
+                                                             team=data['player_team'],
                                                              souls=data['net_worth'],
                                                              level=data['hero_level'],
                                                              lastHits=data['last_hits'],
                                                              denies=data['denies'],
                                                              win=data['match_result'],
                                                              match=match,
-                                                             player=player)
+                                                             player=player,
+                                                             steam_id3=steam_id3)
 
-            matchMetadata = self.DLAPIDataService.getMatchMetadata(dlAPIMatchId=data['match_id'])
-            if matchMetadata:
-                for player in matchMetadata['match_info']['players']:
-                    if player['account_id'] == player.steam_id3:
-                        lastStat = player['stats'][-1]
-                        if lastStat['time_stamp_s'] == match['match_duration_s']:
-                            newMatchPlayer.accuracy = round(
-                                lastStat['shots_hit'] / (lastStat['shots_missed'] + lastStat['shots_hit']), 2)
-                            newMatchPlayer.heroDamage = lastStat['player_damage']
-                            newMatchPlayer.objDamage = lastStat['neutral_damage']
-                            newMatchPlayer.healing = lastStat['player_healing']
-                        break
+            newMatchPlayer = self.fillInMissingMatchPlayerMetadata(newMatchPlayer)
 
-            newMatchPlayer.save()
-            return newMatchPlayer
+
+        newMatchPlayer.save()
+        return newMatchPlayer
 
     def fillInMissingMatchPlayerMetadata(self, matchPlayer):
         matchMetadata = self.DLAPIDataService.getMatchMetadata(dlAPIMatchId=matchPlayer.match.deadlock_id)

@@ -42,7 +42,7 @@ class PlayerModel(models.Model):
         return self.name
 
 
-class PlayerHeroStats(models.Model):
+class PlayerHeroModel(models.Model):
     player_hero_id = models.AutoField(primary_key=True)
     player_id = models.ForeignKey(PlayerModel, related_name='player_hero_stats', on_delete=models.CASCADE)
     hero = models.ForeignKey('heroes.HeroesModel', related_name='player_hero_stats', on_delete=models.CASCADE)
