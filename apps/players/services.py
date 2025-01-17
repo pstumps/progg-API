@@ -1,5 +1,6 @@
 from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
-from ..matches.Models.MatchesModel import MatchesModel, MatchPlayerModel
+from ..matches.Models.MatchesModel import MatchesModel
+from ..matches.Models.MatchPlayerModel import MatchPlayerModel
 from ..players.Models.PlayerModel import PlayerModel, PlayerHeroModel
 
 
