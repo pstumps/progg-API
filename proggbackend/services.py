@@ -158,4 +158,32 @@ class deadlockAPIDataService:
         return int(dt.timestamp())
 
 
+class deadlockAPIAssetsService:
+    def __init__(self):
+        self.base_url = 'https://assets.deadlock-api.com'
 
+    def getHeroAssets(self):
+        url = self.base_url + '/v1/heroes'
+        response = requests.get(url)
+        return response.json()
+
+    def getItemAssets(self):
+        url = self.base_url + '/v2/items'
+        response = requests.get(url)
+        return response.json()
+
+    def getItemById(self, item_id, langauge=None, client_version=None):
+        url = self.base_url + '/v2/items/' + str(item_id)
+
+        response = requests.get(url)
+        return response.json
+
+    def getAbilityAssets(self):
+        url = self.base_url + '/v1/abilities'
+        response = requests.get(url)
+        return response.json()
+
+    def getBadgeAssets(self):
+        url = self.base_url + '/v1/badges'
+        response = requests.get(url)
+        return response.json()

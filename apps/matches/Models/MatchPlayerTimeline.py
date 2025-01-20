@@ -1,14 +1,13 @@
 from django.db import models
 from MatchesModel import MatchesModel
-from MatchPlayerModel import MatchPlayerModel
+from ...players.Models.PlayerModel import PlayerModel
 
 class MatchPlayerTimelineEvent(models.Model):
     timeline_event_id = models.AutoField(primary_key=True)
     match = models.ForeignKey(MatchesModel, related_name='matchPlayerTimelineEvents', on_delete=models.CASCADE)
-    match_player = models.ForeignKey(MatchPlayerModel, related_name='matchPlayerTimelineEvents', on_delete=models.CASCADE)
-    date = models.DateTimeField(null=True)
+    player = models.ForeignKey(PlayerModel, related_name='matchPlayerTimelineEvents', on_delete=models.CASCADE)
     timestamp = models.IntegerField(default=0)
-    event_type = models.CharField(max_length=100, null=True) # Kill, death, item, or level
-    event_data = models.JSONField(null=True)
+    eventType = models.CharField(max_length=100, null=True) # Kill, death, item, or level
+    eventData = models.JSONField(null=True)
 
 

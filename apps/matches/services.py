@@ -1,17 +1,19 @@
 import datetime, json
 from .Models.MatchesModel import MatchesModel
 from .Models.MatchPlayerModel import MatchPlayerModel
+from .Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
 from ..players.Models.PlayerModel import PlayerModel
-from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
+from .Models.MatchTimeline import MatchTimelineEvent
+from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService, deadlockAPIAssetsService
 
-itemsAbilitiesDict = {}
 class proggAPIMatchesService:
     def __init__(self):
-        self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
-        self.DLAPIDataService = deadlockAPIDataService()
+        self.DLAPIAnalytics = deadlockAPIAnalyticsService()
+        self.DLAPIData = deadlockAPIDataService()
+        self.DLAPIAssets = deadlockAPIAssetsService()
 
     def createNewMatchFromMetadata(self, dl_match_id):
-        matchMetadata = self.DLAPIDataService.getMatchMetadata(dl_match_id=dl_match_id)['match_info']
+        matchMetadata = self.DLAPIData.getMatchMetadata(dl_match_id=dl_match_id)['match_info']
         averageBadges = {}
         badgesSum = 0
 
@@ -33,25 +35,25 @@ class proggAPIMatchesService:
         )
 
 
-    def createNewMatchPlayerFromMetadata(self, playerModel, match, metadataPlayer, playerFinalItems, matchMetaData):
-
-        endStats = metadataPlayer['stats'][-1]
+    def createNewMatchPlayerFromMetadata(self, playerModel, match, playerMetadata, matchMetaData):
+        endStats = playerMetadata['stats'][-1]
         playerSouls = endStats['net_worth']
         goldSources = endStats['gold_sources']
         matchPlayer = MatchPlayerModel.objects.create(
             player=playerModel,
             match=match,
-            steam_id3=metadataPlayer['account_id'],
-            team=metadataPlayer['team'],
-            kills=metadataPlayer['kills'],
-            deaths=metadataPlayer['deaths'],
-            assists=metadataPlayer['assists'],
-            hero=metadataPlayer['hero_id'],
+            steam_id3=playerMetadata['account_id'],
+            team=playerMetadata['team'],
+            playerSlot=playerMetadata['player_slot'],
+            kills=playerMetadata['kills'],
+            deaths=playerMetadata['deaths'],
+            assists=playerMetadata['assists'],
+            hero=playerMetadata['hero_id'],
             souls=playerSouls,
-            lastHits=metadataPlayer['last_hits'],
-            denies=metadataPlayer['denies'],
-            party=metadataPlayer['party'],
-            lane=metadataPlayer['assigned_lane'],
+            lastHits=playerMetadata['last_hits'],
+            denies=playerMetadata['denies'],
+            party=playerMetadata['party'],
+            lane=playerMetadata['assigned_lane'],
             accuracy=endStats['shots_hit'] / endStats['shots_hit'] + endStats['shots_missed'],
             soulsBreakdown=json.dumps({
                 'hero': round(playerSouls/(goldSources[0]['gold'] + goldSources[0]['gold_orbs']), 1),
@@ -66,28 +68,33 @@ class proggAPIMatchesService:
             heroDamage=goldSources[0]['damage'],
             objDamage=goldSources[2]['damage'],
             healing=endStats['player_healing'],
-            win=metadataPlayer['team'] == matchMetaData['winning_team'],
+            win=playerMetadata['team'] == matchMetaData['winning_team'],
         )
-
-    def sortPlayerItems(self, playerItems):
-        abilities = []
-        items = []
-        for item in playerItems:
-            if itemsAbilitiesDict[item].startswith('ability_'):
-                abilities.append(itemsAbilitiesDict[item])
+        return matchPlayer
 
 
-    def parseMatchEventsForMatchPlayerTimeline(self, matchMetadata):
+    def parseMatchEventsFromMetadata(self, match, matchMetadata):
         match_event_details = {}
-        player_final_items = {player['account_id']: [] for player in matchMetadata['players']}
 
         player_details = {player['player_slot']: {
             'account_id': player['account_id'],
             'hero_id': player['hero_id']} for player in matchMetadata['players']}
 
         for player in matchMetadata['players']:
-            # TODO: Only consider players where account_id exists in our db
             player_account_id = player['account_id']
+
+            playerToTrack = PlayerModel.objects.filter(steam_id3=player_account_id).first()
+            if not playerToTrack:
+                playerToTrack = PlayerModel.objects.create(
+                    steam_id3=player_account_id,
+                    )
+
+            abilityLevels = {}
+            createTimeline = False
+
+            if playerToTrack.timelineTracking:
+                createTimeline = True
+
             for death_event in player['death_details']:
                 slayer_slot = death_event['killer_player_slot']
                 slayer_info = player_details[slayer_slot]
@@ -97,42 +104,135 @@ class proggAPIMatchesService:
                         'hero_id': slayer_info['hero_id'],
                         'kills': [],
                         'deaths': [],
-                        'items': []
+                        'items': {}
                     }
                 if player_account_id not in match_event_details:
                     match_event_details[player_account_id] = {
                         'hero_id': player['hero_id'],
                         'kills': [],
                         'deaths': [],
-                        'items': []
+                        'items': {}
                     }
                 match_event_details[slayer_account_id]['kills'].append({
                     'victim_hero_id': player['hero_id'],
-                    'time': death_event['time']
+                    'time': death_event['game_time_s']
                 })
                 match_event_details[player_account_id]['deaths'].append({
                     'slayer_hero_id': slayer_info['hero_id'],
-                    'time': death_event['time']
+                    'time': death_event['game_time_s']
                 })
 
+                MatchTimelineEvent.objects.create(
+                    match=match,
+                    timestamp=death_event['time'],
+                    eventType='pvp',
+                    eventData={'slayer_hero_id': slayer_info['hero_id'],
+                               'victim_hero_id': player['hero_id']}
+                )
+
+                if createTimeline:
+                    MatchPlayerTimelineEvent.objects.create(
+                       match=match,
+                       player=playerToTrack,
+                       timestamp=death_event['game_time_s'],
+                       eventType='pvp',
+                       eventData={'slayer_hero_id': slayer_info['hero_id'],
+                                  'victim_hero_id': player['hero_id']}
+                    )
+
+                if slayer_account_id == playerToTrack.steam_id3:
+                    if createTimeline:
+                        MatchPlayerTimelineEvent.objects.create(
+                            match=match,
+                            player=playerToTrack,
+                            timestamp=death_event['game_time_s'],
+                            eventType='pvp',
+                            eventData={'slayer_hero_id': slayer_info['hero_id'],
+                                       'victim_hero_id': player['hero_id']}
+                        )
+
             for item_events in player['items']:
+
                 if player_account_id not in match_event_details:
                     match_event_details[player_account_id] = {
                         'hero_id': player['hero_id'],
                         'kills': [],
                         'deaths': [],
-                        'items': []
+                        'items': {},
+                        'abilities': []
                     }
 
-                match_event_details[player_account_id]['items'].append({
-                    'item_id': item_events['item_id'],
-                    'time': item_events['game_time_s'],
-                    'sold_time': item_events['sold_time_s']
-                })
+                item_data = self.DLAPIAssets.getItemById(item_events['item_id'])
 
-                if item_events['upgrade_id'] == 0 and item_events['sold_time_s'] == 0:
-                    player_final_items[player_account_id].append(item_events['item_id'])
+                if item_data:
 
+                    if item_data['class_name'].startswith('ability_'):
+                        if not abilityLevels[item_data['name']]:
+                            abilityLevels[item_data['name']] = []
+                        else:
+                            abilityLevels[item_data['name']].append(item_events['game_time_s'])
+
+                        if createTimeline:
+                            MatchPlayerTimelineEvent.objects.create(
+                                match=match,
+                                player=playerToTrack,
+                                timestamp=item_events['game_time_s'],
+                                eventType='level',
+                                eventData={'ability_id': item_events['item_id'],
+                                           'target': item_data['name']}
+                            )
+                    elif item_data.get('item_slot_type'):
+                        playerItemsDictionary = match_event_details[player_account_id]['items']
+                        if item_events['sold_time_s'] == 0 and item_events['upgrade_id'] == 0:
+                            # Item was a part of final build
+                            if item_data['item_slot_type'] not in playerItemsDictionary:
+                                playerItemsDictionary[item_data['item_slot_type']] = []
+                            if len(playerItemsDictionary[item_data['item_slot_type']]) == 4:
+                                if not playerItemsDictionary.get('flex'):
+                                    playerItemsDictionary['flex'] = []
+                                else:
+                                    playerItemsDictionary['flex'].append({
+                                        'item_id': item_events['item_id'],
+                                        'target': item_data['name'],
+                                        'type': item_data['item_slot_type']
+                                    })
+                            playerItemsDictionary[item_data['item_slot_type']].append({
+                                'item_id': item_events['item_id'],
+                                'target': item_data['name'],
+                            })
+                        if createTimeline:
+                            MatchPlayerTimelineEvent.objects.create(
+                                match=match,
+                                player=playerToTrack,
+                                timestamp=item_events['game_time_s'],
+                                eventType='item',
+                                eventData={'item_id': item_events['item_id'],
+                                           'target': item_data['name'],
+                                           'slot': item_data['item_slot_type'],
+                                           'sold_time_s': item_events['sold_time_s']}
+                            )
+
+            sortedAbilities = sorted(abilityLevels.items(), key=lambda x: (-len(x[1]), x[1]))
+            matchPlayer = self.createNewMatchPlayerFromMetadata(playerToTrack, match, player, matchMetadata)
+            matchPlayer.items = json.dumps({'items': match_event_details[player_account_id]['items']})
+            matchPlayer.abilities = json.dumps({'ability_order': [ability[0] for ability in sortedAbilities]})
+            matchPlayer.save()
+
+        for obj in matchMetadata['objectives']:
+            MatchTimelineEvent.objects.create(
+                match=match,
+                timestamp=obj['destroyed_time_s'],
+                eventType='obj',
+                eventData={'target': obj['team_objective_id'], 'team': obj['team']}
+            )
+
+        for midboss in matchMetadata['mid_boss']:
+            MatchTimelineEvent.objects.create(
+                match=match,
+                timestamp=midboss['destroyed_time_s'],
+                eventType='midboss',
+                eventData={'killed': midboss['team_killed'], 'claimed': midboss['team_claimed']}
+            )
 
 
         return match_event_details
