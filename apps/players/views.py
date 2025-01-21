@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from .services import proGGPlayersService
-
 def recentMatches(request, steam_id3):
     playersService = proGGPlayersService()
     lastTenMatches = playersService.getRecentMatches(steam_id3)

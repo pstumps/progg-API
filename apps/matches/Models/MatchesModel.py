@@ -1,5 +1,4 @@
 from django.db import models
-from ...players.Models.PlayerModel import PlayerModel
 
 
 class MatchesModel(models.Model):
@@ -7,11 +6,11 @@ class MatchesModel(models.Model):
     deadlock_id = models.BigIntegerField(null=True)
     date = models.DateTimeField(null=True)
     averageRank = models.JSONField(null=True)
-    gameMode = models.CharField(max_length=100, null=True)
-    matchMode = models.CharField(max_length=100, null=True)
+    gameMode = models.CharField(max_length=50, null=True)
+    matchMode = models.CharField(max_length=50, null=True)
     length = models.IntegerField(default=0)
     teamStats = models.JSONField(null=True)
-    victor = models.CharField(max_length=100, null=True)
+    victor = models.CharField(max_length=50, null=True)
 
     def __str__(self):
         return self.deadlock_id

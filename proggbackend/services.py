@@ -134,7 +134,7 @@ class deadlockAPIDataService:
         url = self.base_url + '/v2/matches/' + str(dl_match_id) + '/metadata'
 
         # For Testing only
-        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736963370054.json') as f:
+        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1737399254812.json') as f:
             response = json.load(f)
         return response
         # response = requests.get(url)

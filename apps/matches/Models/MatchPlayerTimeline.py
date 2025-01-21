@@ -1,5 +1,5 @@
 from django.db import models
-from MatchesModel import MatchesModel
+from .MatchesModel import MatchesModel
 from ...players.Models.PlayerModel import PlayerModel
 
 class MatchPlayerTimelineEvent(models.Model):
@@ -7,7 +7,7 @@ class MatchPlayerTimelineEvent(models.Model):
     match = models.ForeignKey(MatchesModel, related_name='matchPlayerTimelineEvents', on_delete=models.CASCADE)
     player = models.ForeignKey(PlayerModel, related_name='matchPlayerTimelineEvents', on_delete=models.CASCADE)
     timestamp = models.IntegerField(default=0)
-    eventType = models.CharField(max_length=100, null=True) # Kill, death, item, or level
+    eventType = models.CharField(max_length=100, null=True)
     eventData = models.JSONField(null=True)
 
 

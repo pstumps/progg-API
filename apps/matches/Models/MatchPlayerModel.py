@@ -26,6 +26,8 @@ class MatchPlayerModel(models.Model):
     denies = models.IntegerField(default=0)
     items = models.JSONField(null=True)
     abilities = models.JSONField(null=True)
+    multiKills = models.JSONField(null=True)
+    streaks = models.JSONField(null=True)
     win = models.BooleanField(default=0)
     medals = models.JSONField(null=True)
     abandoned = models.BooleanField(default=False)
