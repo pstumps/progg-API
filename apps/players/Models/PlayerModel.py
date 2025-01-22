@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
     steam_id3 = models.BigIntegerField(null=True)
@@ -9,29 +10,24 @@ class PlayerModel(models.Model):
     region = models.CharField(max_length=100)
     rank = models.IntegerField(default=0)
     matches = models.ManyToManyField('matches.MatchesModel', related_name='playersModel', symmetrical=True)
-    wins = models.BigIntegerField(default=0)
-    losses = models.BigIntegerField(default=0)
-    kills = models.BigIntegerField(default=0)
-    deaths = models.BigIntegerField(default=0)
-    assists = models.BigIntegerField(default=0)
+    wins = models.IntegerField(default=0)
+    kills = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+    assists = models.IntegerField(default=0)
     souls = models.BigIntegerField(default=0)
     accuracy = models.IntegerField(default=0)
     heroDamage = models.BigIntegerField(default=0)
     objDamage = models.BigIntegerField(default=0)
     healing = models.BigIntegerField(default=0)
-    doubleKills = models.BigIntegerField(default=0)
-    tripleKills = models.BigIntegerField(default=0)
-    quadKills = models.BigIntegerField(default=0)
-    pentaKills = models.BigIntegerField(default=0)
-    ultraKills = models.BigIntegerField(default=0)
-    threeStreak = models.BigIntegerField(default=0)
-    fourStreak = models.BigIntegerField(default=0)
-    fiveStreak = models.BigIntegerField(default=0)
-    sixStreak = models.BigIntegerField(default=0)
-    sevenStreak = models.BigIntegerField(default=0)
-    eightStreak = models.BigIntegerField(default=0)
-    nineStreak = models.BigIntegerField(default=0)
-    tenStreak = models.BigIntegerField(default=0)
+    guardians = models.IntegerField(default=0)
+    walkers = models.IntegerField(default=0)
+    baseGuardians = models.IntegerField(default=0)
+    shieldGenerators = models.IntegerField(default=0)
+    patrons = models.IntegerField(default=0)
+    lastHits = models.IntegerField(default=0)
+    multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
+    streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
+    longestStreak = models.IntegerField(default=0)
     mmr = models.BigIntegerField(default=0)
     lastMatch = models.DateTimeField(null=True)
     lastLogin = models.DateTimeField(null=True)
@@ -41,38 +37,3 @@ class PlayerModel(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class PlayerHeroModel(models.Model):
-    player_hero_id = models.AutoField(primary_key=True)
-    player_id = models.ForeignKey(PlayerModel, related_name='player_hero_stats', on_delete=models.CASCADE)
-    hero = models.ForeignKey('heroes.HeroesModel', related_name='player_hero_stats', on_delete=models.CASCADE)
-    wins = models.BigIntegerField(default=0)
-    losses = models.BigIntegerField(default=0)
-    kills = models.BigIntegerField(default=0)
-    deaths = models.BigIntegerField(default=0)
-    assists = models.BigIntegerField(default=0)
-    souls = models.BigIntegerField(default=0)
-    accuracy = models.IntegerField(default=0)
-    matches = models.BigIntegerField(default=0)
-    heroDamage = models.BigIntegerField(default=0)
-    objDamage = models.BigIntegerField(default=0)
-    healing = models.BigIntegerField(default=0)
-    doubleKills = models.BigIntegerField(default=0)
-    tripleKills = models.BigIntegerField(default=0)
-    quadKills = models.BigIntegerField(default=0)
-    pentaKills = models.BigIntegerField(default=0)
-    ultraKills = models.BigIntegerField(default=0)
-    threeStreak = models.BigIntegerField(default=0)
-    fourStreak = models.BigIntegerField(default=0)
-    fiveStreak = models.BigIntegerField(default=0)
-    sixStreak = models.BigIntegerField(default=0)
-    sevenStreak = models.BigIntegerField(default=0)
-    eightStreak = models.BigIntegerField(default=0)
-    nineStreak = models.BigIntegerField(default=0)
-    tenStreak = models.BigIntegerField(default=0)
-    tier = models.CharField(max_length=1, null=True)
-    beta = models.BooleanField(default=0)
-
-    def __str__(self):
-        return self.hero.name
