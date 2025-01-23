@@ -24,6 +24,7 @@ class PlayerModel(models.Model):
     baseGuardians = models.IntegerField(default=0)
     shieldGenerators = models.IntegerField(default=0)
     patrons = models.IntegerField(default=0)
+    midbosses = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
     multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
     streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]

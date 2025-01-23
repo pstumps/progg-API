@@ -15,6 +15,7 @@ class proggAPIMatchesService:
         self.DLAPIAnalytics = deadlockAPIAnalyticsService()
         self.DLAPIData = deadlockAPIDataService()
         self.DLAPIAssets = deadlockAPIAssetsService()
+        self.DLItemsDict = self.DLAPIAssets.getItemsDict()
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
@@ -88,6 +89,9 @@ class proggAPIMatchesService:
             if player.get('death_details'):
                 for death_event in player['death_details']:
                     slayer_slot = death_event['killer_player_slot']
+                    if slayer_slot not in player_details:
+                        continue
+
                     slayer_info = player_details[slayer_slot]
                     slayer_account_id = slayer_info['account_id']
 
@@ -154,10 +158,10 @@ class proggAPIMatchesService:
                         'abilities': [],
                     }
 
-                item_data = self.DLAPIAssets.getItemById(item_events['item_id'])
+                item_data = self.DLItemsDict.get(item_events['item_id'])
                 if item_data:
                     if item_data['class_name'].startswith('ability_'):
-                        if not abilityLevels[item_data['name']]:
+                        if item_data['name'] not in abilityLevels:
                             abilityLevels[item_data['name']] = []
                         else:
                             abilityLevels[item_data['name']].append(item_events['game_time_s'])
@@ -214,6 +218,15 @@ class proggAPIMatchesService:
             matchPlayer.streaks = json.dumps({'streaks': streakCounts[account_id]})
             matchPlayer.save()
 
+            playerHero = self.createOrUpdatePlayerHero(matchPlayer, longestStreaks)
+            player = self.updatePlayerStatsFromMatchPlayer(matchPlayer, multis, streakCounts, longestStreaks, objectiveEvents, midbossEvents)
+
+            print(playerHero)
+            print(player)
+
+            playerHero.save()
+            player.save()
+
         return match_event_details
 
     def calculateAverageBadgeFromMetadata(self, metadata):
@@ -230,8 +243,15 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createOrUpdatePlayerHero(self, matchPlayer, longestStreaks):
-        playerHero = PlayerHeroModel.objects.filter(hero_id=matchPlayer.hero).first()
-        hero = HeroesModel.objects.get(dl_hero_id=matchPlayer.dl_hero_id)
+        playerHero = PlayerHeroModel.objects.filter(hero_id=matchPlayer.dl_hero_id).first()
+
+        if not HeroesModel.objects.filter(dl_hero_id=matchPlayer.dl_hero_id).exists():
+            hero = HeroesModel.objects.create(
+                dl_hero_id=matchPlayer.dl_hero_id
+            )
+        else:
+            hero = HeroesModel.objects.get(dl_hero_id=matchPlayer.dl_hero_id)
+
         if not playerHero:
             playerHero = PlayerHeroModel.objects.create(
                 player=matchPlayer.player,
@@ -247,14 +267,14 @@ class proggAPIMatchesService:
         playerHero.heroDamage += matchPlayer.heroDamage
         playerHero.objDamage += matchPlayer.objDamage
         playerHero.healing += matchPlayer.healing
-        playerHero.longestStreak = max(playerHero.longestStreak, max(longestStreaks[matchPlayer.steam_id3]))
+        playerHero.longestStreak = max(playerHero.longestStreak, longestStreaks[matchPlayer.steam_id3])
 
         return playerHero
 
     def updatePlayerStatsFromMatchPlayer(self, matchPlayer, multis, streaks, longestStreaks, objectiveEvents, midbossEvents):
         player = matchPlayer.player
-        player.longestStreak = max(player.longestStreak, max(longestStreaks[matchPlayer.steam_id3]))
-        player.midBoss += sum(1 for event in midbossEvents if event.team == matchPlayer.team)
+        player.longestStreak = max(player.longestStreak, longestStreaks[matchPlayer.steam_id3])
+        player.midbosses += sum(1 for event in midbossEvents if event.team == matchPlayer.team)
 
         for event in objectiveEvents:
             if event.team == matchPlayer.team:
@@ -303,7 +323,7 @@ class proggAPIMatchesService:
             kills=playerMetadata['kills'],
             deaths=playerMetadata['deaths'],
             assists=playerMetadata['assists'],
-            hero=playerMetadata['hero_id'],
+            dl_hero_id=playerMetadata['hero_id'],
             souls=playerSouls,
             lastHits=playerMetadata['last_hits'],
             denies=playerMetadata['denies'],
@@ -312,14 +332,14 @@ class proggAPIMatchesService:
             accuracy=endStats['shots_hit'] / endStats['shots_hit'] + endStats['shots_missed'],
             soulsBreakdown=json.dumps({
                 'soul_sources': {
-                    'hero': round(playerSouls / (goldSources[0]['gold'] + goldSources[0]['gold_orbs']), 1),
-                    'lane_creeps': round(playerSouls / (goldSources[1]['gold'] + goldSources[1]['gold_orbs']), 1),
-                    'neutrals': round(playerSouls / goldSources[2]['gold'] + goldSources[2]['gold_orbs'], 1),
-                    'objectives': round(playerSouls / goldSources[3]['gold'] + goldSources[3]['gold_orbs']),
-                    'crates': round(playerSouls / goldSources[4]['gold'], 1),
-                    'denies': round(playerSouls / goldSources[5]['gold'], 1),
-                    'other': round(playerSouls / goldSources[6]['gold'], 1),
-                    'assists': round(playerSouls / goldSources[7]['gold'], 1)
+                    'hero': round(playerSouls / (goldSources[0]['gold'] + goldSources[0]['gold_orbs']), 1) if goldSources[0]['gold'] + goldSources[0]['gold_orbs'] > 0 else 0,
+                    'lane_creeps': round(playerSouls / (goldSources[1]['gold'] + goldSources[1]['gold_orbs']), 1) if goldSources[1]['gold'] + goldSources[1]['gold_orbs'] > 0 else 0,
+                    'neutrals': round(playerSouls / goldSources[2]['gold'] + goldSources[2]['gold_orbs'], 1) if goldSources[2]['gold'] + goldSources[2]['gold_orbs'] > 0 else 0,
+                    'objectives': round(playerSouls / goldSources[3]['gold'] + goldSources[3]['gold_orbs']) if goldSources[3]['gold'] + goldSources[3]['gold_orbs'] > 0 else 0,
+                    'crates': round(playerSouls / goldSources[4]['gold'], 1) if goldSources[4]['gold'] > 0 else 0,
+                    'denies': round(playerSouls / goldSources[5]['gold'], 1) if goldSources[5]['gold'] > 0 else 0,
+                    'other': round(playerSouls / goldSources[6]['gold'], 1) if goldSources[6]['gold'] > 0 else 0,
+                    'assists': round(playerSouls / goldSources[7]['gold'], 1) if goldSources[7]['gold'] > 0 else 0,
                 }
             }),
             heroDamage=goldSources[0]['damage'],

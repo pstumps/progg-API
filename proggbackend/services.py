@@ -1,7 +1,10 @@
 import requests
 from datetime import datetime
+from django.conf import settings
 
 import json
+
+BASE_DIR = settings.BASE_DIR
 
 class deadlockAPIAnalyticsService:
     def __init__(self):
@@ -51,21 +54,18 @@ class deadlockAPIAnalyticsService:
         params = {key: value for key, value in params.items() if value is not None}
 
         # Temporary json file loading for testing
-        if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
-            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736531551242.json') as f:
-                response = json.load(f)
-        else:
-            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
-                response = json.load(f)
+        #if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
+        #    with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736531551242.json') as f:
+        #        response = json.load(f)
+        #else:
+        #    with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736269436806.json') as f:
+        #        response = json.load(f)
+        #if include_hero_ids:
+        #    response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
+        #return response
 
-        if include_hero_ids:
-            response = [entry for entry in response if entry['hero_ids'][0] == include_hero_ids]
-
-        return response
-
-        # response = requests.get(url, params=params)
-        # print(response.json)
-        # return response.json()
+        response = requests.get(url, params=params)
+        return response.json()
 
     # def getHeroItemWinLossStats(self, hero_id=None, item_id=None, min_badge_level=None, max_badge_level=None,
     #                            min_unix_timestamp=None, max_unix_timestamp=None, match_mode=None, region=None):
@@ -88,11 +88,11 @@ class deadlockAPIAnalyticsService:
 
         params = {key: value for key, value in params.items() if value is not None}
 
-        with open(
-                'C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736890575828.json') as f:
-            response = json.load(f)
-
-        return response
+        #with open(
+        #        'C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736890575828.json') as f:
+        #    response = json.load(f)
+        response = requests.get(url, params=params)
+        return response.json()
 
     def getMatchupStats(self, min_badge_level=None, max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
                         match_mode=None, region=None):
@@ -110,15 +110,15 @@ class deadlockAPIAnalyticsService:
         params = {key: value for key, value in params.items() if value is not None}
 
         # Temporary json file loading for testing
-        if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
-            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885677655.json') as f:
-                response = json.load(f)
-        else:
-            with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885638503.json') as f:
-                response = json.load(f)
+        #if min_unix_timestamp == 1732260109 and max_unix_timestamp == 1733544310:
+        #    with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885677655.json') as f:
+        #        response = json.load(f)
+        #else:
+        #    with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1736885638503.json') as f:
+        #        response = json.load(f)
 
-        # response = requests.get(url, params=params)
-        return response
+        response = requests.get(url, params=params)
+        return response.json()
 
 
 class deadlockAPIDataService:
@@ -131,14 +131,15 @@ class deadlockAPIDataService:
         return response.json()
 
     def getMatchMetadata(self, dl_match_id):
-        url = self.base_url + '/v2/matches/' + str(dl_match_id) + '/metadata'
+        url = self.base_url + '/v1/matches/' + str(dl_match_id) + '/metadata'
 
         # For Testing only
-        with open('C:\\Users\\patrick.x.stumps\\Documents\\proggbackend\\proggbackend\\response_1737399254812.json') as f:
+        with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
             response = json.load(f)
         return response
-        # response = requests.get(url)
-        # return response.json()
+
+        #response = requests.get(url)
+        #return response.json()
 
     def getBigPatchDays(self):
         url = self.base_url + '/v1/big-patch-days'
@@ -173,10 +174,12 @@ class deadlockAPIAssetsService:
         return response.json()
 
     def getItemById(self, item_id, langauge=None, client_version=None):
-        url = self.base_url + '/v2/items/' + str(item_id)
+        #url = self.base_url + '/v2/items/' + str(item_id)
+        #response = requests.get(url)
+        with open(BASE_DIR + 'proggbackend\\ItemData.json') as f:
+            response = json.load(f)
+        return response
 
-        response = requests.get(url)
-        return response.json
 
     def getAbilityAssets(self):
         url = self.base_url + '/v1/abilities'
@@ -187,3 +190,8 @@ class deadlockAPIAssetsService:
         url = self.base_url + '/v1/badges'
         response = requests.get(url)
         return response.json()
+
+    def getItemsDict(self):
+        with open(str(BASE_DIR) + '\\proggbackend\\ItemData.json') as f:
+            response = json.load(f)
+        return {item['id']: item for item in response}
