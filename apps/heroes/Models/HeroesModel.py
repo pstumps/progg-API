@@ -37,7 +37,7 @@ Raven (beta): 62
 
 class HeroesModel(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False)
-    dl_hero_id = models.IntegerField(unique=True, null=True)
+    hero_deadlock_id = models.IntegerField(unique=True, null=True)
     description = models.TextField(null=True)
     abilities = models.JSONField(null=True)
     wins = models.BigIntegerField(null=True)

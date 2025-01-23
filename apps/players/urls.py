@@ -3,4 +3,5 @@ from . import views
 
 urlpatterns = [
     path('<int:steam_id3>/recent-matches/', views.recentMatches, name='recentMatches'),
+    path('<int:steam_id3>', views.stats, name='stats'),
 ]

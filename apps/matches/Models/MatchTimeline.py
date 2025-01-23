@@ -22,5 +22,5 @@ class ObjectiveEvent(MatchTimelineEvent):
 
 
 class MidbossEvent(MatchTimelineEvent):
-    # team field is the team that claimed midboss
+    # team field is the team that claimed rejuvinator
     slayer = models.CharField(max_length=50)

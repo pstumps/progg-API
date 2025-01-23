@@ -19,6 +19,15 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
+        MatchesModel.objects.all().delete()
+        MatchPlayerModel.objects.all().delete()
+        MatchPlayerTimelineEvent.objects.all().delete()
+        PlayerModel.objects.all().delete()
+        PlayerHeroModel.objects.all().delete()
+        PvPEvent.objects.all().delete()
+        ObjectiveEvent.objects.all().delete()
+        MidbossEvent.objects.all().delete()
+
         matchMetadata = matchMetadata['match_info']
         dl_match_id = matchMetadata['match_id']
 
@@ -127,29 +136,6 @@ class proggAPIMatchesService:
                     self.createMatchTimelinePvPEvent(match, slayer_info['hero_id'], player['hero_id'],
                                                      death_event['game_time_s'], player['team'])
 
-                    '''
-                    if createTimeline:
-                        MatchPlayerTimelineEvent.objects.create(
-                           match=match,
-                           player=playerToTrack,
-                           timestamp=death_event['game_time_s'],
-                           eventType='pvp',
-                           eventData={'slayer_hero_id': slayer_info['hero_id'],
-                                      'victim_hero_id': player['hero_id']}
-                        )
-    
-                    if slayer_account_id == playerToTrack.steam_id3:
-                        if createTimeline:
-                            MatchPlayerTimelineEvent.objects.create(
-                                match=match,
-                                player=playerToTrack,
-                                timestamp=death_event['game_time_s'],
-                                eventType='pvp',
-                                eventData={'slayer_hero_id': slayer_info['hero_id'],
-                                           'victim_hero_id': player['hero_id']}
-                            )
-                    '''
-
             for item_events in player['items']:
                 if player_account_id not in match_event_details:
                     match_event_details[player_account_id] = {
@@ -196,8 +182,6 @@ class proggAPIMatchesService:
             matchPlayer = self.createNewMatchPlayerFromMetadata(playerToTrack, match, player, matchMetadata)
             matchPlayer.items = json.dumps({'items': match_event_details[player_account_id]['items']})
             matchPlayer.abilities = json.dumps({'ability_order': [ability[0] for ability in sortedAbilities]})
-            print('this print statement is in proggAPIMatchesService function parseMatchEventsFromMetadata')
-            print(matchPlayer)
             matchPlayer.save()
 
         for obj in matchMetadata['objectives']:
@@ -212,6 +196,7 @@ class proggAPIMatchesService:
                                                                       team=midboss['team_claimed'],
                                                                       timestamp=midboss['destroyed_time_s']))
 
+        print(f'account ids: {accountIds}')
         for account_id in accountIds:  # multis and streaks have same keys
             matchPlayer = MatchPlayerModel.objects.get(match=match, steam_id3=account_id)
             matchPlayer.multiKills = json.dumps({'multis': multis[account_id]})
@@ -220,9 +205,6 @@ class proggAPIMatchesService:
 
             playerHero = self.createOrUpdatePlayerHero(matchPlayer, longestStreaks)
             player = self.updatePlayerStatsFromMatchPlayer(matchPlayer, multis, streakCounts, longestStreaks, objectiveEvents, midbossEvents)
-
-            print(playerHero)
-            print(player)
 
             playerHero.save()
             player.save()
@@ -238,19 +220,19 @@ class proggAPIMatchesService:
                 averageBadges[stat] = value
                 badgesSum += value
 
-        averageBadges['match_average_badge'] = badgesSum / len(averageBadges)
+        averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges))
         return averageBadges
 
     @transaction.atomic
     def createOrUpdatePlayerHero(self, matchPlayer, longestStreaks):
-        playerHero = PlayerHeroModel.objects.filter(hero_id=matchPlayer.dl_hero_id).first()
+        playerHero = PlayerHeroModel.objects.filter(hero__hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
 
-        if not HeroesModel.objects.filter(dl_hero_id=matchPlayer.dl_hero_id).exists():
+        if not HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).exists():
             hero = HeroesModel.objects.create(
-                dl_hero_id=matchPlayer.dl_hero_id
+                hero_deadlock_id=matchPlayer.hero_deadlock_id
             )
         else:
-            hero = HeroesModel.objects.get(dl_hero_id=matchPlayer.dl_hero_id)
+            hero = HeroesModel.objects.get(hero_deadlock_id=matchPlayer.hero_deadlock_id)
 
         if not playerHero:
             playerHero = PlayerHeroModel.objects.create(
@@ -263,18 +245,33 @@ class proggAPIMatchesService:
         playerHero.deaths += matchPlayer.deaths
         playerHero.assists += matchPlayer.assists
         playerHero.souls += matchPlayer.souls
-        playerHero.accuracy += matchPlayer.accuracy
+        playerHero.soulsPerMin = (playerHero.soulsPerMin + matchPlayer.soulsPerMin) / 2
         playerHero.heroDamage += matchPlayer.heroDamage
         playerHero.objDamage += matchPlayer.objDamage
         playerHero.healing += matchPlayer.healing
+        playerHero.laneCreeps += matchPlayer.laneCreeps
+        playerHero.neutralCreeps += matchPlayer.neutralCreeps
+        playerHero.lastHits += matchPlayer.lastHits
+        playerHero.denies += matchPlayer.denies
         playerHero.longestStreak = max(playerHero.longestStreak, longestStreaks[matchPlayer.steam_id3])
+        if playerHero.accuracy == 0:
+            playerHero.accuracy = matchPlayer.accuracy
+        else:
+            playerHero.accuracy = (playerHero.accuracy + matchPlayer.accuracy) / 2
+        if playerHero.heroCritPercent == 0:
+            playerHero.heroCritPercent = matchPlayer.heroCritPercent
 
         return playerHero
 
     def updatePlayerStatsFromMatchPlayer(self, matchPlayer, multis, streaks, longestStreaks, objectiveEvents, midbossEvents):
         player = matchPlayer.player
         player.longestStreak = max(player.longestStreak, longestStreaks[matchPlayer.steam_id3])
-        player.midbosses += sum(1 for event in midbossEvents if event.team == matchPlayer.team)
+
+        for event in midbossEvents:
+            if event.team == matchPlayer.team:
+                player.rejuvinators += 1
+            if event.slayer == matchPlayer.team:
+                player.midbosses += 1
 
         for event in objectiveEvents:
             if event.team == matchPlayer.team:
@@ -314,6 +311,14 @@ class proggAPIMatchesService:
         endStats = playerMetadata['stats'][-1]
         playerSouls = endStats['net_worth']
         goldSources = endStats['gold_sources']
+        heroesGoldSources = goldSources[0].get('gold', 0) + goldSources[0].get('gold_orbs', 0)
+        laneCreepsGoldSources = goldSources[1].get('gold', 0) + goldSources[1].get('gold_orbs', 0)
+        neutralCreepsGoldSources = goldSources[2].get('gold', 0) + goldSources[2].get('gold_orbs', 0)
+        objectivesGoldSources = goldSources[3].get('gold', 0) + goldSources[3].get('gold_orbs', 0)
+        cratesGoldSources = goldSources[4].get('gold', 0)
+        deniesGoldSources = goldSources[5].get('gold', 0)
+        otherGoldSources = goldSources[6].get('gold', 0)
+        assistGoldSources = goldSources[7].get('gold', 0)
         matchPlayer = MatchPlayerModel.objects.create(
             player=playerModel,
             match=match,
@@ -323,27 +328,31 @@ class proggAPIMatchesService:
             kills=playerMetadata['kills'],
             deaths=playerMetadata['deaths'],
             assists=playerMetadata['assists'],
-            dl_hero_id=playerMetadata['hero_id'],
+            hero_deadlock_id=playerMetadata['hero_id'],
             souls=playerSouls,
+            soulsPerMin=playerSouls / match.length,
             lastHits=playerMetadata['last_hits'],
             denies=playerMetadata['denies'],
             party=playerMetadata['party'],
             lane=playerMetadata['assigned_lane'],
+            laneCreeps=endStats['creep_kills'],
+            neutralCreeps=endStats['neutral_kills'],
             accuracy=endStats['shots_hit'] / endStats['shots_hit'] + endStats['shots_missed'],
+            heroCritPercent=endStats['hero_bullets_hit_crit']/endStats['hero_bullets_hit'],
             soulsBreakdown=json.dumps({
                 'soul_sources': {
-                    'hero': round(playerSouls / (goldSources[0]['gold'] + goldSources[0]['gold_orbs']), 1) if goldSources[0]['gold'] + goldSources[0]['gold_orbs'] > 0 else 0,
-                    'lane_creeps': round(playerSouls / (goldSources[1]['gold'] + goldSources[1]['gold_orbs']), 1) if goldSources[1]['gold'] + goldSources[1]['gold_orbs'] > 0 else 0,
-                    'neutrals': round(playerSouls / goldSources[2]['gold'] + goldSources[2]['gold_orbs'], 1) if goldSources[2]['gold'] + goldSources[2]['gold_orbs'] > 0 else 0,
-                    'objectives': round(playerSouls / goldSources[3]['gold'] + goldSources[3]['gold_orbs']) if goldSources[3]['gold'] + goldSources[3]['gold_orbs'] > 0 else 0,
-                    'crates': round(playerSouls / goldSources[4]['gold'], 1) if goldSources[4]['gold'] > 0 else 0,
-                    'denies': round(playerSouls / goldSources[5]['gold'], 1) if goldSources[5]['gold'] > 0 else 0,
-                    'other': round(playerSouls / goldSources[6]['gold'], 1) if goldSources[6]['gold'] > 0 else 0,
-                    'assists': round(playerSouls / goldSources[7]['gold'], 1) if goldSources[7]['gold'] > 0 else 0,
+                    'hero': round(playerSouls / heroesGoldSources, 1) if heroesGoldSources > 0 else 0,
+                    'lane_creeps': round(playerSouls / laneCreepsGoldSources, 1) if laneCreepsGoldSources > 0 else 0,
+                    'neutrals': round(playerSouls / neutralCreepsGoldSources, 1) if neutralCreepsGoldSources > 0 else 0,
+                    'objectives': round(playerSouls / objectivesGoldSources) if objectivesGoldSources > 0 else 0,
+                    'crates': round(playerSouls / cratesGoldSources, 1) if cratesGoldSources > 0 else 0,
+                    'denies': round(playerSouls / deniesGoldSources, 1) if deniesGoldSources > 0 else 0,
+                    'other': round(playerSouls / otherGoldSources, 1) if otherGoldSources > 0 else 0,
+                    'assists': round(playerSouls / assistGoldSources, 1) if assistGoldSources > 0 else 0,
                 }
             }),
-            heroDamage=goldSources[0]['damage'],
-            objDamage=goldSources[2]['damage'],
+            heroDamage=endStats['player_damage'],
+            objDamage=endStats['boss_damage'],
             healing=endStats['player_healing'],
             win=playerMetadata['team'] == matchMetaData['winning_team'],
         )

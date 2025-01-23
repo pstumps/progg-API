@@ -15,7 +15,9 @@ class PlayerModel(models.Model):
     deaths = models.IntegerField(default=0)
     assists = models.IntegerField(default=0)
     souls = models.BigIntegerField(default=0)
-    accuracy = models.IntegerField(default=0)
+    soulsPerMin = models.FloatField(default=0)
+    accuracy = models.FloatField(default=0)
+    heroCritPercent = models.FloatField(default=0)
     heroDamage = models.BigIntegerField(default=0)
     objDamage = models.BigIntegerField(default=0)
     healing = models.BigIntegerField(default=0)
@@ -25,7 +27,11 @@ class PlayerModel(models.Model):
     shieldGenerators = models.IntegerField(default=0)
     patrons = models.IntegerField(default=0)
     midbosses = models.IntegerField(default=0)
+    rejuvinators = models.IntegerField(default=0)
+    laneCreeps = models.IntegerField(default=0)
+    neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
+    denies = models.IntegerField(default=0)
     multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
     streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
     longestStreak = models.IntegerField(default=0)
@@ -38,3 +44,32 @@ class PlayerModel(models.Model):
 
     def __str__(self):
         return self.name
+
+    def updatePlayerStats(self):
+        accuracyArray = []
+        critArray = []
+        soulsPerMinArray = []
+        for playerHeros in self.player_hero_stats.all():
+            self.wins += playerHeros.wins
+            self.kills += playerHeros.kills
+            self.deaths += playerHeros.deaths
+            self.assists += playerHeros.assists
+            self.souls += playerHeros.souls
+            accuracyArray.append(playerHeros.accuracy)
+            critArray.append(playerHeros.heroCritPercent)
+            self.heroDamage += playerHeros.heroDamage
+            self.objDamage += playerHeros.objDamage
+            self.healing += playerHeros.healing
+            self.laneCreeps += playerHeros.laneCreeps
+            self.neutralCreeps += playerHeros.neutralCreeps
+            self.midbosses += playerHeros.midBoss
+            self.lastHits += playerHeros.lastHits
+            self.denies += playerHeros.denies
+            if playerHeros.longestStreak > self.longestStreak:
+                self.longestStreak = playerHeros.longestStreak
+
+        self.soulsPerMin = sum(soulsPerMinArray) / len(soulsPerMinArray)
+        self.accuracy = sum(accuracyArray) / len(accuracyArray)
+        self.heroCritPercent = sum(critArray) / len(critArray)
+
+        self.save()
