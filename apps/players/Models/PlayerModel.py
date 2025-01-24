@@ -38,6 +38,7 @@ class PlayerModel(models.Model):
     mmr = models.BigIntegerField(default=0)
     lastMatch = models.DateTimeField(null=True)
     lastLogin = models.DateTimeField(null=True)
+    timePlayed = models.IntegerField(null=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     timelineTracking = models.BooleanField(default=False)
@@ -68,8 +69,8 @@ class PlayerModel(models.Model):
             if playerHeros.longestStreak > self.longestStreak:
                 self.longestStreak = playerHeros.longestStreak
 
-        self.soulsPerMin = sum(soulsPerMinArray) / len(soulsPerMinArray)
-        self.accuracy = sum(accuracyArray) / len(accuracyArray)
-        self.heroCritPercent = sum(critArray) / len(critArray)
+        self.soulsPerMin = sum(soulsPerMinArray) / len(soulsPerMinArray) if len(soulsPerMinArray) > 0 else 1
+        self.accuracy = sum(accuracyArray) / len(accuracyArray) if len(soulsPerMinArray) > 0 else 1
+        self.heroCritPercent = sum(critArray) / len(critArray) if len(soulsPerMinArray) > 0 else 1
 
         self.save()
