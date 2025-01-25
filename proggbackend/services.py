@@ -134,12 +134,12 @@ class deadlockAPIDataService:
         url = self.base_url + '/v1/matches/' + str(dl_match_id) + '/metadata'
 
         # For Testing only
-        with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
-            response = json.load(f)
-        return response
+        #with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
+        #    response = json.load(f)
+        #return response
 
-        #response = requests.get(url)
-        #return response.json()
+        response = requests.get(url)
+        return response.json()
 
     def getBigPatchDays(self):
         url = self.base_url + '/v1/big-patch-days'
@@ -164,7 +164,12 @@ class deadlockAPIAssetsService:
         self.base_url = 'https://assets.deadlock-api.com'
 
     def getHeroAssets(self):
-        url = self.base_url + '/v1/heroes'
+        url = self.base_url + '/v2/heroes'
+        response = requests.get(url)
+        return response.json()
+
+    def getHeroAssetsById(self, hero_id):
+        url = self.base_url + '/v2/heroes/' + str(hero_id)
         response = requests.get(url)
         return response.json()
 
@@ -179,7 +184,6 @@ class deadlockAPIAssetsService:
         with open(BASE_DIR + 'proggbackend\\ItemData.json') as f:
             response = json.load(f)
         return response
-
 
     def getAbilityAssets(self):
         url = self.base_url + '/v1/abilities'

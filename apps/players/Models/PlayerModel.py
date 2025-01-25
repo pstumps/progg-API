@@ -47,30 +47,42 @@ class PlayerModel(models.Model):
         return self.name
 
     def updatePlayerStats(self):
-        accuracyArray = []
-        critArray = []
-        soulsPerMinArray = []
-        for playerHeros in self.player_hero_stats.all():
-            self.wins += playerHeros.wins
-            self.kills += playerHeros.kills
-            self.deaths += playerHeros.deaths
-            self.assists += playerHeros.assists
-            self.souls += playerHeros.souls
-            accuracyArray.append(playerHeros.accuracy)
-            critArray.append(playerHeros.heroCritPercent)
-            self.heroDamage += playerHeros.heroDamage
-            self.objDamage += playerHeros.objDamage
-            self.healing += playerHeros.healing
-            self.laneCreeps += playerHeros.laneCreeps
-            self.neutralCreeps += playerHeros.neutralCreeps
-            self.midbosses += playerHeros.midBoss
-            self.lastHits += playerHeros.lastHits
-            self.denies += playerHeros.denies
-            if playerHeros.longestStreak > self.longestStreak:
-                self.longestStreak = playerHeros.longestStreak
+        stats = self.player_hero_stats.aggregate(
+            wins=models.Sum('wins'),
+            kills=models.Sum('kills'),
+            deaths=models.Sum('deaths'),
+            assists=models.Sum('assists'),
+            souls=models.Sum('souls'),
+            heroDamage=models.Sum('heroDamage'),
+            objDamage=models.Sum('objDamage'),
+            healing=models.Sum('healing'),
+            laneCreeps=models.Sum('laneCreeps'),
+            neutralCreeps=models.Sum('neutralCreeps'),
+            midbosses=models.Sum('midBoss'),
+            lastHits=models.Sum('lastHits'),
+            denies=models.Sum('denies'),
+            longestStreak=models.Max('longestStreak'),
+            accuracy=models.Avg('accuracy'),
+            heroCritPercent=models.Avg('heroCritPercent'),
+            soulsPerMin=models.Avg('soulsPerMin')
+        )
 
-        self.soulsPerMin = sum(soulsPerMinArray) / len(soulsPerMinArray) if len(soulsPerMinArray) > 0 else 1
-        self.accuracy = sum(accuracyArray) / len(accuracyArray) if len(soulsPerMinArray) > 0 else 1
-        self.heroCritPercent = sum(critArray) / len(critArray) if len(soulsPerMinArray) > 0 else 1
+        self.wins = stats['wins'] or 0
+        self.kills = stats['kills'] or 0
+        self.deaths = stats['deaths'] or 0
+        self.assists = stats['assists'] or 0
+        self.souls = stats['souls'] or 0
+        self.heroDamage = stats['heroDamage'] or 0
+        self.objDamage = stats['objDamage'] or 0
+        self.healing = stats['healing'] or 0
+        self.laneCreeps = stats['laneCreeps'] or 0
+        self.neutralCreeps = stats['neutralCreeps'] or 0
+        self.midbosses = stats['midbosses'] or 0
+        self.lastHits = stats['lastHits'] or 0
+        self.denies = stats['denies'] or 0
+        self.longestStreak = max( self.longestStreak, stats['longestStreak'])
+        self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
+        self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
+        self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
 
         self.save()

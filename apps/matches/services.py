@@ -19,14 +19,14 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
-        MatchesModel.objects.all().delete()
-        MatchPlayerModel.objects.all().delete()
-        MatchPlayerTimelineEvent.objects.all().delete()
-        PlayerModel.objects.all().delete()
-        PlayerHeroModel.objects.all().delete()
-        PvPEvent.objects.all().delete()
-        ObjectiveEvent.objects.all().delete()
-        MidbossEvent.objects.all().delete()
+        # MatchesModel.objects.all().delete()
+        # MatchPlayerModel.objects.all().delete()
+        # MatchPlayerTimelineEvent.objects.all().delete()
+        # PlayerModel.objects.all().delete()
+        # PlayerHeroModel.objects.all().delete()
+        # PvPEvent.objects.all().delete()
+        # ObjectiveEvent.objects.all().delete()
+        # MidbossEvent.objects.all().delete()
 
         matchMetadata = matchMetadata['match_info']
         dl_match_id = matchMetadata['match_id']
@@ -44,6 +44,8 @@ class proggAPIMatchesService:
             length=matchMetadata['duration_s'],
             victor=matchMetadata['winning_team']
         )
+
+        print(f'dl match id: {dl_match_id}')
 
         self.parseMatchEventsFromMetadata(match, matchMetadata)
 
@@ -146,7 +148,7 @@ class proggAPIMatchesService:
 
                 item_data = self.DLItemsDict.get(item_events['item_id'])
                 if item_data:
-                    if item_data['class_name'].startswith('ability_'):
+                    if item_data.get('type') == 'ability':
                         if item_data['name'] not in abilityLevels:
                             abilityLevels[item_data['name']] = []
                         else:
@@ -155,25 +157,26 @@ class proggAPIMatchesService:
                         if createTimeline:
                             self.createMatchPlayerTimelineAbilityEvent(playerToTrack, match, item_events, item_data)
 
-                    elif item_data.get('item_slot_type'):
+                    elif item_data.get('type') == 'upgrade':
                         playerItemsDictionary = match_event_details[player_account_id]['items']
                         if item_events['sold_time_s'] == 0 and item_events['upgrade_id'] == 0:
                             # Item was a part of final build
                             if item_data['item_slot_type'] not in playerItemsDictionary:
                                 playerItemsDictionary[item_data['item_slot_type']] = []
-                            if len(playerItemsDictionary[item_data['item_slot_type']]) == 4:
+                            if len(playerItemsDictionary[item_data['item_slot_type']]) >= 4:
                                 if not playerItemsDictionary.get('flex'):
                                     playerItemsDictionary['flex'] = []
-                                else:
-                                    playerItemsDictionary['flex'].append({
-                                        'item_id': item_events['item_id'],
-                                        'target': item_data['name'],
-                                        'type': item_data['item_slot_type']
-                                    })
-                            playerItemsDictionary[item_data['item_slot_type']].append({
-                                'item_id': item_events['item_id'],
-                                'target': item_data['name'],
-                            })
+
+                                playerItemsDictionary['flex'].append({
+                                    'item_id': item_events['item_id'],
+                                    'target': item_data['name'],
+                                    'type': item_data['item_slot_type']
+                                })
+                            else:
+                                playerItemsDictionary[item_data['item_slot_type']].append({
+                                    'item_id': item_events['item_id'],
+                                    'target': item_data['name'],
+                                })
                         if createTimeline:
                             self.createMatchPlayerTimelineItemEvent(playerToTrack, match, item_events, item_data)
 
@@ -204,9 +207,9 @@ class proggAPIMatchesService:
             matchPlayer.save()
 
             playerHero = self.createOrUpdatePlayerHero(matchPlayer, longestStreaks)
-            player = self.updatePlayerStatsFromMatchPlayer(matchPlayer, multis, streakCounts, longestStreaks, objectiveEvents, midbossEvents)
-
             playerHero.save()
+
+            player = self.updatePlayerStatsFromMatchPlayer(matchPlayer, multis, streakCounts, longestStreaks, objectiveEvents, midbossEvents)
             player.save()
 
         return match_event_details
@@ -225,20 +228,21 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createOrUpdatePlayerHero(self, matchPlayer, longestStreaks):
-        playerHero = PlayerHeroModel.objects.filter(hero__hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
-
-        if not HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).exists():
+        hero = HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
+        if not hero:
+            heroName = self.DLAPIAssets.getHeroAssetsById(matchPlayer.hero_deadlock_id)['name']
             hero = HeroesModel.objects.create(
+                name=heroName,
                 hero_deadlock_id=matchPlayer.hero_deadlock_id
             )
-        else:
-            hero = HeroesModel.objects.get(hero_deadlock_id=matchPlayer.hero_deadlock_id)
 
+        playerHero = PlayerHeroModel.objects.filter(player=matchPlayer.player, hero=hero).first()
         if not playerHero:
             playerHero = PlayerHeroModel.objects.create(
                 player=matchPlayer.player,
                 hero=hero
             )
+
         playerHero.wins += 1 if matchPlayer.win else 0
         playerHero.matches += 1
         playerHero.kills += matchPlayer.kills
@@ -260,6 +264,8 @@ class proggAPIMatchesService:
             playerHero.accuracy = (playerHero.accuracy + matchPlayer.accuracy) / 2
         if playerHero.heroCritPercent == 0:
             playerHero.heroCritPercent = matchPlayer.heroCritPercent
+        else:
+            playerHero.heroCritPercent = (playerHero.heroCritPercent + matchPlayer.heroCritPercent) / 2
 
         return playerHero
 
@@ -329,16 +335,17 @@ class proggAPIMatchesService:
             deaths=playerMetadata['deaths'],
             assists=playerMetadata['assists'],
             hero_deadlock_id=playerMetadata['hero_id'],
+            level=playerMetadata['level'],
             souls=playerSouls,
-            soulsPerMin=playerSouls / match.length,
+            soulsPerMin=round(playerSouls / match.length, 2),
             lastHits=playerMetadata['last_hits'],
             denies=playerMetadata['denies'],
             party=playerMetadata['party'],
             lane=playerMetadata['assigned_lane'],
             laneCreeps=endStats['creep_kills'],
             neutralCreeps=endStats['neutral_kills'],
-            accuracy=endStats['shots_hit'] / endStats['shots_hit'] + endStats['shots_missed'],
-            heroCritPercent=endStats['hero_bullets_hit_crit']/endStats['hero_bullets_hit'],
+            accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4),
+            heroCritPercent=round(endStats['hero_bullets_hit_crit']/endStats['hero_bullets_hit'], 4),
             soulsBreakdown=json.dumps({
                 'soul_sources': {
                     'hero': round(playerSouls / heroesGoldSources, 1) if heroesGoldSources > 0 else 0,
