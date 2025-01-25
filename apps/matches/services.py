@@ -310,6 +310,8 @@ class proggAPIMatchesService:
         else:
             player.streaks = None
 
+        player.matches.add(matchPlayer.match)
+
         return player
 
     @transaction.atomic
