@@ -11,6 +11,7 @@ class MatchPlayerModel(models.Model):
     playerSlot = models.IntegerField(default=0)
     hero_deadlock_id = models.IntegerField(null=True) # valves hero id number
     team = models.CharField(max_length=50, null=True)
+    # badge = models.IntegerField(default=0)
     lane = models.IntegerField(null=True)
     kills = models.IntegerField(default=0)
     deaths = models.IntegerField(default=0)

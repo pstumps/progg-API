@@ -1,4 +1,9 @@
+import json
 from django.db import models
+from proggbackend.services import deadlockAPIAssetsService
+from .PlayerHeroModel import PlayerHeroModel
+from ...heroes.Models.HeroesModel import HeroesModel
+from ...matches.Models.MatchesModel import MatchesModel
 
 
 class PlayerModel(models.Model):
@@ -9,7 +14,7 @@ class PlayerModel(models.Model):
     avatar = models.CharField(max_length=100)
     region = models.CharField(max_length=100)
     rank = models.IntegerField(default=0)
-    matches = models.ManyToManyField('matches.MatchesModel', related_name='playersModel', symmetrical=True)
+    matches = models.ManyToManyField(MatchesModel, related_name='playersModel')
     wins = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)
     deaths = models.IntegerField(default=0)
@@ -84,5 +89,70 @@ class PlayerModel(models.Model):
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
+
+        self.save()
+
+    def updatePlayerStatsFromMatchPlayer(self, matchPlayer, multis, streaks, longestStreaks, objectiveEvents,
+                                         midbossEvents):
+        self.longestStreak = max(self.longestStreak, longestStreaks[matchPlayer.steam_id3])
+
+        for event in midbossEvents:
+            if event.team == matchPlayer.team:
+                self.rejuvinators += 1
+            if event.slayer == matchPlayer.team:
+                self.midbosses += 1
+
+        for event in objectiveEvents:
+            if event.team == matchPlayer.team:
+                if 'Tier1' in event.target:
+                    self.guardians += 1
+                elif 'Tier2' in event.target:
+                    self.walkers += 1
+                elif 'BarrackBoss' in event.target:
+                    self.baseGuardians += 2
+                elif 'TitanShieldGenerator' in event.target:
+                    self.shieldGenerators += 1
+                elif 'k_eCitadelTeamObjective_Core' in event.target:
+                    self.patrons += 1
+
+        if any(multis[matchPlayer.steam_id3]):
+            if not self.multis:
+                self.multis = json.dumps({'multis': multis[matchPlayer.steam_id3]})
+            else:
+                self.multis = json.dumps({'multis': [sum(x) for x in zip(json.loads(self.multis)['multis'],
+                                                                           multis[matchPlayer.steam_id3])]})
+        else:
+            self.multis = None
+
+        if any(streaks[matchPlayer.steam_id3]):
+            if not self.streaks:
+                self.streaks = json.dumps({'streaks': streaks[matchPlayer.steam_id3]})
+            else:
+                self.streaks = json.dumps({'streaks': [sum(x) for x in zip(json.loads(self.streaks)['streaks'],
+                                                                             streaks[matchPlayer.steam_id3])]})
+        else:
+            self.streaks = None
+
+        self.matches.add(matchPlayer.match)
+
+
+        # Update player hero model
+        hero = HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
+        if not hero:
+            DLAPIAssets = deadlockAPIAssetsService()
+            heroName = DLAPIAssets.getHeroAssetsById(matchPlayer.hero_deadlock_id)['name']
+            hero = HeroesModel.objects.create(
+                name=heroName,
+                hero_deadlock_id=matchPlayer.hero_deadlock_id
+            )
+        playerHero = PlayerHeroModel.objects.filter(player=matchPlayer.player, hero=hero).first()
+        if not playerHero:
+            playerHero = PlayerHeroModel.objects.create(
+                player=matchPlayer.player,
+                hero=hero
+            )
+
+        playerHero.createOrUpdatePlayerHero(matchPlayer, longestStreaks)
+
 
         self.save()
