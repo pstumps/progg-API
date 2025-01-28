@@ -24,16 +24,12 @@ class MatchesModel(models.Model):
             objDamage=models.Sum('objDamage'),
             healing=models.Sum('healing'),
             souls=models.Sum('souls'),
-            avgHeroDamage=models.Avg('heroDamage'),
-            avgObjDamage=models.Avg('objDamage'),
-            avgHealing=models.Avg('healing'),
-            avgSouls=models.Avg('souls'),
-            avgLastHits=models.Avg('lastHits'),
-            avgDenies=models.Avg('denies'),
         )
 
-        teamStatsDict = {stat['team']: stat for stat in team_aggregate_stats}
-        self.teamStats = {'teamStats': teamStatsDict}
+        # Get rid of the 'team' key in the dictionary
+        teamStatsDict = {stat['team']: {k: v for k, v in stat.items() if k != 'team'} for stat in team_aggregate_stats}
+
+        self.teamStats = teamStatsDict
         self.save()
 
 

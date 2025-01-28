@@ -1,8 +1,10 @@
-import json
+import datetime, time
 
 from rest_framework import serializers
 from .models import MatchesModel
 from .models import MatchPlayerModel
+
+from ..heroes.services import HeroesDict
 
 
 class MatchModelSerailizer(serializers.ModelSerializer):
@@ -32,17 +34,17 @@ class MatchPlayerModelSerailizer(serializers.ModelSerializer):
 
 
     def get_csSouls(self, obj):
-        totalSouls = json.loads(obj.soulsBreakdown).get('soul_sources', 0)
+        totalSouls = obj.soulsBreakdown
         csSouls = totalSouls.get('lane_creeps', 0) + totalSouls.get('neutrals', 0) + totalSouls.get('denies', 0)
         return csSouls
 
     def get_kaSouls(self, obj):
-        totalSouls = json.loads(obj.soulsBreakdown).get('soul_sources', 0)
+        totalSouls = obj.soulsBreakdown
         kaSouls = totalSouls.get('hero', 0) + totalSouls.get('assists', 0)
         return kaSouls
 
     def get_otherSouls(self, obj):
-        totalSouls = json.loads(obj.soulsBreakdown).get('soul_sources', 0)
+        totalSouls = obj.soulsBreakdown
         otherSouls = totalSouls.get('other', 0) + totalSouls.get('objectives', 0) + totalSouls.get('crates', 0)
 
         return otherSouls
@@ -106,4 +108,100 @@ class MatchPlayerModelSerailizer(serializers.ModelSerializer):
     def get_avgSoulsPerMin(self, obj):
         return obj.player.soulsPerMin
 
+
+class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
+    team = serializers.SerializerMethodField()
+    length = serializers.SerializerMethodField()
+    when = serializers.SerializerMethodField()
+    hero = serializers.SerializerMethodField()
+    accuracy = serializers.SerializerMethodField()
+    damage = serializers.SerializerMethodField()
+    teamobj = serializers.SerializerMethodField()
+    teamkills = serializers.SerializerMethodField()
+    teamsouls = serializers.SerializerMethodField()
+    enemyobj = serializers.SerializerMethodField()
+    enemykills = serializers.SerializerMethodField()
+    enemysouls = serializers.SerializerMethodField()
+    build = serializers.SerializerMethodField()
+    avgRank = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MatchPlayerModel
+        fields = ['team', 'win', 'level', 'length', 'when', 'lastHits', 'denies', 'accuracy', 'kills', 'deaths',
+                  'assists', 'souls', 'hero', 'damage', 'teamobj', 'teamkills', 'teamsouls', 'enemyobj', 'enemykills',
+                  'enemysouls', 'build', 'medals', 'party', 'avgRank']
+
+    def get_team(self, obj):
+        return 'Amber' if obj.team == 'k_ECitadelLobbyTeam_Team0' else 'Sapphire'
+
+    def get_length(self, obj):
+        return int(obj.match.length / 60)
+
+    def get_when(self, obj):
+        last = int(time.time()) - int(obj.match.date.timestamp())
+
+        if last < 60:
+            return f"{last} seconds "
+        elif last < 3600:
+            return f"{last // 60} mins "
+        elif last < 86400:
+            return f"{last // 3600} hours "
+        else:
+            return f"{last // 86400} days "
+
+    def get_hero(self, obj):
+        return HeroesDict[obj.hero_deadlock_id].lower()
+
+    def get_damage(self, obj):
+        return obj.heroDamage
+
+    def get_accuracy(self, obj):
+        return int(obj.accuracy * 100)
+
+    def get_teamobj(self, obj):
+        matchStats = obj.match.teamStats
+        return matchStats[obj.team]['objDamage']
+
+    def get_teamkills(self, obj):
+        matchStats = obj.match.teamStats
+        return matchStats[obj.team]['kills']
+
+    def get_teamsouls(self, obj):
+        matchStats = obj.match.teamStats
+        return matchStats[obj.team]['souls']
+
+    def get_enemyobj(self, obj):
+        matchStats = obj.match.teamStats
+        enemyTeam = next(team for team in matchStats if team != obj.team)
+        return matchStats[enemyTeam]['objDamage']
+
+    def get_enemykills(self, obj):
+        matchStats = obj.match.teamStats
+        enemyTeam = next(team for team in matchStats if team != obj.team)
+        return matchStats[enemyTeam]['kills']
+
+    def get_enemysouls(self, obj):
+        matchStats = obj.match.teamStats
+        enemyTeam = next(team for team in matchStats if team != obj.team)
+        return matchStats[enemyTeam]['souls']
+
+    def get_build(self, obj):
+        build = {'weapon': 0, 'spirit': 0, 'vitality': 0}
+        percentArray = []
+        totalItems = 0
+
+        for type, items in obj.items.items():
+            if type != 'flex':
+                build[type] = len(items)
+                totalItems += len(items)
+            if type == 'flex':
+                for flexItems in items:
+                    build[flexItems['type']] += 1
+                    totalItems += 1
+        for num in build.values():
+            percentArray.append(round(num / totalItems, 2))
+        return percentArray
+
+    def get_avgRank(self, obj):
+        return obj.match.averageRank['match_average_badge']
 

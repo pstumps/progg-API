@@ -50,18 +50,19 @@ class proggAPIMatchesService:
         match = MatchesModel.objects.create(
             deadlock_id=dl_match_id,
             date=datetime.datetime.fromtimestamp(matchMetadata['start_time'], datetime.timezone.utc),
-            averageRank=json.dumps({'badges': averageBadges}),
+            averageRank=averageBadges,
             gameMode=matchMetadata['game_mode'],
             matchMode=matchMetadata['match_mode'],
             length=matchMetadata['duration_s'],
             victor=matchMetadata['winning_team']
         )
 
-        match.save()
-
         print(f'dl match id: {dl_match_id}')
 
         self.parseMatchEventsFromMetadata(match, matchMetadata)
+
+        match.calculateTeamStats()
+        match.save()
 
         return match
 
@@ -116,8 +117,8 @@ class proggAPIMatchesService:
             sortedAbilities = sorted(abilityLevels.items(), key=lambda x: (-len(x[1]), x[1]))
 
             matchPlayer = self.createNewMatchPlayerFromMetadata(playerToTrack, match, player, matchMetadata)
-            matchPlayer.items = json.dumps({'items': match_event_details[player['account_id']]['items']})
-            matchPlayer.abilities = json.dumps({'ability_order': [ability[0] for ability in sortedAbilities]})
+            matchPlayer.items = match_event_details[player['account_id']]['items']
+            matchPlayer.abilities = [ability[0] for ability in sortedAbilities]
             matchPlayer.save()
 
         objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
@@ -125,13 +126,15 @@ class proggAPIMatchesService:
         print(f'account ids: {accountIds}')
         for account_id in accountIds:  # multis and streaks have same keys
             matchPlayer = MatchPlayerModel.objects.get(match=match, steam_id3=account_id)
-            matchPlayer.multiKills = json.dumps({'multis': multis[account_id]})
-            matchPlayer.streaks = json.dumps({'streaks': streakCounts[account_id]})
+            matchPlayer.multiKills = multis[account_id]
+            matchPlayer.streaks = streakCounts[account_id]
             matchPlayer.save()
 
             # Will also update PlayerHeroModel
             player = matchPlayer.player
             player.updatePlayerStatsFromMatchPlayer(matchPlayer, multis, streakCounts, longestStreaks, objectiveEvents, midbossEvents)
+
+        self.getPlayerMedals(match)
 
         return match_event_details
 
@@ -276,8 +279,7 @@ class proggAPIMatchesService:
             neutralCreeps=endStats['neutral_kills'],
             accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4),
             heroCritPercent=round(endStats['hero_bullets_hit_crit'] / endStats['hero_bullets_hit'], 4),
-            soulsBreakdown=json.dumps({
-                'soul_sources': {
+            soulsBreakdown={
                     'hero': round(playerSouls / heroesGoldSources, 1) if heroesGoldSources > 0 else 0,
                     'lane_creeps': round(playerSouls / laneCreepsGoldSources, 1) if laneCreepsGoldSources > 0 else 0,
                     'neutrals': round(playerSouls / neutralCreepsGoldSources, 1) if neutralCreepsGoldSources > 0 else 0,
@@ -285,9 +287,8 @@ class proggAPIMatchesService:
                     'crates': round(playerSouls / cratesGoldSources, 1) if cratesGoldSources > 0 else 0,
                     'denies': round(playerSouls / deniesGoldSources, 1) if deniesGoldSources > 0 else 0,
                     'other': round(playerSouls / otherGoldSources, 1) if otherGoldSources > 0 else 0,
-                    'assists': round(playerSouls / assistGoldSources, 1) if assistGoldSources > 0 else 0,
-                }
-            }),
+                    'assists': round(playerSouls / assistGoldSources, 1) if assistGoldSources > 0 else 0
+            },
             heroDamage=endStats['player_damage'],
             objDamage=endStats['boss_damage'],
             healing=endStats['player_healing'],
@@ -322,11 +323,11 @@ class proggAPIMatchesService:
             player = player_data['player']
             medals = player_data['medals']
             if not player.medals:
-                player.medals = json.dumps({'medals': medals})
+                player.medals = medals
             else:
-                existing_medals = json.loads(player.medals)['medals']
+                existing_medals = player.medals
                 existing_medals.extend(medals)
-                player.medals = json.dumps({'medals': existing_medals})
+                player.medals = existing_medals
             player.save()
 
     @transaction.atomic

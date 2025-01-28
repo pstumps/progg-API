@@ -117,19 +117,17 @@ class PlayerModel(models.Model):
 
         if any(multis[matchPlayer.steam_id3]):
             if not self.multis:
-                self.multis = json.dumps({'multis': multis[matchPlayer.steam_id3]})
+                self.multis = multis[matchPlayer.steam_id3]
             else:
-                self.multis = json.dumps({'multis': [sum(x) for x in zip(json.loads(self.multis)['multis'],
-                                                                           multis[matchPlayer.steam_id3])]})
+                self.multis = [sum(x) for x in zip(self.multis, multis[matchPlayer.steam_id3])]
         else:
             self.multis = None
 
         if any(streaks[matchPlayer.steam_id3]):
             if not self.streaks:
-                self.streaks = json.dumps({'streaks': streaks[matchPlayer.steam_id3]})
+                self.streaks = streaks[matchPlayer.steam_id3]
             else:
-                self.streaks = json.dumps({'streaks': [sum(x) for x in zip(json.loads(self.streaks)['streaks'],
-                                                                             streaks[matchPlayer.steam_id3])]})
+                self.streaks = [sum(x) for x in zip(self.streaks, streaks[matchPlayer.steam_id3])]
         else:
             self.streaks = None
 

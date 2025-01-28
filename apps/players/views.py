@@ -21,8 +21,6 @@ def recentMatches(request, steam_id3):
 def stats(request, steam_id3):
     try:
         player = PlayerModel.objects.get(steam_id3=steam_id3)
-        playerHeroes = PlayerHeroModel.objects.filter(player=player)
-        print(playerHeroes)
         player.updatePlayerStats()
     except PlayerModel.DoesNotExist:
         return Response(status=404)
