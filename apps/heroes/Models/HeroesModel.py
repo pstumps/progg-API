@@ -1,5 +1,5 @@
 from django.db import models
-from ...matches.Models.MatchesModel import MatchesModel
+
 '''
 Deadlock API hero names by ID Number:
 Infernus: 1
@@ -37,8 +37,9 @@ Raven (beta): 62
 
 class HeroesModel(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False)
+    className = models.CharField(max_length=100, null=True)
     hero_deadlock_id = models.IntegerField(unique=True, null=True)
-    description = models.TextField(null=True)
+    description = models.JSONField(null=True)
     abilities = models.JSONField(null=True)
     wins = models.BigIntegerField(null=True)
     losses = models.BigIntegerField(null=True)
@@ -49,3 +50,4 @@ class HeroesModel(models.Model):
     pickrate = models.IntegerField(null=True)
     tier = models.CharField(max_length=1, null=True)
     beta = models.BooleanField(null=True)
+    images = models.JSONField(null=True)

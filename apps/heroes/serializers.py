@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HeroesModel
+from .Models.HeroesModel import HeroesModel
 
 class HeroSerializer(serializers.ModelSerializer):
     winrate = serializers.SerializerMethodField()
@@ -21,3 +21,13 @@ class HeroSerializer(serializers.ModelSerializer):
 
     def calculateKDA(self, kills, deaths, assists):
         return round(((kills + assists) / deaths), 2)
+
+class RecentMatchStatsHeroSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeroesModel
+        fields = ['name', 'image']
+
+    def get_image(self, obj):
+        return obj.images['icon_hero_card']

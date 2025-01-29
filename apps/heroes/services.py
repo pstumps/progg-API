@@ -1,4 +1,4 @@
-from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
+from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService, deadlockAPIAssetsService
 from .Models.HeroesModel import HeroesModel
 from .serializers import HeroSerializer
 
@@ -77,6 +77,7 @@ class proGGAPIHeroesService:
     def __init__(self):
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
+        self.DLAPIAssetsService = deadlockAPIAssetsService()
         self.bigPatchDaysTimestamp = [self.DLAPIDataService.convertToUnixTimestamp(patches) for patches in self.DLAPIDataService.getBigPatchDays()]
         self.latest_patch_timestamp = self.bigPatchDaysTimestamp[0]
 
@@ -90,14 +91,54 @@ class proGGAPIHeroesService:
         if data:
             total_matches = sum(stats['matches'] for stats in data)
             for stats in data:
-                heroName = HeroesDict.get(stats['hero_id'])
+                heroName = HeroesModel.objects.filter(hero_deadlock_id=stats['hero_id']).first()
                 if not heroName:
-                    continue
-                try:
-                    hero = HeroesModel.objects.get(name=heroName)
-                except HeroesModel.DoesNotExist:
-                    newHero = True
-                    hero = HeroesModel.objects.create(name=heroName)
+                    dlAPIhero = self.DLAPIAssetsService.getHeroAssetsById(stats['hero_id'])
+                    underscoreName = dlAPIhero['name'].replace(' ', '_')
+                    hero = HeroesModel.objects.create(
+                        name=dlAPIhero['name'],
+                        className=dlAPIhero['class_name'],
+                        hero_deadlock_id=dlAPIhero['id'],
+                        description=dlAPIhero['description'],
+                        abilities=dlAPIhero['items'],
+                        beta=dlAPIhero['in_development'],
+                        images= {
+                          "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
+                          "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
+                          "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
+                          "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
+                          "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
+                          "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
+                          "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
+                          "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
+                          "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
+                          "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
+                        }
+                    )
+                    hero.save()
+                else:
+                    hero = HeroesModel.objects.get(hero_deadlock_id=stats['hero_id'])
+                    # if not hero.description or not hero.abilities or not hero.images or not hero.name or not hero.className:
+                    dlAPIhero = self.DLAPIAssetsService.getHeroAssetsById(stats['hero_id'])
+                    underscoreName = dlAPIhero['name'].replace(' ', '_')
+                    hero.name = dlAPIhero['name']
+                    hero.className = dlAPIhero['class_name']
+                    hero.description = dlAPIhero['description']
+                    hero.abilities = dlAPIhero['items']
+                    hero.images = {
+                          "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
+                          "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
+                          "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
+                          "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
+                          "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
+                          "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
+                          "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
+                          "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
+                          "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
+                          "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
+                    }
+                    hero.save()
+
                 heroData = {
                     'name': heroName,
                     'wins': stats['wins'],

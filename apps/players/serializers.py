@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..matches.serializers import RecentMatchPlayerModelSerailizer
+from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerailizer
 from .Models.PlayerModel import PlayerModel
 from .Models.PlayerHeroModel import PlayerHeroModel
 
@@ -19,7 +19,8 @@ class PlayerModelSerializer(serializers.ModelSerializer):
         for matchPlayerModel in obj.matchPlayerModels.all():
             matchPlayerModel = RecentMatchPlayerModelSerailizer(matchPlayerModel)
             recentMatches.append(matchPlayerModel.data)
-        return recentMatches
+        sorted_recentMatches = sorted(recentMatches, key=lambda x: x['when'])
+        return sorted_recentMatches
 
 class PlayerHeroModelSerializer(serializers.ModelSerializer):
     class Meta:

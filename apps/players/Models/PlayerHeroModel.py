@@ -46,7 +46,7 @@ class PlayerHeroModel(models.Model):
         self.neutralCreeps += matchPlayer.neutralCreeps
         self.lastHits += matchPlayer.lastHits
         self.denies += matchPlayer.denies
-        self.longestStreak = max(self.longestStreak, longestStreaks[matchPlayer.steam_id3])
+        self.longestStreak = max(self.longestStreak, longestStreaks.get(matchPlayer.steam_id3)) if longestStreaks.get(matchPlayer.steam_id3) else self.longestStreak
         if self.accuracy == 0:
             self.accuracy = matchPlayer.accuracy
         else:

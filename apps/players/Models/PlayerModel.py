@@ -94,7 +94,8 @@ class PlayerModel(models.Model):
 
     def updatePlayerStatsFromMatchPlayer(self, matchPlayer, multis, streaks, longestStreaks, objectiveEvents,
                                          midbossEvents):
-        self.longestStreak = max(self.longestStreak, longestStreaks[matchPlayer.steam_id3])
+
+        self.longestStreak = max(self.longestStreak, longestStreaks.get(matchPlayer.steam_id3, 0))
 
         for event in midbossEvents:
             if event.team == matchPlayer.team:
@@ -114,22 +115,22 @@ class PlayerModel(models.Model):
                     self.shieldGenerators += 1
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons += 1
-
-        if any(multis[matchPlayer.steam_id3]):
-            if not self.multis:
-                self.multis = multis[matchPlayer.steam_id3]
+        if multis.get(matchPlayer.steam_id3):
+            if any(multis[matchPlayer.steam_id3]):
+                if not self.multis:
+                    self.multis = multis.get(matchPlayer.steam_id3)
+                else:
+                    self.multis = [sum(x) for x in zip(self.multis, multis[matchPlayer.steam_id3])]
             else:
-                self.multis = [sum(x) for x in zip(self.multis, multis[matchPlayer.steam_id3])]
-        else:
-            self.multis = None
+                self.multis = None
 
-        if any(streaks[matchPlayer.steam_id3]):
-            if not self.streaks:
-                self.streaks = streaks[matchPlayer.steam_id3]
+            if any(streaks[matchPlayer.steam_id3]):
+                if not self.streaks:
+                    self.streaks = streaks[matchPlayer.steam_id3]
+                else:
+                    self.streaks = [sum(x) for x in zip(self.streaks, streaks[matchPlayer.steam_id3])]
             else:
-                self.streaks = [sum(x) for x in zip(self.streaks, streaks[matchPlayer.steam_id3])]
-        else:
-            self.streaks = None
+                self.streaks = None
 
         self.matches.add(matchPlayer.match)
 
@@ -138,7 +139,7 @@ class PlayerModel(models.Model):
         hero = HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
         if not hero:
             DLAPIAssets = deadlockAPIAssetsService()
-            heroName = DLAPIAssets.getHeroAssetsById(matchPlayer.hero_deadlock_id)['name']
+            heroName = DLAPIAssets.getHeroAssetsById(matchPlayer.hero_deadlock_id).get('name')
             hero = HeroesModel.objects.create(
                 name=heroName,
                 hero_deadlock_id=matchPlayer.hero_deadlock_id

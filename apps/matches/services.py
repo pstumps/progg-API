@@ -1,12 +1,11 @@
-import datetime, json
+import datetime
 from django.db import transaction
 from .Models.MatchesModel import MatchesModel
 from .Models.MatchPlayerModel import MatchPlayerModel
 from .Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
 from ..players.Models.PlayerModel import PlayerModel
 from ..players.Models.PlayerHeroModel import PlayerHeroModel
-from ..heroes.Models.HeroesModel import HeroesModel
-from .Models.MatchTimeline import MatchTimelineEvent, PvPEvent, ObjectiveEvent, MidbossEvent
+from .Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
 from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService, deadlockAPIAssetsService
 
 
@@ -31,14 +30,7 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
-        MatchesModel.objects.all().delete()
-        MatchPlayerModel.objects.all().delete()
-        MatchPlayerTimelineEvent.objects.all().delete()
-        PlayerModel.objects.all().delete()
-        PlayerHeroModel.objects.all().delete()
-        PvPEvent.objects.all().delete()
-        ObjectiveEvent.objects.all().delete()
-        MidbossEvent.objects.all().delete()
+        # self.deleteAllMatchesAndPlayersModels()
 
         matchMetadata = matchMetadata['match_info']
         dl_match_id = matchMetadata['match_id']
@@ -389,3 +381,14 @@ class proggAPIMatchesService:
 
         midbossEvent.save()
         return midbossEvent
+
+    # Testing purposes only
+    def deleteAllMatchesAndPlayersModels(self):
+        MatchesModel.objects.all().delete()
+        MatchPlayerModel.objects.all().delete()
+        MatchPlayerTimelineEvent.objects.all().delete()
+        PlayerModel.objects.all().delete()
+        PlayerHeroModel.objects.all().delete()
+        PvPEvent.objects.all().delete()
+        ObjectiveEvent.objects.all().delete()
+        MidbossEvent.objects.all().delete()
