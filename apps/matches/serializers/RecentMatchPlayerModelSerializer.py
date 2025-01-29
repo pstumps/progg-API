@@ -10,6 +10,7 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
     team = serializers.SerializerMethodField()
     length = serializers.SerializerMethodField()
     when = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
     hero = serializers.SerializerMethodField()
     accuracy = serializers.SerializerMethodField()
     damage = serializers.SerializerMethodField()
@@ -25,7 +26,7 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
 
     class Meta:
         model = MatchPlayerModel
-        fields = ['team', 'win', 'level', 'length', 'when', 'lastHits', 'denies', 'accuracy', 'kills', 'deaths',
+        fields = ['team', 'win', 'level', 'length', 'date', 'when', 'lastHits', 'denies', 'accuracy', 'kills', 'deaths',
                   'assists', 'souls', 'hero', 'damage', 'teamobj', 'teamkills', 'teamsouls', 'enemyobj', 'enemykills',
                   'enemysouls', 'build', 'medals', 'party', 'avgRank']
 
@@ -34,6 +35,9 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
 
     def get_length(self, obj):
         return int(obj.match.length / 60)
+
+    def get_date(self, obj):
+        return int(obj.match.date.timestamp())
 
     def get_when(self, obj):
         last = int(time.time()) - int(obj.match.date.timestamp())
