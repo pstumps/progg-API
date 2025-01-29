@@ -1,8 +1,8 @@
-from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
+from ...proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
+from ...proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from ..matches.Models.MatchesModel import MatchesModel
 from ..matches.Models.MatchPlayerModel import MatchPlayerModel
 from ..players.Models.PlayerModel import PlayerModel
-from ..players.Models.PlayerHeroModel import PlayerHeroModel
 
 
 class proGGPlayersService:

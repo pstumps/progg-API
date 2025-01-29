@@ -1,6 +1,7 @@
 import json
 from django.db import models
-from proggbackend.services import deadlockAPIAssetsService
+from ....proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
+from ....proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .PlayerHeroModel import PlayerHeroModel
 from ...heroes.Models.HeroesModel import HeroesModel
 from ...matches.Models.MatchesModel import MatchesModel
@@ -13,6 +14,7 @@ class PlayerModel(models.Model):
     player_tag = models.CharField(max_length=100)
     avatar = models.CharField(max_length=100)
     region = models.CharField(max_length=100)
+    private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
     matches = models.ManyToManyField(MatchesModel, related_name='playersModel')
     wins = models.IntegerField(default=0)
@@ -51,6 +53,12 @@ class PlayerModel(models.Model):
     def __str__(self):
         return self.name
 
+    def updatePlayerFromSteamWebAPI(self):
+        
+        steamWebAPI = SteamWebAPIService()
+        playerData = steamWebAPI.getPlayerSummaries(steam_id3=self.steam_id3)
+        self.name = playerData['personaname']
+
     def updatePlayerStats(self):
         stats = self.player_hero_stats.aggregate(
             wins=models.Sum('wins'),
@@ -85,7 +93,7 @@ class PlayerModel(models.Model):
         self.midbosses = stats['midbosses'] or 0
         self.lastHits = stats['lastHits'] or 0
         self.denies = stats['denies'] or 0
-        self.longestStreak = max( self.longestStreak, stats['longestStreak'])
+        self.longestStreak = max(self.longestStreak, stats['longestStreak'])
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
@@ -133,7 +141,6 @@ class PlayerModel(models.Model):
                 self.streaks = None
 
         self.matches.add(matchPlayer.match)
-
 
         # Update player hero model
         hero = HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
