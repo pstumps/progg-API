@@ -5,6 +5,7 @@ from .Models.PlayerHeroModel import PlayerHeroModel
 
 class PlayerModelSerializer(serializers.ModelSerializer):
     accuracy = serializers.SerializerMethodField()
+    critAccuracy = serializers.SerializerMethodField()
     matchesPlayed = serializers.SerializerMethodField()
     recentMatches = serializers.SerializerMethodField()
     doubles = serializers.SerializerMethodField()
@@ -24,7 +25,7 @@ class PlayerModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlayerModel
         fields = ['steam_id3', 'name', 'avatar', 'region', 'rank', 'wins', 'kills', 'deaths', 'assists', 'souls',
-                  'soulsPerMin', 'accuracy', 'heroDamage', 'objDamage', 'healing', 'guardians', 'walkers',
+                  'soulsPerMin', 'accuracy', 'critAccuracy', 'heroDamage', 'objDamage', 'healing', 'guardians', 'walkers',
                   'baseGuardians', 'shieldGenerators', 'patrons', 'midbosses', 'rejuvinators', 'laneCreeps',
                   'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatch',
                   'lastLogin', 'timePlayed', 'created', 'updated', 'matchesPlayed', 'recentMatches', 'doubles',
@@ -44,6 +45,9 @@ class PlayerModelSerializer(serializers.ModelSerializer):
 
     def get_accuracy(self, obj):
         return round(obj.accuracy * 100, 1)
+
+    def get_critAccuracy(self, obj):
+        return round(obj.heroCritPercent * 100, 1)
 
     def get_doubles(self, obj):
         return obj.multis[0] if obj.multis else 0
