@@ -1,5 +1,5 @@
-import datetime
-from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
+from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 
 from ..matches.services import proggAPIMatchesService
 from ..matches.Models.MatchesModel import MatchesModel
