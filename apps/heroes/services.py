@@ -1,6 +1,6 @@
-from ...proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
-from ...proggbackend.services.DeadlockAPIData import deadlockAPIDataService
-from ...proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
+from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
+from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from .Models.HeroesModel import HeroesModel
 from .serializers import HeroSerializer
 

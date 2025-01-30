@@ -25,7 +25,7 @@ class PlayerHeroModel(models.Model):
     streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0] Not tracking these atm
     longestStreak = models.IntegerField(default=0)
     midBoss = models.IntegerField(default=0) # Not tracking atm
-    tier = models.CharField(max_length=2, null=True)
+    tier = models.IntegerField(null=True)
     beta = models.BooleanField(default=0)
 
     def __str__(self):

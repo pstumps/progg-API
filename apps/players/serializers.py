@@ -7,6 +7,7 @@ class PlayerModelSerializer(serializers.ModelSerializer):
     accuracy = serializers.SerializerMethodField()
     critAccuracy = serializers.SerializerMethodField()
     matchesPlayed = serializers.SerializerMethodField()
+    lastMatchDate = serializers.SerializerMethodField()
     recentMatches = serializers.SerializerMethodField()
     doubles = serializers.SerializerMethodField()
     triples = serializers.SerializerMethodField()
@@ -24,16 +25,19 @@ class PlayerModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlayerModel
-        fields = ['steam_id3', 'name', 'avatar', 'region', 'rank', 'wins', 'kills', 'deaths', 'assists', 'souls',
+        fields = ['steam_id3', 'name', 'icon', 'region', 'rank', 'wins', 'kills', 'deaths', 'assists', 'souls',
                   'soulsPerMin', 'accuracy', 'critAccuracy', 'heroDamage', 'objDamage', 'healing', 'guardians', 'walkers',
                   'baseGuardians', 'shieldGenerators', 'patrons', 'midbosses', 'rejuvinators', 'laneCreeps',
-                  'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatch',
+                  'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatchDate',
                   'lastLogin', 'timePlayed', 'created', 'updated', 'matchesPlayed', 'recentMatches', 'doubles',
                   'triples', 'quadras', 'pentas', 'megas', 'gigas', 'threeStreaks', 'fourStreaks', 'fiveStreaks',
                   'sixStreaks', 'sevenStreaks', 'eightStreaks', 'eightPlusStreaks']
 
     def get_matchesPlayed(self, obj):
         return obj.matches.count()
+
+    def get_lastMatchDate(self, obj):
+        return obj.getLastMatch.date
 
     def get_recentMatches(self, obj):
         recentMatches = []

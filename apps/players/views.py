@@ -1,9 +1,10 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .services import proGGPlayersService
-from .serializers import PlayerModelSerializer
+from .serializers import PlayerModelSerializer, PlayerHeroModelSerializer
 from ..matches.serializers.MatchModelSerializer import MatchModelSerailizer
 from .Models.PlayerModel import PlayerModel
+
 
 def recentMatches(request, steam_id3):
     playersService = proGGPlayersService()
@@ -17,6 +18,7 @@ def recentMatches(request, steam_id3):
 
     return {'recentMatches': lastTenMatches}
 
+
 @api_view(['GET'])
 def stats(request, steam_id3):
     try:
@@ -28,10 +30,19 @@ def stats(request, steam_id3):
     serializer = PlayerModelSerializer(player)
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 def matchHistory(request, steam_id3):
     playersService = proGGPlayersService()
     history = playersService.getMatchHistory(steam_id3)
     serializer = MatchModelSerailizer(history, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def topPlayerHeroes(request, steam_id3):
+    playersService = proGGPlayersService()
+    topHeroes = playersService.calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(steam_id3)
+    serializer = PlayerHeroModelSerializer(topHeroes, many=True)
     return Response(serializer.data)
 

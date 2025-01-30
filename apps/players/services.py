@@ -12,6 +12,13 @@ class proGGPlayersService:
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
 
+    def calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(self, steam_id3):
+        player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
+        if player:
+            player.calculatePlayerHeroTiers()
+
+        return player.getTopPlayerHeroes()
+
     def getMatchHistory(self, steam_id3):
         # Internal API Only
         matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)

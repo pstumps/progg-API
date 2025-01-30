@@ -10,7 +10,7 @@ class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
     steam_id3 = models.BigIntegerField(null=True)
     name = models.CharField(max_length=100)
-    avatar = models.JSONField()
+    icon = models.JSONField(null=True)
     region = models.CharField(max_length=2)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
@@ -50,13 +50,59 @@ class PlayerModel(models.Model):
     def __str__(self):
         return self.name
 
+    def getLastMatch(self):
+        return self.matches.order_by('-date').first()
+
+    def getTopPlayerHeroes(self):
+        return self.player_hero_stats.order_by('tier')
+
+    def calculatePlayerHeroTiers(self):
+        playerHeroes = self.player_hero_stats.all()
+        for hero in playerHeroes:
+            score = self.calculateScore(hero)
+            hero.tier = score
+            hero.save()
+
+    def calculateScore(self, hero):
+        winrate = hero.wins / (hero.matches-hero.wins) * 100
+        kda = (hero.kills + hero.assists) / hero.deaths
+
+        winrate_weight = 0.6
+        kda_weight = 0.45
+        soulsPerMin_weight = 0.5
+        heroDamage_weight = 0.1
+        objDamage_weight = 0.1
+        healing_weight = 0.075
+        matches_weight = 0.35
+        accuracy_weight = 0.15
+
+
+        score = ((winrate * winrate_weight) +
+                 (kda * kda_weight) +
+                 (hero.soulsPerMin * soulsPerMin_weight) +
+                 ((hero.heroDamage/hero.matches) * heroDamage_weight) +
+                 (hero.matches * matches_weight) +
+                 ((hero.objDamage/hero.matches) * objDamage_weight) +
+                 ((hero.healing/hero.matches) * healing_weight) +
+                 (accuracy_weight * (hero.accuracy*100)))
+
+        return score
+
     def updatePlayerFromSteamWebAPI(self):
         steamWebAPI = SteamWebAPIService()
         playerData = steamWebAPI.getPlayerSummaries(steam_id3=self.steam_id3).get('response').get('players')
         if playerData[0]:
             self.name = playerData.get('personaname')
-            self.avatar = playerData.get('avatarfull')
+            self.icon = playerData.get('avatarfull')
             self.region = playerData.get('region')
+
+        gameData = steamWebAPI.getOwnedGames(steam_id3=self.steam_id3).get('response')['games']
+        if gameData:
+            for games in gameData:
+                if games['appid'] == 1422450:
+                    self.timePlayed = games.get('playtime_forever') / 60
+
+        self.save()
 
     def updatePlayerStats(self):
         stats = self.player_hero_stats.aggregate(
