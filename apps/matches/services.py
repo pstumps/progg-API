@@ -241,54 +241,56 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchPlayerFromMetadata(self, playerModel, match, playerMetadata, matchMetaData):
-        endStats = playerMetadata['stats'][-1]
-        playerSouls = endStats['net_worth']
-        goldSources = endStats['gold_sources']
-        heroesGoldSources = goldSources[0].get('gold', 0) + goldSources[0].get('gold_orbs', 0)
-        laneCreepsGoldSources = goldSources[1].get('gold', 0) + goldSources[1].get('gold_orbs', 0)
-        neutralCreepsGoldSources = goldSources[2].get('gold', 0) + goldSources[2].get('gold_orbs', 0)
-        objectivesGoldSources = goldSources[3].get('gold', 0) + goldSources[3].get('gold_orbs', 0)
-        cratesGoldSources = goldSources[4].get('gold', 0)
-        deniesGoldSources = goldSources[5].get('gold', 0)
-        otherGoldSources = goldSources[6].get('gold', 0)
-        assistGoldSources = goldSources[7].get('gold', 0)
-        matchPlayer = MatchPlayerModel.objects.create(
-            player=playerModel,
-            match=match,
-            steam_id3=playerMetadata['account_id'],
-            team=playerMetadata['team'],
-            playerSlot=playerMetadata['player_slot'],
-            kills=playerMetadata['kills'],
-            deaths=playerMetadata['deaths'],
-            assists=playerMetadata['assists'],
-            hero_deadlock_id=playerMetadata['hero_id'],
-            level=playerMetadata['level'],
-            souls=playerSouls,
-            soulsPerMin=round(playerSouls / match.length, 2),
-            lastHits=playerMetadata['last_hits'],
-            denies=playerMetadata['denies'],
-            party=playerMetadata['party'],
-            lane=playerMetadata['assigned_lane'],
-            laneCreeps=endStats['creep_kills'],
-            neutralCreeps=endStats['neutral_kills'],
-            accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4),
-            heroCritPercent=round(endStats['hero_bullets_hit_crit'] / endStats['hero_bullets_hit'], 4),
-            soulsBreakdown={
-                    'hero': round(playerSouls / heroesGoldSources, 1) if heroesGoldSources > 0 else 0,
-                    'lane_creeps': round(playerSouls / laneCreepsGoldSources, 1) if laneCreepsGoldSources > 0 else 0,
-                    'neutrals': round(playerSouls / neutralCreepsGoldSources, 1) if neutralCreepsGoldSources > 0 else 0,
-                    'objectives': round(playerSouls / objectivesGoldSources) if objectivesGoldSources > 0 else 0,
-                    'crates': round(playerSouls / cratesGoldSources, 1) if cratesGoldSources > 0 else 0,
-                    'denies': round(playerSouls / deniesGoldSources, 1) if deniesGoldSources > 0 else 0,
-                    'other': round(playerSouls / otherGoldSources, 1) if otherGoldSources > 0 else 0,
-                    'assists': round(playerSouls / assistGoldSources, 1) if assistGoldSources > 0 else 0
-            },
-            heroDamage=endStats['player_damage'],
-            objDamage=endStats['boss_damage'],
-            healing=endStats['player_healing'],
-            win=playerMetadata['team'] == matchMetaData['winning_team'],
-        )
-        return matchPlayer
+        if playerMetadata.get('account_id'):
+            endStats = playerMetadata['stats'][-1]
+            playerSouls = endStats.get('net_worth', 0)
+            goldSources = endStats.get('gold_sources')
+            heroesGoldSources = goldSources[0].get('gold', 0) + goldSources[0].get('gold_orbs', 0)
+            laneCreepsGoldSources = goldSources[1].get('gold', 0) + goldSources[1].get('gold_orbs', 0)
+            neutralCreepsGoldSources = goldSources[2].get('gold', 0) + goldSources[2].get('gold_orbs', 0)
+            objectivesGoldSources = goldSources[3].get('gold', 0) + goldSources[3].get('gold_orbs', 0)
+            cratesGoldSources = goldSources[4].get('gold', 0)
+            deniesGoldSources = goldSources[5].get('gold', 0)
+            otherGoldSources = goldSources[6].get('gold', 0)
+            assistGoldSources = goldSources[7].get('gold', 0)
+            matchPlayer = MatchPlayerModel.objects.create(
+                player=playerModel,
+                match=match,
+                steam_id3=playerMetadata.get('account_id'),
+                team=playerMetadata.get('team'),
+                playerSlot=playerMetadata.get('player_slot'),
+                kills=playerMetadata.get('kills', 0),
+                deaths=playerMetadata.get('deaths', 0),
+                assists=playerMetadata.get('assists', 0),
+                hero_deadlock_id=playerMetadata.get('hero_id', 0),
+                level=playerMetadata.get('level', 0),
+                souls=playerSouls,
+                soulsPerMin=round(playerSouls / match.length, 2) if match.length else 0,
+                lastHits=playerMetadata.get('last_hits', 0),
+                denies=playerMetadata.get('denies', 0),
+                party=playerMetadata.get('party', 0),
+                lane=playerMetadata.get('assigned_lane'),
+                laneCreeps=endStats.get('creep_kills', 0),
+                neutralCreeps=endStats.get('neutral_kills', 0),
+                accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4),
+                heroCritPercent=round(endStats['hero_bullets_hit_crit'] / endStats['hero_bullets_hit'], 4),
+                soulsBreakdown={
+                        'hero': round(heroesGoldSources / playerSouls, 1) if heroesGoldSources > 0 else 0,
+                        'lane_creeps': round(laneCreepsGoldSources / playerSouls, 1) if laneCreepsGoldSources > 0 else 0,
+                        'neutrals': round(neutralCreepsGoldSources / playerSouls, 1) if neutralCreepsGoldSources > 0 else 0,
+                        'objectives': round(objectivesGoldSources / playerSouls) if objectivesGoldSources > 0 else 0,
+                        'crates': round(cratesGoldSources / playerSouls, 1) if cratesGoldSources > 0 else 0,
+                        'denies': round(deniesGoldSources / playerSouls, 1) if deniesGoldSources > 0 else 0,
+                        'other': round(otherGoldSources / playerSouls, 1) if otherGoldSources > 0 else 0,
+                        'assists': round(assistGoldSources / playerSouls, 1) if assistGoldSources > 0 else 0
+                },
+                heroDamage=endStats.get('player_damage', 0),
+                objDamage=endStats['boss_damage'],
+                healing=endStats['player_healing'],
+                win=playerMetadata['team'] == matchMetaData['winning_team'],
+            )
+            return matchPlayer
+        return None
 
     def getPlayerMedals(self, match):
         top_kills_player = MatchPlayerModel.objects.filter(match=match).order_by('-kills').first()
