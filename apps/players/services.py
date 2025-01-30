@@ -5,7 +5,6 @@ from ..matches.services import proggAPIMatchesService
 from ..matches.Models.MatchesModel import MatchesModel
 from ..matches.Models.MatchPlayerModel import MatchPlayerModel
 from ..players.Models.PlayerModel import PlayerModel
-from ..players.Models.PlayerHeroModel import PlayerHeroModel
 
 
 class proGGPlayersService:

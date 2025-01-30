@@ -6,7 +6,9 @@ from .Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
 from ..players.Models.PlayerModel import PlayerModel
 from ..players.Models.PlayerHeroModel import PlayerHeroModel
 from .Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
-from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService, deadlockAPIAssetsService
+from ...proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
+from ...proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from ...proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 def calculateAverageBadgeFromMetadata(metadata):

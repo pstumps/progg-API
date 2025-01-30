@@ -2,7 +2,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .Models.MatchesModel import MatchesModel
 from .services import proggAPIMatchesService
-from proggbackend.services import deadlockAPIDataService
+from ...proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from .serializers.MatchModelSerializer import MatchModelSerailizer
 
 # Create your views here.
