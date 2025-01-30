@@ -1,4 +1,7 @@
+import datetime
 from proggbackend.services import deadlockAPIAnalyticsService, deadlockAPIDataService
+
+from ..matches.services import proggAPIMatchesService
 from ..matches.Models.MatchesModel import MatchesModel
 from ..matches.Models.MatchPlayerModel import MatchPlayerModel
 from ..players.Models.PlayerModel import PlayerModel
@@ -9,6 +12,19 @@ class proGGPlayersService:
     def __init__(self):
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
+
+    def getMatchHistory(self, steam_id3):
+        # Internal API Only
+        matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+        matchesService = proggAPIMatchesService()
+        if player.matches.count() != len(matchHistory):
+            for match in matchHistory:
+                #if datetime.datetime.fromtimestamp(match['start_time'], datetime.timezone.utc) < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=20):
+                matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
+                matchesService.createNewMatchFromMetadata(matchMetadata)
+        return player.matches
+
 
     def getRecentMatches(self, steam_id3):
         player = PlayerModel.objects.get(steam_id3=steam_id3)

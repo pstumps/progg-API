@@ -31,7 +31,7 @@ class proggAPIMatchesService:
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
         # self.deleteAllMatchesAndPlayersModels()
-
+        # match id 32364484 players abandoned match
         matchMetadata = matchMetadata['match_info']
         dl_match_id = matchMetadata['match_id']
 
@@ -96,7 +96,9 @@ class proggAPIMatchesService:
                 )
 
             abilityLevels = {}
-            createTimeline = playerToTrack.timelineTracking
+            createTimeline = False
+            if match.date < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7):
+                createTimeline = playerToTrack.timelineTracking
 
             if player.get('death_details'):
                 self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
@@ -169,8 +171,9 @@ class proggAPIMatchesService:
             if multiKillCount > 1:
                 multis[slayer_account_id][min(multiKillCount, 6) - 2] += 1
 
-            self.createMatchTimelinePvPEvent(match, slayer_info['hero_id'], player['hero_id'],
-                                             death_event['game_time_s'], player['team'])
+            if match.date < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7):
+                self.createMatchTimelinePvPEvent(match, slayer_info['hero_id'], player['hero_id'],
+                                                 death_event['game_time_s'], player['team'])
 
     def processItemEvents(self, player, item_events, match_event_details, abilityLevels, createTimeline, playerToTrack,
                           match):
@@ -223,17 +226,18 @@ class proggAPIMatchesService:
         oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
                          'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
 
-        for obj in matchMetadata['objectives']:
-            objectiveEvents.append(self.createMatchTimelineObjectiveEvent(match=match,
-                                                                          target=obj['team_objective_id'],
-                                                                          timestamp=obj['destroyed_time_s'],
-                                                                          team=oppositeTeams[obj['team']]))
-
-        for midboss in matchMetadata['mid_boss']:
-            midbossEvents.append(self.createMatchTimelineMidbossEvent(match=match,
-                                                                      slayer=midboss['team_killed'],
-                                                                      team=midboss['team_claimed'],
-                                                                      timestamp=midboss['destroyed_time_s']))
+        if matchMetadata.get('objectives'):
+            for obj in matchMetadata['objectives']:
+                objectiveEvents.append(self.createMatchTimelineObjectiveEvent(match=match,
+                                                                              target=obj['team_objective_id'],
+                                                                              timestamp=obj['destroyed_time_s'],
+                                                                              team=oppositeTeams[obj['team']]))
+        if matchMetadata.get('mid_boss'):
+            for midboss in matchMetadata['mid_boss']:
+                midbossEvents.append(self.createMatchTimelineMidbossEvent(match=match,
+                                                                          slayer=midboss['team_killed'],
+                                                                          team=midboss['team_claimed'],
+                                                                          timestamp=midboss['destroyed_time_s']))
 
         return objectiveEvents, midbossEvents
 
@@ -269,8 +273,8 @@ class proggAPIMatchesService:
             lane=playerMetadata['assigned_lane'],
             laneCreeps=endStats['creep_kills'],
             neutralCreeps=endStats['neutral_kills'],
-            accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4),
-            heroCritPercent=round(endStats['hero_bullets_hit_crit'] / endStats['hero_bullets_hit'], 4),
+            accuracy=round(endStats['shots_hit'] / (endStats['shots_hit'] + endStats['shots_missed']), 4) if (endStats['shots_hit'] + endStats['shots_missed']) > 0 else 0,
+            heroCritPercent=round(endStats['hero_bullets_hit_crit'] / endStats['hero_bullets_hit'], 4) if endStats['hero_bullets_hit'] > 0 else 0,
             soulsBreakdown={
                     'hero': round(playerSouls / heroesGoldSources, 1) if heroesGoldSources > 0 else 0,
                     'lane_creeps': round(playerSouls / laneCreepsGoldSources, 1) if laneCreepsGoldSources > 0 else 0,
