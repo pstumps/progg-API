@@ -14,6 +14,7 @@ class PlayerModel(models.Model):
     region = models.CharField(max_length=2)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
+    # This will need to be changed. A Player can have many matches, but a Match does not need to have many players, since it has MatchPlayers.
     matches = models.ManyToManyField(MatchesModel, related_name='playerModel')
     wins = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)
