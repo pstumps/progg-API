@@ -20,7 +20,7 @@ def calculateAverageBadgeFromMetadata(metadata):
             averageBadges[stat] = value
             badgesSum += value
 
-    averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges))
+    averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges)) if averageBadges else 0
     return averageBadges
 
 
@@ -42,18 +42,19 @@ class proggAPIMatchesService:
             if MatchesModel.objects.filter(deadlock_id=dl_match_id).exists():
                 return MatchesModel.objects.get(deadlock_id=dl_match_id)
 
+            print(f'dl match id: {dl_match_id}')
+
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
             match = MatchesModel.objects.create(
                 deadlock_id=dl_match_id,
                 date=datetime.datetime.fromtimestamp(matchMetadata.get('start_time'), datetime.timezone.utc) if matchMetadata.get('start_time') else None,
-                averageRank=averageBadges,
+                averageRank=averageBadges if averageBadges else None,
                 gameMode=matchMetadata.get('game_mode'),
                 matchMode=matchMetadata.get('match_mode'),
                 length=matchMetadata.get('duration_s'),
                 victor=matchMetadata.get('winning_team')
             )
 
-            print(f'dl match id: {dl_match_id}')
 
             self.parseMatchEventsFromMetadata(match, matchMetadata)
 
@@ -66,7 +67,6 @@ class proggAPIMatchesService:
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata):
         match_event_details = {}
-        accountIds = []
         streaks = {}
         lastKillTimes = {}
         multis = {}
@@ -92,7 +92,6 @@ class proggAPIMatchesService:
             }
 
         for player in matchMetadata['players']:
-            accountIds.append(player['account_id'])
 
             playerToTrack = PlayerModel.objects.filter(steam_id3=player['account_id']).first()
             if not playerToTrack:
@@ -104,6 +103,13 @@ class proggAPIMatchesService:
             createTimeline = False
             if match.date < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7):
                 createTimeline = playerToTrack.timelineTracking
+
+            if player['account_id'] not in match_event_details:
+                match_event_details[player['account_id']] = {
+                    'hero_id': player['hero_id'],
+                    'items': {},
+                    'abilities': [],
+                }
 
             if player.get('death_details'):
                 self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
@@ -117,14 +123,14 @@ class proggAPIMatchesService:
             sortedAbilities = sorted(abilityLevels.items(), key=lambda x: (-len(x[1]), x[1]))
 
             matchPlayer = self.createNewMatchPlayerFromMetadata(playerToTrack, match, player, matchMetadata)
-            matchPlayer.items = match_event_details[player['account_id']]['items']
+            matchPlayer.items = match_event_details[player['account_id']].get('items', {})
             matchPlayer.abilities = [ability[0] for ability in sortedAbilities]
             matchPlayer.save()
 
         objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
 
-        print(f'account ids: {accountIds}')
-        for account_id in accountIds:  # multis and streaks have same keys
+        print(f'account ids: {match_event_details.keys()}')
+        for account_id in match_event_details.keys():  # multis and streaks have same keys
             matchPlayer = MatchPlayerModel.objects.get(match=match, steam_id3=account_id)
             matchPlayer.multiKills = multis[account_id]
             matchPlayer.streaks = streakCounts[account_id]
@@ -186,12 +192,6 @@ class proggAPIMatchesService:
 
     def processItemEvents(self, player, item_events, match_event_details, abilityLevels, createTimeline, playerToTrack,
                           match):
-        if player['account_id'] not in match_event_details:
-            match_event_details[player['account_id']] = {
-                'hero_id': player['hero_id'],
-                'items': {},
-                'abilities': [],
-            }
 
         item_data = self.DLItemsDict.get(item_events['item_id'])
         if item_data:
@@ -252,17 +252,29 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchPlayerFromMetadata(self, playerModel, match, playerMetadata, matchMetaData):
+        def getGold(goldSources, index, includeOrbs=True):
+            try:
+                source = goldSources[index]
+            except (IndexError, TypeError):
+                return 0
+            gold = source.get('gold', 0)
+            if includeOrbs:
+                gold += source.get('gold_orbs', 0)
+            return gold
+
+        goldMapping = {
+            'hero': (0, True),
+            'lane_creeps': (1, True),
+            'neutrals': (2, True),
+            'objectives': (3, True),
+            'crates': (4, False),
+            'denies': (5, False),
+            'other': (6, False),
+            'assists': (7, False)
+        }
+
         endStats = playerMetadata['stats'][-1]
         playerSouls = endStats.get('net_worth')
-        goldSources = endStats.get('gold_sources')
-        heroesGoldSources = goldSources[0].get('gold', 0) + goldSources[0].get('gold_orbs', 0)
-        laneCreepsGoldSources = goldSources[1].get('gold', 0) + goldSources[1].get('gold_orbs', 0)
-        neutralCreepsGoldSources = goldSources[2].get('gold', 0) + goldSources[2].get('gold_orbs', 0)
-        objectivesGoldSources = goldSources[3].get('gold', 0) + goldSources[3].get('gold_orbs', 0)
-        cratesGoldSources = goldSources[4].get('gold', 0)
-        deniesGoldSources = goldSources[5].get('gold', 0)
-        otherGoldSources = goldSources[6].get('gold', 0)
-        assistGoldSources = goldSources[7].get('gold', 0)
         matchPlayer = MatchPlayerModel.objects.create(
             player=playerModel,
             match=match,
@@ -284,16 +296,8 @@ class proggAPIMatchesService:
             neutralCreeps=endStats.get('neutral_kills'),
             accuracy=round(endStats.get('shots_hit') / (endStats.get('shots_hit') + endStats.get('shots_missed')), 4) if (endStats.get('shots_hit') + endStats.get('shots_missed')) > 0 else 0,
             heroCritPercent=round(endStats.get('hero_bullets_hit_crit') / endStats.get('hero_bullets_hit'), 4) if endStats.get('hero_bullets_hit') > 0 else 0,
-            soulsBreakdown={
-                    'hero': round(heroesGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'lane_creeps': round(laneCreepsGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'neutrals': round(neutralCreepsGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'objectives': round(objectivesGoldSources / playerSouls) if playerSouls > 0 else 0,
-                    'crates': round(cratesGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'denies': round(deniesGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'other': round(otherGoldSources / playerSouls, 1) if playerSouls > 0 else 0,
-                    'assists': round(assistGoldSources / playerSouls, 1) if playerSouls > 0 else 0
-            },
+            # dictionary of the key in goldMapping to the value returned by getGold function
+            soulsBreakdown= {key: round(getGold(endStats.get('gold_sources'), index, includeOrbs) / playerSouls, 1)  if playerSouls > 0 else 0 for key, (index, includeOrbs) in goldMapping.items()},
             heroDamage=endStats.get('player_damage'),
             objDamage=endStats.get('boss_damage'),
             healing=endStats.get('player_healing'),

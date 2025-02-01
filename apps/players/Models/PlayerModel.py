@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .PlayerHeroModel import PlayerHeroModel
@@ -11,7 +12,7 @@ class PlayerModel(models.Model):
     steam_id3 = models.BigIntegerField(null=True)
     name = models.CharField(max_length=100)
     icon = models.JSONField(null=True)
-    region = models.CharField(max_length=2)
+    region = models.CharField(max_length=2, null=True, blank=True)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
     # This will need to be changed. A Player can have many matches, but a Match does not need to have many players, since it has MatchPlayers.
@@ -38,15 +39,37 @@ class PlayerModel(models.Model):
     neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
     denies = models.IntegerField(default=0)
-    multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
-    streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
+    multis = models.JSONField(null=True, blank=True) # [0, 0, 0, 0, 0, 0]
+    streaks = models.JSONField(null=True, blank=True) # [0, 0, 0, 0, 0, 0, 0]
     longestStreak = models.IntegerField(default=0)
     mmr = models.BigIntegerField(default=0)
-    lastLogin = models.DateTimeField(null=True)
-    timePlayed = models.IntegerField(null=True)
+    lastLogin = models.DateTimeField(null=True, blank=True)
+    timePlayed = models.IntegerField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     timelineTracking = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # If new object (pk=None), do the Steam check
+        if self.pk is None:
+            steamWebApi = SteamWebAPIService()
+            playerData = steamWebApi.getPlayerSummaries(steam_id3=self.steam_id3)['response'].get('players')
+
+            if not playerData or not playerData[0]:
+                raise ValidationError("Player not found in Steam database.")
+
+            steam_player = playerData[0]
+            self.name = steam_player.get('personaname', '')
+            self.icon = steam_player.get('avatarfull', '')
+            self.region = steam_player.get('region') or ''
+
+            gameData = steamWebApi.getOwnedGames(steam_id3=self.steam_id3).get('response', {}).get('games', [])
+            for g in gameData:
+                if g['appid'] == 1422450:
+                    self.timePlayed = g.get('playtime_forever', 0) / 60
+                    break
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -93,11 +116,11 @@ class PlayerModel(models.Model):
         steamWebAPI = SteamWebAPIService()
         playerData = steamWebAPI.getPlayerSummaries(steam_id3=self.steam_id3).get('response').get('players')
         if playerData[0]:
-            self.name = playerData.get('personaname')
-            self.icon = playerData.get('avatarfull')
-            self.region = playerData.get('region')
+            self.name = playerData[0].get('personaname')
+            self.icon = playerData[0].get('avatarfull')
+            self.region = playerData[0].get('region')
 
-        gameData = steamWebAPI.getOwnedGames(steam_id3=self.steam_id3).get('response')['games']
+        gameData = steamWebAPI.getOwnedGames(steam_id3=self.steam_id3).get('response').get('games')
         if gameData:
             for games in gameData:
                 if games['appid'] == 1422450:
@@ -139,10 +162,12 @@ class PlayerModel(models.Model):
         self.midbosses = stats['midbosses'] or 0
         self.lastHits = stats['lastHits'] or 0
         self.denies = stats['denies'] or 0
-        self.longestStreak = max(self.longestStreak, stats['longestStreak'])
+        self.longestStreak = max(self.longestStreak or 0, stats.get('longestStreak', 0))
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
+
+        self.updatePlayerFromSteamWebAPI()
 
         self.save()
 

@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerailizer
-from .Models.PlayerModel import PlayerModel
-from .Models.PlayerHeroModel import PlayerHeroModel
+from ...matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerailizer
+from ..Models.PlayerModel import PlayerModel
 
 class PlayerModelSerializer(serializers.ModelSerializer):
     accuracy = serializers.SerializerMethodField()
@@ -91,9 +90,3 @@ class PlayerModelSerializer(serializers.ModelSerializer):
 
     def get_eightPlusStreaks(self, obj):
         return obj.streaks[6] if obj.streaks else 0
-
-
-class PlayerHeroModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PlayerHeroModel
-        fields = '__all__'

@@ -1,7 +1,11 @@
+import traceback
+from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .services import proGGPlayersService
-from .serializers import PlayerModelSerializer, PlayerHeroModelSerializer
+from .serializers.PlayerModelSerializer import PlayerModelSerializer
+from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
+from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
 from ..matches.serializers.MatchModelSerializer import MatchModelSerailizer
 from .Models.PlayerModel import PlayerModel
 
@@ -21,11 +25,20 @@ def recentMatches(request, steam_id3):
 
 @api_view(['GET'])
 def stats(request, steam_id3):
+    playersService = proGGPlayersService()
     try:
         player = PlayerModel.objects.get(steam_id3=steam_id3)
+        playersService.getMatchHistory(steam_id3)
         player.updatePlayerStats()
     except PlayerModel.DoesNotExist:
-        return Response(status=404)
+        # TODO: change how case where no data on this player exists is handled
+
+        matches = playersService.getMatchHistory(steam_id3)
+        if not matches:
+            return Response(status=400)
+
+
+    player = PlayerModel.objects.get(steam_id3=steam_id3)
 
     serializer = PlayerModelSerializer(player)
     return Response(serializer.data)
@@ -44,5 +57,12 @@ def topPlayerHeroes(request, steam_id3):
     playersService = proGGPlayersService()
     topHeroes = playersService.calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(steam_id3)
     serializer = PlayerHeroModelSerializer(topHeroes, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def getMatchHistoryData(request, steam_id3):
+    player = PlayerModel.objects.get(steam_id3=steam_id3)
+    serializer = MatchHistoryDataSerializer(player)
     return Response(serializer.data)
 

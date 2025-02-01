@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError
+
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 
@@ -22,14 +24,36 @@ class proGGPlayersService:
     def getMatchHistory(self, steam_id3):
         # Internal API Only
         matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
-        player = PlayerModel.objects.get(steam_id3=steam_id3)
+
+        player = self.getOrCreateValidatedSteamPlayer(steam_id3)
+        if not player:
+            return None
+
         matchesService = proggAPIMatchesService()
         if player.matches.count() != len(matchHistory):
             for match in matchHistory:
                 #if datetime.datetime.fromtimestamp(match['start_time'], datetime.timezone.utc) < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=20):
                 matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
-                matchesService.createNewMatchFromMetadata(matchMetadata)
+                if matchMetadata:
+                    # TODO: This might be messed up, need to determine if match is already associated with player or not
+                    matchesService.createNewMatchFromMetadata(matchMetadata)
+                else:
+                    print(f'Failed to get metadata for match {match["match_id"]}')
+
         return player.matches
+
+    def getOrCreateValidatedSteamPlayer(self, steam_id3):
+        if PlayerModel.objects.filter(steam_id3=steam_id3).first():
+            return PlayerModel.objects.filter(steam_id3=steam_id3).first()
+
+        try:
+            player = PlayerModel.objects.create(steam_id3=steam_id3)
+            player.save()
+            return player
+        except ValidationError as e:
+            print(f'e: {e}')
+            print(f'Player not found in steam database.')
+            return None
 
 
     def getRecentMatches(self, steam_id3):
@@ -99,7 +123,7 @@ class proGGPlayersService:
         return newMatchPlayer
 
     def fillInMissingMatchPlayerMetadata(self, matchPlayer):
-        matchMetadata = self.DLAPIDataService.getMatchMetadata(dlAPIMatchId=matchPlayer.match.deadlock_id)
+        matchMetadata = self.DLAPIDataService.getMatchMetadata(dl_match_id=matchPlayer.match.deadlock_id)
         if matchMetadata:
             for player in matchMetadata['match_info']['players']:
                 if player['account_id'] == matchPlayer.player.steam_id3:

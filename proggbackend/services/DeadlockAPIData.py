@@ -1,27 +1,48 @@
-import requests
+import datetime, requests, os, environ
 from django.conf import settings
 
 BASE_DIR = settings.BASE_DIR
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+DL_API_KEY = env('DL_API_KEY')
 
 class deadlockAPIDataService:
     def __init__(self):
         self.base_url = 'https://data.deadlock-api.com'
+        self.dl_api_key = DL_API_KEY
 
     def getActiveMatches(self):
         url = self.base_url + '/v1/active-matches'
         response = requests.get(url)
         return response.json()
 
-    def getMatchMetadata(self, dl_match_id):
+    def getMatchMetadata(self, dl_match_id, api_key=None):
         url = self.base_url + '/v1/matches/' + str(dl_match_id) + '/metadata'
+
+        params = {
+            'match_id': dl_match_id,
+            'api_key': api_key if api_key else self.dl_api_key
+        }
 
         #For Testing only
         # with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
         #    response = json.load(f)
         #return response
 
-        response = requests.get(url)
-        return response.json()
+        params = {key: value for key, value in params.items() if value is not None}
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            print(f'Request error: {e}')
+            return None
+        except ValueError as e:
+            print(f'json error: {e}')
+            return None
+
+        return data
+
 
     def getBigPatchDays(self):
         url = self.base_url + '/v1/big-patch-days'
@@ -33,9 +54,9 @@ class deadlockAPIDataService:
 
     def getLatestPatchUnixTimestamp(self):
         data = self.getBigPatchDays()
-        dt = datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%SZ")
+        dt = datetime.datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%SZ")
         return int(dt.timestamp())
 
     def convertToUnixTimestamp(self, date):
-        dt = datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+        dt = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
         return int(dt.timestamp())

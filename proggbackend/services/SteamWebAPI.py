@@ -10,6 +10,7 @@ class SteamWebAPIService:
     def __init__(self):
         self.apiKey = API_KEY
         self.ISteamUserBaseURL = 'https://api.steampowered.com/ISteamUser'
+        self.IPlayerServiceBaseURL = 'https://api.steampowered.com/IPlayerService'
 
     def convertSteamID3ToSteamID64(self, steam_id3):
         # Get 64 bit steamID from steamID3
@@ -25,7 +26,7 @@ class SteamWebAPIService:
 
     def getOwnedGames(self, steam_id3):
         steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
-        url = f'{self.ISteamUserBaseURL}/GetOwnedGames/v0001/?key={self.apiKey}&steamid={steamid64}&format=json'
-        url = url + '&input_json={appids_filter: [1422450]}'
+        url = f'{self.IPlayerServiceBaseURL}/GetOwnedGames/v0001/?key={self.apiKey}&steamid={steamid64}&format=json'
+        #url = url + '&input_json={appids_filter: [1422450]}'
         response = requests.get(url)
         return response.json()

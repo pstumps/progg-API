@@ -1,11 +1,9 @@
-import time
-from django.db.models import Sum, Count, F, FloatField
-
+from django.db.models import Sum, Count
 from rest_framework import serializers
 from ..Models.PlayerModel import PlayerModel
-from ...matches.Models.MatchPlayerModel import MatchPlayerModel
-from ...heroes.serializers import RecentMatchStatsHeroSerializer
 from ...heroes.Models.HeroesModel import HeroesModel
+from ...heroes.serializers import RecentMatchStatsHeroSerializer
+
 
 '''
 Match History Data datatype
@@ -25,37 +23,25 @@ export interface matchHistoryData {
 '''
 
 class MatchHistoryDataSerializer(serializers.ModelSerializer):
-    wins = serializers.SerializerMethodField()
-    losses = serializers.SerializerMethodField()
-    kills = serializers.SerializerMethodField()
-    deaths = serializers.SerializerMethodField()
-    assists = serializers.SerializerMethodField()
-    killp = serializers.SerializerMethodField()
-    heroDmg = serializers.SerializerMethodField()
-    objDmg = serializers.SerializerMethodField()
-    healing = serializers.SerializerMethodField()
-    soulsPerMin = serializers.SerializerMethodField()
-    bestChamp = serializers.SerializerMethodField()
-
     class Meta:
         model = PlayerModel
-        fields = ['wins', 'losses', 'kills', 'deaths', 'assists', 'killp', 'heroDmg', 'healing', 'soulsPerMin',
-                  'bestChamp']
+        fields = []
 
     def to_representation(self, obj):
+        print(obj.steam_id3)
         representation = super().to_representation(obj)
-        matchPlayerModels = obj.matchPlayerModels_set.select_related('match').order_by('-match__date')[:20]
+        matchPlayerModels = obj.matchPlayerModels.select_related('match').order_by('-match__date')[:20]
         heroes = {}
 
         aggregated = matchPlayerModels.aggregate(
             wins=Sum('win'),
-            losses=Count('id') - Sum('win'),
             kills=Sum('kills'),
             deaths=Sum('deaths'),
             assists=Sum('assists'),
             heroDmg=Sum('heroDamage'),
             objDmg=Sum('objDamage'),
             healing=Sum('healing'),
+            soulsPerMin=Sum('soulsPerMin'),
         )
 
         totalTeamKills = 0
@@ -67,26 +53,33 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
             teamKills = match.teamStats.get(str(team), {}).get('kills', 0)
             totalTeamKills += teamKills
 
-            if not heroes.get(matchPlayer.hero_deadlock_id):
-                heroes[matchPlayer.hero_deadlock_id] = {'wins': 0, 'matches': 0}
-
+            heroes.setdefault(matchPlayer.hero_deadlock_id, {'matches': 0, 'wins': 0})
             heroes[matchPlayer.hero_deadlock_id]['matches'] += 1
             heroes[matchPlayer.hero_deadlock_id]['wins'] += 1 if matchPlayer.win else 0
-
+        print(heroes)
 
         killp = (playerKills / totalTeamKills) if totalTeamKills > 0 else 0
+        bestChamps = []
 
-        matchCount = matchPlayerModels.count()
+        for k, v in sorted(heroes.items(), key=lambda x: x[1]['wins']/x[1]['matches'], reverse=True)[:3]:
+            hero = HeroesModel.objects.get(hero_deadlock_id=k)
+            bestChamps.append(RecentMatchStatsHeroSerializer(hero).data)
+
+
+        matchCount = matchPlayerModels.count() or 1
+        losses = 20 - aggregated['wins']
         representation.update({
-            'wins': aggregated['wins'],
-            'losses': aggregated['losses'],
-            'kills': playerKills / matchCount if matchCount > 0 else 0,
-            'deaths': aggregated['deaths'] / matchCount if matchCount > 0 else 0,
-            'assists': aggregated['assists'] / matchCount if matchCount > 0 else 0,
+            'wins': aggregated['wins'] or 0,
+            'losses': losses if losses > 0 else 0,
+            'kills': playerKills / matchCount,
+            'deaths': (aggregated['deaths'] or 0) / matchCount,
+            'assists': (aggregated['assists'] or 0) / matchCount,
             'killp': killp,
-            'heroDmg': aggregated['heroDmg'] / matchCount if matchCount > 0 else 0,
-            'objDmg': aggregated['objDmg'] / matchCount if matchCount > 0 else 0,
-            'healing': aggregated['healing'] / matchCount if matchCount > 0 else 0,
-            'soulsPerMin': obj.soulsPerMin,
-            'bestChamp': sorted(heroes.items(), key=lambda x: x['wins']/x['matches'])
+            'heroDmg': (aggregated['heroDmg'] or 0) / matchCount,
+            'objDmg': (aggregated['objDmg'] or 0) / matchCount,
+            'healing': (aggregated['healing'] or 0) / matchCount,
+            'soulsPerMin': (aggregated['soulsPerMin'] or 0) / matchCount,
+            'bestChamp': bestChamps
         })
+
+        return representation
