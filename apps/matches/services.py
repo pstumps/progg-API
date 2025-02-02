@@ -98,6 +98,7 @@ class proggAPIMatchesService:
                 playerToTrack = PlayerModel.objects.create(
                     steam_id3=player['account_id'],
                 )
+                print(f'created player: {playerToTrack.steam_id3}; name: {playerToTrack.name}')
 
             abilityLevels = {}
             createTimeline = False

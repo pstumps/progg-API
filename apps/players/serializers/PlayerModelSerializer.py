@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ...matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerailizer
+from .PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
 from ..Models.PlayerModel import PlayerModel
 
 class PlayerModelSerializer(serializers.ModelSerializer):
@@ -8,6 +9,7 @@ class PlayerModelSerializer(serializers.ModelSerializer):
     matchesPlayed = serializers.SerializerMethodField()
     lastMatchDate = serializers.SerializerMethodField()
     recentMatches = serializers.SerializerMethodField()
+    matchHistoryData = serializers.SerializerMethodField()
     doubles = serializers.SerializerMethodField()
     triples = serializers.SerializerMethodField()
     quadras = serializers.SerializerMethodField()
@@ -28,9 +30,9 @@ class PlayerModelSerializer(serializers.ModelSerializer):
                   'soulsPerMin', 'accuracy', 'critAccuracy', 'heroDamage', 'objDamage', 'healing', 'guardians', 'walkers',
                   'baseGuardians', 'shieldGenerators', 'patrons', 'midbosses', 'rejuvinators', 'laneCreeps',
                   'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatchDate',
-                  'lastLogin', 'timePlayed', 'created', 'updated', 'matchesPlayed', 'recentMatches', 'doubles',
-                  'triples', 'quadras', 'pentas', 'megas', 'gigas', 'threeStreaks', 'fourStreaks', 'fiveStreaks',
-                  'sixStreaks', 'sevenStreaks', 'eightStreaks', 'eightPlusStreaks']
+                  'lastLogin', 'timePlayed', 'created', 'updated', 'matchesPlayed', 'recentMatches', 'matchHistoryData',
+                  'doubles', 'triples', 'quadras', 'pentas', 'megas', 'gigas', 'threeStreaks', 'fourStreaks',
+                  'fiveStreaks', 'sixStreaks', 'sevenStreaks', 'eightStreaks', 'eightPlusStreaks']
 
     def get_matchesPlayed(self, obj):
         return obj.matches.count()
@@ -45,6 +47,9 @@ class PlayerModelSerializer(serializers.ModelSerializer):
             recentMatches.append(matchPlayerModel.data)
         sorted_recentMatches = sorted(recentMatches, key=lambda x: x['date'], reverse=True)
         return sorted_recentMatches
+
+    def get_matchHistoryData(self, obj):
+        return MatchHistoryDataSerializer(obj).data
 
     def get_accuracy(self, obj):
         return round(obj.accuracy * 100, 1)

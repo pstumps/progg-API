@@ -1,3 +1,4 @@
+import time
 from django.db import models
 from django.core.exceptions import ValidationError
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
@@ -15,7 +16,6 @@ class PlayerModel(models.Model):
     region = models.CharField(max_length=2, null=True, blank=True)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
-    # This will need to be changed. A Player can have many matches, but a Match does not need to have many players, since it has MatchPlayers.
     matches = models.ManyToManyField(MatchesModel, related_name='playerModel')
     wins = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)
@@ -46,7 +46,7 @@ class PlayerModel(models.Model):
     lastLogin = models.DateTimeField(null=True, blank=True)
     timePlayed = models.IntegerField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.BigIntegerField(null=True)
     timelineTracking = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -195,15 +195,15 @@ class PlayerModel(models.Model):
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons += 1
         if multis.get(matchPlayer.steam_id3):
-            if any(multis[matchPlayer.steam_id3]):
+            if any(x != 0 for x in multis[matchPlayer.steam_id3]):
                 if not self.multis:
                     self.multis = multis.get(matchPlayer.steam_id3)
                 else:
                     self.multis = [sum(x) for x in zip(self.multis, multis[matchPlayer.steam_id3])]
             else:
                 self.multis = None
-
-            if any(streaks[matchPlayer.steam_id3]):
+        if streaks.get(matchPlayer.steam_id3):
+            if any(x != 0 for x in streaks[matchPlayer.steam_id3]):
                 if not self.streaks:
                     self.streaks = streaks[matchPlayer.steam_id3]
                 else:

@@ -1,3 +1,4 @@
+import time
 from django.core.exceptions import ValidationError
 
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
@@ -21,24 +22,35 @@ class proGGPlayersService:
 
         return player.getTopPlayerHeroes()
 
-    def getMatchHistory(self, steam_id3):
-        # Internal API Only
-        matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
 
-        player = self.getOrCreateValidatedSteamPlayer(steam_id3)
-        if not player:
-            return None
+    def getMatchHistory(self, player):
+        # Internal API Only
+
+        if not player.updated:
+            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=player.steam_id3, has_metadata=True)
+        else:
+            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=player.steam_id3,
+                                                                            has_metadata=True,
+                                                                            min_unix_timestamp=player.updated)
 
         matchesService = proggAPIMatchesService()
         if player.matches.count() != len(matchHistory):
             for match in matchHistory:
                 #if datetime.datetime.fromtimestamp(match['start_time'], datetime.timezone.utc) < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=20):
+                if not match.get('match_id'):
+                    continue
+                if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
+                    continue
+
                 matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
                 if matchMetadata:
                     # TODO: This might be messed up, need to determine if match is already associated with player or not
                     matchesService.createNewMatchFromMetadata(matchMetadata)
                 else:
                     print(f'Failed to get metadata for match {match["match_id"]}')
+
+        player.updated = int(time.time())
+        player.save()
 
         return player.matches
 
@@ -54,6 +66,10 @@ class proGGPlayersService:
             print(f'e: {e}')
             print(f'Player not found in steam database.')
             return None
+
+    def deleteAllData(self):
+        matchesService = proggAPIMatchesService()
+        matchesService.deleteAllMatchesAndPlayersModels()
 
 
     def getRecentMatches(self, steam_id3):
