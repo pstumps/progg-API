@@ -1,8 +1,7 @@
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from rest_framework import serializers
 from ..Models.PlayerModel import PlayerModel
 from ...heroes.Models.HeroesModel import HeroesModel
-from ...heroes.serializers import RecentMatchStatsHeroSerializer
 
 
 '''
@@ -53,9 +52,12 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
             teamKills = match.teamStats.get(str(team), {}).get('kills', 0)
             totalTeamKills += teamKills
 
-            heroes.setdefault(matchPlayer.hero_deadlock_id, {'matches': 0, 'wins': 0})
+            heroes.setdefault(matchPlayer.hero_deadlock_id, {'matches': 0, 'wins': 0, 'kills': 0, 'deaths': 0, 'assists': 0})
             heroes[matchPlayer.hero_deadlock_id]['matches'] += 1
             heroes[matchPlayer.hero_deadlock_id]['wins'] += 1 if matchPlayer.win else 0
+            heroes[matchPlayer.hero_deadlock_id]['kills'] += matchPlayer.kills
+            heroes[matchPlayer.hero_deadlock_id]['deaths'] += matchPlayer.deaths
+            heroes[matchPlayer.hero_deadlock_id]['assists'] += matchPlayer.assists
         print(heroes)
 
         killp = (playerKills / totalTeamKills) if totalTeamKills > 0 else 0
@@ -63,7 +65,12 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
 
         for k, v in sorted(heroes.items(), key=lambda x: x[1]['wins']/x[1]['matches'], reverse=True)[:3]:
             hero = HeroesModel.objects.get(hero_deadlock_id=k)
-            bestChamps.append(RecentMatchStatsHeroSerializer(hero).data)
+            bestChamps.append({'name': hero.name,
+                               'image': hero.images['icon_hero_card'],
+                               'wins': v['wins'],
+                               'losses': v['matches'] - v['wins'],
+                               'kda': (v['kills'] + v['assists']) / v['deaths'] if v['deaths'] > 0 else 0
+                               })
 
 
         matchCount = matchPlayerModels.count() or 1
