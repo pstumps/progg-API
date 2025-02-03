@@ -37,3 +37,8 @@ class MatchPlayerModel(models.Model):
     medals = models.JSONField(null=True)
     abandoned = models.BooleanField(default=False)
     abandonedTime = models.IntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['steam_id3', 'match']),
+        ]

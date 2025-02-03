@@ -29,7 +29,7 @@ class PlayerModelSerializer(serializers.ModelSerializer):
         fields = ['steam_id3', 'name', 'icon', 'region', 'rank', 'wins', 'kills', 'deaths', 'assists', 'souls',
                   'soulsPerMin', 'accuracy', 'critAccuracy', 'heroDamage', 'objDamage', 'healing', 'guardians', 'walkers',
                   'baseGuardians', 'shieldGenerators', 'patrons', 'midbosses', 'rejuvinators', 'laneCreeps',
-                  'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatchDate',
+                  'neutralCreeps', 'lastHits', 'denies', 'longestStreak', 'mmr', 'lastMatchDate', 'multis', 'streaks',
                   'lastLogin', 'timePlayed', 'created', 'updated', 'matchesPlayed', 'recentMatches', 'matchHistoryData',
                   'doubles', 'triples', 'quadras', 'pentas', 'megas', 'gigas', 'threeStreaks', 'fourStreaks',
                   'fiveStreaks', 'sixStreaks', 'sevenStreaks', 'eightStreaks', 'eightPlusStreaks']
@@ -58,6 +58,7 @@ class PlayerModelSerializer(serializers.ModelSerializer):
         return round(obj.heroCritPercent * 100, 1)
 
     def get_doubles(self, obj):
+        print(obj.multis)
         return obj.multis[0] if obj.multis else 0
 
     def get_triples(self, obj):

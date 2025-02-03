@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 from ..matches.services import proggAPIMatchesService
 from ..matches.Models.MatchesModel import MatchesModel
@@ -14,6 +15,7 @@ class proGGPlayersService:
     def __init__(self):
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
+        self.DLAPIAssetsService = deadlockAPIAssetsService()
 
     def calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(self, steam_id3):
         player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
@@ -33,26 +35,40 @@ class proGGPlayersService:
                                                                             has_metadata=True,
                                                                             min_unix_timestamp=player.updated)
 
-        matchesService = proggAPIMatchesService()
-        if player.matches.count() != len(matchHistory):
-            for match in matchHistory:
-                #if datetime.datetime.fromtimestamp(match['start_time'], datetime.timezone.utc) < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=20):
-                if not match.get('match_id'):
-                    continue
-                if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
-                    continue
+        if isinstance(matchHistory, dict) and matchHistory.get('detail'):
+            print(f'No new matches since last update for player {player.steam_id3}')
+            return True
 
-                matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
-                if matchMetadata:
-                    # TODO: This might be messed up, need to determine if match is already associated with player or not
-                    matchesService.createNewMatchFromMetadata(matchMetadata)
-                else:
-                    print(f'Failed to get metadata for match {match["match_id"]}')
+
+        if isinstance(matchHistory, list):
+            DLItemsDict = self.DLAPIAssetsService.getItemsDict()
+            matchesService = proggAPIMatchesService(DLItemsDict)
+            if player.matches.count() != len(matchHistory):
+                matchNum = 1
+                for match in matchHistory:
+                    if not isinstance(match, dict):
+                        continue
+                    if not match.get('match_id'):
+                        continue
+                    if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
+                        continue
+
+                    matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
+                    if matchMetadata.get('match_info'):
+                        # TODO: This might be messed up, need to determine if match is already associated with player or not
+                        print(f'Processing match {matchNum} of {len(matchHistory)}')
+                        matchesService.createNewMatchFromMetadata(matchMetadata)
+                    else:
+                        print(f'Failed to get metadata for match {match["match_id"]}')
+                    matchNum += 1
+        else:
+            print(f'Unexpected matchHistory response: {matchHistory}')
+            return True
 
         player.updated = int(time.time())
         player.save()
 
-        return player.matches
+        return True
 
     def getOrCreateValidatedSteamPlayer(self, steam_id3):
         if PlayerModel.objects.filter(steam_id3=steam_id3).first():

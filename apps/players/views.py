@@ -1,3 +1,4 @@
+from django.forms.models import model_to_dict
 import time
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -24,8 +25,8 @@ def recentMatches(request, steam_id3):
 
 @api_view(['GET'])
 def stats(request, steam_id3):
+    # TODO Fix this.
 
-    # TODO Fix this. The way it is handled is complete shit.
     playersService = proGGPlayersService()
     try:
         print(f'Looking for player: {steam_id3}')
@@ -40,6 +41,9 @@ def stats(request, steam_id3):
                 data={"detail": "Player not in steam database."},
                 status=400
             )
+        player.save()
+
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
 
     if player.updated is None or (int(time.time()) - player.updated) / 60 > 900:
         playersService.getMatchHistory(player)

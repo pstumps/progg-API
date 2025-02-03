@@ -90,7 +90,6 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
         return matchStats[enemyTeam].get('souls', 0)
 
     def get_build(self, obj):
-        print(obj.match.deadlock_id)
         build = {'weapon': 0, 'spirit': 0, 'vitality': 0}
         percentArray = []
 

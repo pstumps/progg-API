@@ -27,7 +27,6 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
         fields = []
 
     def to_representation(self, obj):
-        print(obj.steam_id3)
         representation = super().to_representation(obj)
         matchPlayerModels = obj.matchPlayerModels.select_related('match').order_by('-match__date')[:20]
         heroes = {}
@@ -58,7 +57,6 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
             heroes[matchPlayer.hero_deadlock_id]['kills'] += matchPlayer.kills
             heroes[matchPlayer.hero_deadlock_id]['deaths'] += matchPlayer.deaths
             heroes[matchPlayer.hero_deadlock_id]['assists'] += matchPlayer.assists
-        print(heroes)
 
         killp = (playerKills / totalTeamKills) if totalTeamKills > 0 else 0
         bestChamps = []

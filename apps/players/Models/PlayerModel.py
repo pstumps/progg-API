@@ -1,5 +1,5 @@
 import time
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
@@ -10,7 +10,7 @@ from ...matches.Models.MatchesModel import MatchesModel
 
 class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
-    steam_id3 = models.BigIntegerField(null=True)
+    steam_id3 = models.BigIntegerField(null=True, db_index=True, unique=True)
     name = models.CharField(max_length=100)
     icon = models.JSONField(null=True)
     region = models.CharField(max_length=2, null=True, blank=True)
@@ -39,8 +39,8 @@ class PlayerModel(models.Model):
     neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
     denies = models.IntegerField(default=0)
-    multis = models.JSONField(null=True, blank=True) # [0, 0, 0, 0, 0, 0]
-    streaks = models.JSONField(null=True, blank=True) # [0, 0, 0, 0, 0, 0, 0]
+    multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
+    streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
     longestStreak = models.IntegerField(default=0)
     mmr = models.BigIntegerField(default=0)
     lastLogin = models.DateTimeField(null=True, blank=True)
@@ -61,7 +61,7 @@ class PlayerModel(models.Model):
             steam_player = playerData[0]
             self.name = steam_player.get('personaname', '')
             self.icon = steam_player.get('avatarfull', '')
-            self.region = steam_player.get('region') or ''
+            self.region = steam_player.get('region', '')
 
             gameData = steamWebApi.getOwnedGames(steam_id3=self.steam_id3).get('response', {}).get('games', [])
             for g in gameData:
@@ -70,6 +70,7 @@ class PlayerModel(models.Model):
                     break
 
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.name
@@ -129,6 +130,7 @@ class PlayerModel(models.Model):
         self.save()
 
     def updatePlayerStats(self):
+
         stats = self.player_hero_stats.aggregate(
             wins=models.Sum('wins'),
             kills=models.Sum('kills'),
@@ -140,13 +142,12 @@ class PlayerModel(models.Model):
             healing=models.Sum('healing'),
             laneCreeps=models.Sum('laneCreeps'),
             neutralCreeps=models.Sum('neutralCreeps'),
-            midbosses=models.Sum('midBoss'),
             lastHits=models.Sum('lastHits'),
             denies=models.Sum('denies'),
             longestStreak=models.Max('longestStreak'),
             accuracy=models.Avg('accuracy'),
             heroCritPercent=models.Avg('heroCritPercent'),
-            soulsPerMin=models.Avg('soulsPerMin')
+            soulsPerMin=models.Avg('soulsPerMin'),
         )
 
         self.wins = stats['wins'] or 0
@@ -159,7 +160,6 @@ class PlayerModel(models.Model):
         self.healing = stats['healing'] or 0
         self.laneCreeps = stats['laneCreeps'] or 0
         self.neutralCreeps = stats['neutralCreeps'] or 0
-        self.midbosses = stats['midbosses'] or 0
         self.lastHits = stats['lastHits'] or 0
         self.denies = stats['denies'] or 0
         self.longestStreak = max(self.longestStreak or 0, stats.get('longestStreak', 0))
@@ -167,23 +167,35 @@ class PlayerModel(models.Model):
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
 
+        multis_sum = [0, 0, 0, 0, 0, 0]
+        streaks_sum = [0, 0, 0, 0, 0, 0, 0]
+        for mp in self.matchPlayerModels.all():
+            if mp.multis:
+                multis_sum = [x + y for x, y in zip(multis_sum, mp.multis)]
+            if mp.streaks:
+                streaks_sum = [x + y for x, y in zip(streaks_sum, mp.streaks)]
+
+        self.multis = multis_sum
+        self.streaks = streaks_sum
+
         self.updatePlayerFromSteamWebAPI()
 
         self.save()
 
-    def updatePlayerStatsFromMatchPlayer(self, matchPlayer, multis, streaks, longestStreaks, objectiveEvents,
-                                         midbossEvents):
+    # This function just doesn't work for some reason.
+    @transaction.atomic
+    def updatePlayerStatsFromMatchPlayer(self, team, longestStreak, objectiveEvents, midbossEvents, match):
 
-        self.longestStreak = max(self.longestStreak, longestStreaks.get(matchPlayer.steam_id3, 0))
+        self.longestStreak = max(self.longestStreak, longestStreak)
 
         for event in midbossEvents:
-            if event.team == matchPlayer.team:
+            if event.team == team:
                 self.rejuvinators += 1
-            if event.slayer == matchPlayer.team:
+            if event.slayer == team:
                 self.midbosses += 1
 
         for event in objectiveEvents:
-            if event.team == matchPlayer.team:
+            if event.team == team:
                 if 'Tier1' in event.target:
                     self.guardians += 1
                 elif 'Tier2' in event.target:
@@ -194,42 +206,45 @@ class PlayerModel(models.Model):
                     self.shieldGenerators += 1
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons += 1
-        if multis.get(matchPlayer.steam_id3):
-            if any(x != 0 for x in multis[matchPlayer.steam_id3]):
-                if not self.multis:
-                    self.multis = multis.get(matchPlayer.steam_id3)
-                else:
-                    self.multis = [sum(x) for x in zip(self.multis, multis[matchPlayer.steam_id3])]
-            else:
-                self.multis = None
-        if streaks.get(matchPlayer.steam_id3):
-            if any(x != 0 for x in streaks[matchPlayer.steam_id3]):
-                if not self.streaks:
-                    self.streaks = streaks[matchPlayer.steam_id3]
-                else:
-                    self.streaks = [sum(x) for x in zip(self.streaks, streaks[matchPlayer.steam_id3])]
-            else:
-                self.streaks = None
 
-        self.matches.add(matchPlayer.match)
+        '''
+        if any(x != 0 for x in multis):
+            if self.multis is None:
+                self.multis = multis
+            else:
+                self.multis = [sum(x) for x in zip(self.multis, multis)]
+        if any(x != 0 for x in streaks):
+            if self.streaks is None:
+                self.streaks = streaks
+            else:
+                self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
+        '''
 
-        # Update player hero model
-        hero = HeroesModel.objects.filter(hero_deadlock_id=matchPlayer.hero_deadlock_id).first()
+        self.matches.add(match)
+        try:
+            self.save()
+        except Exception as e:
+            print(e)
+        self.refresh_from_db()
+
+    def updatePlayerHeroStatsFromMatchPlayer(self, mp, longestStreaks):
+    # Update player hero model
+        hero = HeroesModel.objects.filter(hero_deadlock_id=mp['hero_deadlock_id']).first()
         if not hero:
             DLAPIAssets = deadlockAPIAssetsService()
-            heroName = DLAPIAssets.getHeroAssetsById(matchPlayer.hero_deadlock_id).get('name')
+            heroName = DLAPIAssets.getHeroAssetsById(mp['hero_deadlock_id']).get('name')
             hero = HeroesModel.objects.create(
                 name=heroName,
-                hero_deadlock_id=matchPlayer.hero_deadlock_id
+                hero_deadlock_id=mp['hero_deadlock_id']
             )
-        playerHero = PlayerHeroModel.objects.filter(player=matchPlayer.player, hero=hero).first()
+        playerHero = PlayerHeroModel.objects.filter(player=self, hero=hero).first()
         if not playerHero:
             playerHero = PlayerHeroModel.objects.create(
-                player=matchPlayer.player,
+                player=self,
                 hero=hero
             )
 
-        playerHero.createOrUpdatePlayerHero(matchPlayer, longestStreaks)
+        playerHero.createOrUpdatePlayerHero(mp, longestStreaks)
 
 
         self.save()
