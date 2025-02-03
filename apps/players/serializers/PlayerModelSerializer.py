@@ -38,7 +38,11 @@ class PlayerModelSerializer(serializers.ModelSerializer):
         return obj.matches.count()
 
     def get_lastMatchDate(self, obj):
-        return obj.getLastMatch().date
+        lastMatch = obj.getLastMatch()
+        if lastMatch:
+            return obj.getLastMatch().date
+        else:
+            return None
 
     def get_recentMatches(self, obj):
         recentMatches = []

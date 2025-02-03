@@ -28,13 +28,13 @@ class PlayerModel(models.Model):
     heroDamage = models.BigIntegerField(default=0)
     objDamage = models.BigIntegerField(default=0)
     healing = models.BigIntegerField(default=0)
-    guardians = models.IntegerField(default=0)
-    walkers = models.IntegerField(default=0)
-    baseGuardians = models.IntegerField(default=0)
-    shieldGenerators = models.IntegerField(default=0)
-    patrons = models.IntegerField(default=0)
-    midbosses = models.IntegerField(default=0)
-    rejuvinators = models.IntegerField(default=0)
+    guardians = models.IntegerField(null=True)
+    walkers = models.IntegerField(null=True)
+    baseGuardians = models.IntegerField(null=True)
+    shieldGenerators = models.IntegerField(null=True)
+    patrons = models.IntegerField(null=True)
+    midbosses = models.IntegerField(null=True)
+    rejuvinators = models.IntegerField(null=True)
     laneCreeps = models.IntegerField(default=0)
     neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
@@ -48,7 +48,7 @@ class PlayerModel(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.BigIntegerField(null=True)
     timelineTracking = models.BooleanField(default=False)
-
+    '''
     def save(self, *args, **kwargs):
         # If new object (pk=None), do the Steam check
         if self.pk is None:
@@ -70,6 +70,7 @@ class PlayerModel(models.Model):
                     break
 
         super().save(*args, **kwargs)
+    '''
 
 
     def __str__(self):
@@ -162,11 +163,12 @@ class PlayerModel(models.Model):
         self.neutralCreeps = stats['neutralCreeps'] or 0
         self.lastHits = stats['lastHits'] or 0
         self.denies = stats['denies'] or 0
-        self.longestStreak = max(self.longestStreak or 0, stats.get('longestStreak', 0))
+        self.longestStreak = max(self.longestStreak or 0, stats.get('longestStreak', 0)) if stats.get('longestStreak') is not None else self.longestStreak or 0
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
 
+        '''
         multis_sum = [0, 0, 0, 0, 0, 0]
         streaks_sum = [0, 0, 0, 0, 0, 0, 0]
         for mp in self.matchPlayerModels.all():
@@ -177,37 +179,37 @@ class PlayerModel(models.Model):
 
         self.multis = multis_sum
         self.streaks = streaks_sum
+        '''
 
-        self.updatePlayerFromSteamWebAPI()
+        #self.updatePlayerFromSteamWebAPI()
 
         self.save()
 
     # This function just doesn't work for some reason.
     @transaction.atomic
-    def updatePlayerStatsFromMatchPlayer(self, team, longestStreak, objectiveEvents, midbossEvents, match):
+    def updatePlayerStatsFromMatchPlayer(self, team, multis, streaks, longestStreak, objectiveEvents, midbossEvents, match):
 
         self.longestStreak = max(self.longestStreak, longestStreak)
 
         for event in midbossEvents:
             if event.team == team:
-                self.rejuvinators += 1
+                self.rejuvinators = self.rejuvinators + 1 if self.rejuvinators else 1
             if event.slayer == team:
-                self.midbosses += 1
+                self.midbosses = self.midbosses + 1 if self.midbosses else 1
 
         for event in objectiveEvents:
             if event.team == team:
                 if 'Tier1' in event.target:
-                    self.guardians += 1
+                    self.guardians = self.guardians + 1 if self.guardians else 1
                 elif 'Tier2' in event.target:
-                    self.walkers += 1
+                    self.walkers = self.walkers + 1 if self.walkers else 1
                 elif 'BarrackBoss' in event.target:
-                    self.baseGuardians += 2
+                    self.baseGuardians = self.baseGuardians + 2 if self.baseGuardians else 2
                 elif 'TitanShieldGenerator' in event.target:
-                    self.shieldGenerators += 1
+                    self.shieldGenerators = self.shieldGenerators + 1 if self.shieldGenerators else 1
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
-                    self.patrons += 1
+                    self.patrons = self.patrons + 1 if self.patrons else 1
 
-        '''
         if any(x != 0 for x in multis):
             if self.multis is None:
                 self.multis = multis
@@ -218,14 +220,9 @@ class PlayerModel(models.Model):
                 self.streaks = streaks
             else:
                 self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
-        '''
 
         self.matches.add(match)
-        try:
-            self.save()
-        except Exception as e:
-            print(e)
-        self.refresh_from_db()
+        self.save()
 
     def updatePlayerHeroStatsFromMatchPlayer(self, mp, longestStreaks):
     # Update player hero model

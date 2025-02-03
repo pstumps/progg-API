@@ -25,32 +25,39 @@ class proGGPlayersService:
         return player.getTopPlayerHeroes()
 
 
-    def getMatchHistory(self, player):
+    def updateMatchHistory(self, steam_id3):
         # Internal API Only
-
+        '''
         if not player.updated:
-            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=player.steam_id3, has_metadata=True)
+            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
         else:
-            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=player.steam_id3,
+            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
                                                                             has_metadata=True,
                                                                             min_unix_timestamp=player.updated)
-
+        '''
+        matchHistory = [{'match_id': '32152804'}]
         if isinstance(matchHistory, dict) and matchHistory.get('detail'):
-            print(f'No new matches since last update for player {player.steam_id3}')
+            print(f'No new matches since last update for player {steam_id3}')
             return True
 
 
         if isinstance(matchHistory, list):
             DLItemsDict = self.DLAPIAssetsService.getItemsDict()
             matchesService = proggAPIMatchesService(DLItemsDict)
-            if player.matches.count() != len(matchHistory):
+            if len(matchHistory) == 0:
+                print(f'Player {steam_id3} has no Match History.')
+                return False
+            else:
                 matchNum = 1
                 for match in matchHistory:
                     if not isinstance(match, dict):
+                        print('Match is not a dictionary.')
                         continue
                     if not match.get('match_id'):
+                        print('match_id not found in Match History.')
                         continue
                     if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
+                        print(f"Match {match['match_id']} already exists.")
                         continue
 
                     matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
@@ -65,6 +72,7 @@ class proGGPlayersService:
             print(f'Unexpected matchHistory response: {matchHistory}')
             return True
 
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
         player.updated = int(time.time())
         player.save()
 

@@ -111,6 +111,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'apps.players.throttles.StatsRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'stats': '5/minute',  # Adjust the rate as needed
+    }
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

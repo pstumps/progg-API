@@ -1,4 +1,4 @@
-import datetime, requests, os, environ
+import datetime, requests, os, environ, json
 from django.conf import settings
 
 BASE_DIR = settings.BASE_DIR
@@ -25,10 +25,11 @@ class deadlockAPIDataService:
         }
 
         #For Testing only
-        # with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
-        #    response = json.load(f)
-        #return response
+        with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
+            response = json.load(f)
+        return response
 
+        '''
         params = {key: value for key, value in params.items() if value is not None}
         try:
             response = requests.get(url, params=params)
@@ -42,6 +43,7 @@ class deadlockAPIDataService:
             return None
 
         return data
+        '''
 
 
     def getBigPatchDays(self):

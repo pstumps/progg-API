@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view
 from .Models.MatchesModel import MatchesModel
 from .services import proggAPIMatchesService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from .serializers.MatchModelSerializer import MatchModelSerailizer
 
 # Create your views here.
@@ -20,7 +21,10 @@ def match_detail(request, dl_match_id):
 @api_view(['GET'])
 def create_match_from_metadata(request, dl_match_id):
     dlDataAPI = deadlockAPIDataService()
-    proggMatchService = proggAPIMatchesService()
+    dlAssetsAPI = deadlockAPIAssetsService()
+    itemsDict = dlAssetsAPI.getItemsDict()
+
+    proggMatchService = proggAPIMatchesService(itemsDict)
     matchMetadata = dlDataAPI.getMatchMetadata(dl_match_id)
     if matchMetadata:
         match = proggMatchService.createNewMatchFromMetadata(matchMetadata)

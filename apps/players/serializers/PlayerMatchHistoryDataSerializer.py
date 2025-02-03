@@ -72,7 +72,7 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
 
 
         matchCount = matchPlayerModels.count() or 1
-        losses = 20 - aggregated['wins']
+        losses = 20 - aggregated['wins'] if aggregated['wins'] else 0
         representation.update({
             'wins': aggregated['wins'] or 0,
             'losses': losses if losses > 0 else 0,

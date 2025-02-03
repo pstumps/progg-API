@@ -98,6 +98,9 @@ class proggAPIMatchesService:
             if acct_id not in existing_players:
                 players_to_create.append(PlayerModel(steam_id3=acct_id))
         PlayerModel.objects.bulk_create(players_to_create)
+        #for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids):
+        #    p.save()
+        #    all_players[p.steam_id3] = p
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
         for player in matchMetadata['players']:
@@ -140,18 +143,13 @@ class proggAPIMatchesService:
 
             if player.get('death_details'):
                 self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
-                                         longestStreaks, match, pvpEvents)
+                                         longestStreaks, matchPlayerData[account_id]['match'], pvpEvents)
 
             if player.get('items'):
                 for item_events in player.get('items'):
                     self.processItemEvents(item_events, matchPlayerData, account_id)
 
-            #sortedAbilities = sorted(abilityLevels.items(), key=lambda x: (-len(x[1]), x[1]))
 
-            #matchPlayer = self.createNewMatchPlayerFromMetadata(playerToTrack, match, player, matchMetadata)
-            #matchPlayer.items = match_event_details[player['account_id']].get('items', {})
-            #matchPlayer.abilities = [ability[0] for ability in sortedAbilities]
-            #matchPlayer.save()
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
             matchPlayerData[account_id].update(endStatsData)
 
@@ -203,12 +201,13 @@ class proggAPIMatchesService:
             player = data['playerModel']
             # The below function just straight up doesn't work.
             player.updatePlayerStatsFromMatchPlayer(data['team'],
+                                                    data['multiKills'],
+                                                    data['streaks'],
                                                     longestStreaks.get(account_id, 0),
                                                     objectiveEvents,
                                                     midbossEvents,
                                                     data['match'])
             player.updatePlayerHeroStatsFromMatchPlayer(data, longestStreaks.get(account_id, 0))
-            player.save()
 
         MatchPlayerModel.objects.bulk_create(matchPlayersToCreate)
 
