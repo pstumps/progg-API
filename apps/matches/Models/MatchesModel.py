@@ -4,7 +4,7 @@ from django.db import models
 class MatchesModel(models.Model):
     match_id = models.AutoField(primary_key=True)
     deadlock_id = models.BigIntegerField(null=True, db_index=True, unique=True)
-    date = models.DateTimeField(null=True)
+    date = models.BigIntegerField(null=True)
     averageRank = models.JSONField(null=True)
     gameMode = models.CharField(max_length=50, null=True)
     matchMode = models.CharField(max_length=50, null=True)

@@ -3,6 +3,7 @@ from django.db import transaction
 from .Models.MatchesModel import MatchesModel
 from .Models.MatchPlayerModel import MatchPlayerModel
 from .Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
+from .Models.MatchPlayerGraph import MatchPlayerGraph
 from ..players.Models.PlayerModel import PlayerModel
 from ..players.Models.PlayerHeroModel import PlayerHeroModel
 from .Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
@@ -33,8 +34,7 @@ class proggAPIMatchesService:
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
-        # self.deleteAllMatchesAndPlayersModels()
-        # match id 32364484 players abandoned match
+
         matchMetadata = matchMetadata.get('match_info')
         if matchMetadata:
             dl_match_id = matchMetadata.get('match_id')
@@ -48,7 +48,7 @@ class proggAPIMatchesService:
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
             match = MatchesModel.objects.create(
                 deadlock_id=dl_match_id,
-                date=datetime.datetime.fromtimestamp(matchMetadata.get('start_time'), datetime.timezone.utc) if matchMetadata.get('start_time') else None,
+                date=matchMetadata.get('start_time') if matchMetadata.get('start_time') else None,
                 averageRank=averageBadges if averageBadges else None,
                 gameMode=matchMetadata.get('game_mode'),
                 matchMode=matchMetadata.get('match_mode'),
@@ -69,6 +69,7 @@ class proggAPIMatchesService:
     def parseMatchEventsFromMetadata(self, match, matchMetadata):
         matchPlayerData = {}
         pvpEvents = []
+        playerStatsGraphs = []
         streaks = {}
         lastKillTimes = {}
         multis = {}
@@ -98,7 +99,7 @@ class proggAPIMatchesService:
             if acct_id not in existing_players:
                 players_to_create.append(PlayerModel(steam_id3=acct_id))
         PlayerModel.objects.bulk_create(players_to_create)
-        #for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids):
+        # for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids):
         #    p.save()
         #    all_players[p.steam_id3] = p
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
@@ -148,6 +149,18 @@ class proggAPIMatchesService:
             if player.get('items'):
                 for item_events in player.get('items'):
                     self.processItemEvents(item_events, matchPlayerData, account_id)
+
+            if player.get('stats'):
+                for stat in player.get('stats'):
+                    playerStatsGraphs.append(MatchPlayerGraph(
+                        match=match,
+                        steam_id3=account_id,
+                        timestamp=stat['time_stamp_s'],
+                        net_worth=stat.get('net_worth', 0),
+                        player_damage=stat.get('player_damage', 0),
+                        boss_damage=stat.get('boss_damage', 0),
+                        player_healing=stat.get('player_healing', 0)
+                    ))
 
 
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
@@ -199,7 +212,7 @@ class proggAPIMatchesService:
             matchPlayersToCreate.append(mp)
             # Will also update PlayerHeroModel
             player = data['playerModel']
-            # The below function just straight up doesn't work.
+
             player.updatePlayerStatsFromMatchPlayer(data['team'],
                                                     data['multiKills'],
                                                     data['streaks'],
@@ -207,16 +220,16 @@ class proggAPIMatchesService:
                                                     objectiveEvents,
                                                     midbossEvents,
                                                     data['match'])
+
             player.updatePlayerHeroStatsFromMatchPlayer(data, longestStreaks.get(account_id, 0))
 
+        MatchPlayerGraph.objects.bulk_create(playerStatsGraphs)
         MatchPlayerModel.objects.bulk_create(matchPlayersToCreate)
 
         if matchPlayersToCreate:
             self.getMedals(matchPlayersToCreate)
 
             MatchPlayerModel.objects.bulk_update(matchPlayersToCreate, ['medals'])
-
-        #self.getPlayerMedals(match)
 
         return matchPlayerData
 

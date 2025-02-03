@@ -19,9 +19,10 @@ class proGGPlayersService:
 
     def calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(self, steam_id3):
         player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
-        if player:
-            player.calculatePlayerHeroTiers()
+        if not player:
+            return None
 
+        player.calculatePlayerHeroTiers()
         return player.getTopPlayerHeroes()
 
 
@@ -96,71 +97,6 @@ class proGGPlayersService:
         matchesService.deleteAllMatchesAndPlayersModels()
 
 
-    def getRecentMatches(self, steam_id3):
-        player = PlayerModel.objects.get(steam_id3=steam_id3)
-        # Attempt to get last 10 match player models from our database
-        proggRecentMatches = list(MatchPlayerModel.objects.filter(player=player).order_by('-match__date')[:10])
-
-        if len(proggRecentMatches) < 10:
-            dlAPIMatches = self.DLAPIAnalyticsService.getPlayerMatchHistory(steam_id3)
-            for match in dlAPIMatches:
-                if len(proggRecentMatches) >= 10:
-                    break
-                if MatchesModel.objects.filter(deadlock_id=match['match_id'], matchPlayerModel__player=player).exists():
-                    matchInstance = MatchesModel.objects.get(deadlock_id=match['match_id'])
-                    if not MatchPlayerModel.objects.filter(match=matchInstance, player=player).exists():
-                        newMatchPlayer = self.createNewMatchPlayerFromDLAPIRecentMatch(match, matchInstance, player)
-                        proggRecentMatches.append(newMatchPlayer)
-                    else:
-                        proggRecentMatches.append(MatchPlayerModel.objects.get(match=matchInstance, player=player))
-                else:
-                    newMatch = MatchesModel.objects.create(deadlock_id=match['match_id'],
-                                                           length=match['match_duration_s'],
-                                                           date=match['created_at'],
-                                                           averageRank=match['average_match_badge'],
-                                                           gameMode=match['game_mode'],
-                                                           matchMode=match['match_mode'])
-                    newMatch.save()
-
-                    newMatchPlayer = self.createNewMatchPlayerFromDLAPIRecentMatch(match, newMatch, player)
-                    proggRecentMatches.append(newMatchPlayer)
-
-        return proggRecentMatches[:10]
-
-    def createNewMatchPlayerFromDLAPIRecentMatch(self, data, match, steam_id3):
-        try:
-            player = PlayerModel.objects.get(steam_id3=steam_id3)
-        except:
-            player = None
-
-        if data['time_abandoned_s'] > 0:
-            newMatchPlayer = MatchPlayerModel.objects.create(abandoned=True,
-                                                             abandonedTime=data['time_abandoned_s'],
-                                                             match=match,
-                                                             player=player,
-                                                             steam_id3=steam_id3)
-            newMatchPlayer.save()
-            return newMatchPlayer
-        else:
-            newMatchPlayer = MatchPlayerModel.objects.create(kills=data['player_kills'],
-                                                             deaths=data['player_deaths'],
-                                                             assists=data['player_assists'],
-                                                             hero=data['hero_id'],
-                                                             team=data['player_team'],
-                                                             souls=data['net_worth'],
-                                                             level=data['hero_level'],
-                                                             lastHits=data['last_hits'],
-                                                             denies=data['denies'],
-                                                             win=data['match_result'],
-                                                             match=match,
-                                                             player=player,
-                                                             steam_id3=steam_id3)
-
-            newMatchPlayer = self.fillInMissingMatchPlayerMetadata(newMatchPlayer)
-
-
-        newMatchPlayer.save()
-        return newMatchPlayer
 
     def fillInMissingMatchPlayerMetadata(self, matchPlayer):
         matchMetadata = self.DLAPIDataService.getMatchMetadata(dl_match_id=matchPlayer.match.deadlock_id)

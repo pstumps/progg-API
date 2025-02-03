@@ -11,24 +11,9 @@ from ..matches.serializers.MatchModelSerializer import MatchModelSerailizer
 from .Models.PlayerModel import PlayerModel
 
 
-def recentMatches(request, steam_id3):
-    playersService = proGGPlayersService()
-    lastTenMatches = playersService.getRecentMatches(steam_id3)
-
-    # Check if player data is missing- a player has played a match but we don't have their metadata
-    for recentMatch in lastTenMatches:
-        if not recentMatch.abandoned:
-            if recentMatch.accuracy == 0:
-                playersService.fillInMissingMatchPlayerMetadata(recentMatch)
-
-    return {'recentMatches': lastTenMatches}
-
-
 @api_view(['GET'])
 @throttle_classes([StatsRateThrottle])
 def stats(request, steam_id3):
-    # TODO Fix this
-
     playersService = proGGPlayersService()
     newPlayer = False
     try:
@@ -40,6 +25,7 @@ def stats(request, steam_id3):
         newPlayer = True
 
     if newPlayer:
+        #TODO: Use celery to update player match history
         updated = playersService.updateMatchHistory(steam_id3)
         if not updated:
             return Response(
@@ -84,6 +70,7 @@ def getMatchHistoryData(request, steam_id3):
     player = PlayerModel.objects.get(steam_id3=steam_id3)
     serializer = MatchHistoryDataSerializer(player)
     return Response(status=200, data=serializer.data)
+
 
 @api_view(['GET'])
 def deleteAllData(request):
