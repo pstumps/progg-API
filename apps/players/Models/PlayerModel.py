@@ -1,9 +1,9 @@
 import time
-from django.db import models, transaction
-from django.core.exceptions import ValidationError
+from django.db import models
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .PlayerHeroModel import PlayerHeroModel
+from .PlayerRecords import PlayerRecords
 from ...heroes.Models.HeroesModel import HeroesModel
 from ...matches.Models.MatchesModel import MatchesModel
 
@@ -16,6 +16,7 @@ class PlayerModel(models.Model):
     region = models.CharField(max_length=2, null=True, blank=True)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True)
     matches = models.ManyToManyField(MatchesModel, related_name='playerModel')
     wins = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)
@@ -43,11 +44,12 @@ class PlayerModel(models.Model):
     streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
     longestStreak = models.IntegerField(default=0)
     mmr = models.BigIntegerField(default=0)
-    lastLogin = models.DateTimeField(null=True, blank=True)
+    lastLogin = models.BigIntegerField(null=True, blank=True)
     timePlayed = models.IntegerField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.BigIntegerField(null=True)
-    timelineTracking = models.BooleanField(default=False)
+    isUser = models.BooleanField(default=True) # TODO: Change default to False after testing
+    inactive = models.BooleanField(default=False) # TODO: Change default to True after testing
     '''
     def save(self, *args, **kwargs):
         # If new object (pk=None), do the Steam check
@@ -75,6 +77,11 @@ class PlayerModel(models.Model):
 
     def __str__(self):
         return self.name
+
+    def isInactive(self):
+        if self.lastLogin:
+            return time.time() - self.lastLogin > 1296000
+        return False # TODO: Change back to True after testing
 
     def getLastMatch(self):
         return self.matches.order_by('-date').first()
@@ -168,25 +175,10 @@ class PlayerModel(models.Model):
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
 
-        '''
-        multis_sum = [0, 0, 0, 0, 0, 0]
-        streaks_sum = [0, 0, 0, 0, 0, 0, 0]
-        for mp in self.matchPlayerModels.all():
-            if mp.multis:
-                multis_sum = [x + y for x, y in zip(multis_sum, mp.multis)]
-            if mp.streaks:
-                streaks_sum = [x + y for x, y in zip(streaks_sum, mp.streaks)]
-
-        self.multis = multis_sum
-        self.streaks = streaks_sum
-        '''
-
         #self.updatePlayerFromSteamWebAPI()
 
         self.save()
 
-    # This function just doesn't work for some reason.
-    @transaction.atomic
     def updatePlayerStatsFromMatchPlayer(self, team, multis, streaks, longestStreak, objectiveEvents, midbossEvents, match):
 
         self.longestStreak = max(self.longestStreak, longestStreak)
@@ -224,8 +216,25 @@ class PlayerModel(models.Model):
         self.matches.add(match)
         self.save()
 
+    def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
+        if self.isUser and self.isInactive() is False:
+            playerRecords = PlayerRecords.objects.filter(player=self).first()
+            if not playerRecords:
+                playerRecords = PlayerRecords.objects.create(player=self)
+
+            playerRecords.updateRecord('kills', heroId, kills)
+            playerRecords.updateRecord('assists', heroId, assists)
+            playerRecords.updateRecord('souls', heroId, souls)
+            playerRecords.updateRecord('heroDamage', heroId, heroDamage)
+            playerRecords.updateRecord('objDamage', heroId, objDamage)
+            playerRecords.updateRecord('healing', heroId, healing)
+            playerRecords.updateRecord('lastHits', heroId, lastHits)
+
+            playerRecords.save()
+
+
     def updatePlayerHeroStatsFromMatchPlayer(self, mp, longestStreaks):
-    # Update player hero model
+        # Update player hero model
         hero = HeroesModel.objects.filter(hero_deadlock_id=mp['hero_deadlock_id']).first()
         if not hero:
             DLAPIAssets = deadlockAPIAssetsService()

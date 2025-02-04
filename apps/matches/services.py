@@ -1,4 +1,4 @@
-import datetime
+import time
 from django.db import transaction
 from .Models.MatchesModel import MatchesModel
 from .Models.MatchPlayerModel import MatchPlayerModel
@@ -55,7 +55,6 @@ class proggAPIMatchesService:
                 length=matchMetadata.get('duration_s'),
                 victor=matchMetadata.get('winning_team')
             )
-
 
             self.parseMatchEventsFromMetadata(match, matchMetadata)
 
@@ -162,7 +161,6 @@ class proggAPIMatchesService:
                         player_healing=stat.get('player_healing', 0)
                     ))
 
-
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
             matchPlayerData[account_id].update(endStatsData)
 
@@ -223,6 +221,9 @@ class proggAPIMatchesService:
 
             player.updatePlayerHeroStatsFromMatchPlayer(data, longestStreaks.get(account_id, 0))
 
+            player.updatePlayerRecords(data['hero_deadlock_id'], data['kills'], data['deaths'], data['assists'],
+                                       data['souls'], data['heroDamage'], data['objDamage'], data['healing'])
+
         MatchPlayerGraph.objects.bulk_create(playerStatsGraphs)
         MatchPlayerModel.objects.bulk_create(matchPlayersToCreate)
 
@@ -275,7 +276,7 @@ class proggAPIMatchesService:
             if multiKillCount > 1:
                 multis[slayer_account_id][min(multiKillCount, 7) - 2] += 1
 
-            if match.date < datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7):
+            if match.date < int(time.time()) - 604800:
                 pvpEvents.append(
                     PvPEvent(
                         match=match,
@@ -299,8 +300,9 @@ class proggAPIMatchesService:
             else:
                 playerDict['abilities'][item_data['name']].append(item_events['game_time_s'])
 
-            if playerDict['playerModel'].timelineTracking:
-                self.createMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events, item_data)
+            if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
+                self.createMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                           item_data)
 
         elif item_data.get('type') == 'upgrade':
             playerItemsDictionary = playerDict['items']
@@ -322,8 +324,9 @@ class proggAPIMatchesService:
                         'item_id': item_events['item_id'],
                         'target': item_data['name'],
                     })
-            if playerDict['playerModel'].timelineTracking:
-                self.createMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events, item_data)
+            if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
+                self.createMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                        item_data)
 
     def processObjectivesAndMidbossEvents(self, match, matchMetadata):
         objectiveEvents = []
@@ -435,15 +438,18 @@ class proggAPIMatchesService:
     @transaction.atomic
     def createMatchPlayerTimelineItemEvent(self, player, match, item_event, item_data):
         if item_data:
+            itemDetails = {'target': item_data['name'],
+                           'slot': item_data['item_slot_type']}
+
+            if item_data.get('sold_time_s') > 0:
+                itemDetails['sold_time_s'] = item_data['sold_time_s']
+
             MatchPlayerTimelineEvent.objects.create(
                 match=match,
                 player=player,
                 timestamp=item_event['game_time_s'],
-                eventType='item',
-                eventData={'item_id': item_event['item_id'],
-                           'target': item_data['name'],
-                           'slot': item_data['item_slot_type'],
-                           'sold_time_s': item_event['sold_time_s']}
+                type='item',
+                details=itemDetails,
             )
 
     @transaction.atomic
@@ -453,9 +459,8 @@ class proggAPIMatchesService:
                 match=match,
                 player=player,
                 timestamp=item_event['game_time_s'],
-                eventType='level',
-                eventData={'ability_id': item_event['item_id'],
-                           'target': item_data['name']}
+                type='level',
+                details={'target': item_data['name']}
             )
 
     @transaction.atomic
