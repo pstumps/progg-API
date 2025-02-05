@@ -332,16 +332,14 @@ class proggAPIMatchesService:
         objectiveEvents = []
         midbossEvents = []
 
-        # Sketchy way of getting opposite teams. TODO: Need to fix this
-        oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
-                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
+
 
         if matchMetadata.get('objectives'):
             for obj in matchMetadata['objectives']:
                 objectiveEvents.append(self.createMatchTimelineObjectiveEvent(match=match,
                                                                               target=obj['team_objective_id'],
                                                                               timestamp=obj['destroyed_time_s'],
-                                                                              team=oppositeTeams[obj['team']]))
+                                                                              team=obj['team']))
         if matchMetadata.get('mid_boss'):
             for midboss in matchMetadata['mid_boss']:
                 midbossEvents.append(self.createMatchTimelineMidbossEvent(match=match,

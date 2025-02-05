@@ -189,8 +189,12 @@ class PlayerModel(models.Model):
             if event.slayer == team:
                 self.midbosses = self.midbosses + 1 if self.midbosses else 1
 
+        # Sketchy way of getting opposite teams
+        oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
+                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
+
         for event in objectiveEvents:
-            if event.team == team:
+            if oppositeTeams[event.team] == team:
                 if 'Tier1' in event.target:
                     self.guardians = self.guardians + 1 if self.guardians else 1
                 elif 'Tier2' in event.target:

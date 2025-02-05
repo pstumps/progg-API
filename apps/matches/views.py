@@ -5,7 +5,7 @@ from .services import proggAPIMatchesService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from .serializers.MatchModelSerializer import MatchModelSerailizer
-from .serializers.MatchCombinedTimelineSerializer import MatchCombinedTimelineSerializer
+from apps.matches.serializers.timeline.MatchCombinedTimelineSerializer import MatchCombinedTimelineSerializer
 
 # Create your views here.
 
