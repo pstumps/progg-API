@@ -441,8 +441,8 @@ class proggAPIMatchesService:
             itemDetails = {'target': item_data['name'],
                            'slot': item_data['item_slot_type']}
 
-            if item_data.get('sold_time_s') > 0:
-                itemDetails['sold_time_s'] = item_data['sold_time_s']
+            if item_event.get('sold_time_s') > 0:
+                itemDetails['sold_time_s'] = item_event['sold_time_s']
 
             MatchPlayerTimelineEvent.objects.create(
                 match=match,

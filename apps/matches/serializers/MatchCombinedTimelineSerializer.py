@@ -7,8 +7,10 @@ class MatchCombinedTimelineSerializer(serializers.Serializer):
 
     def get_events(self, obj):
         match = obj
-        timelineEvents = list(MatchTimelineEvent.objects.filter(match=match))
-        timelineEvents.sort(key=lambda x: x.timestamp)
+        pvp_events = list(PvPEvent.objects.filter(match=match))
+        objective_events = list(ObjectiveEvent.objects.filter(match=match))
+        midboss_events = list(MidbossEvent.objects.filter(match=match))
+        timelineEvents = sorted(pvp_events + objective_events + midboss_events, key=lambda x: x.timestamp)
 
         serializedEvents = []
         for event in timelineEvents:
@@ -26,6 +28,7 @@ class MatchCombinedTimelineSerializer(serializers.Serializer):
                 eventData['type'] = 'midboss'
             else:
                 serializer = MatchTimelineEventSerializer(event)
-            serializedEvents.append(serializer.data)
+                eventData = serializer.data
+            serializedEvents.append(eventData)
 
         return serializedEvents

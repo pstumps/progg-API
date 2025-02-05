@@ -5,6 +5,7 @@ from .services import proggAPIMatchesService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from .serializers.MatchModelSerializer import MatchModelSerailizer
+from .serializers.MatchCombinedTimelineSerializer import MatchCombinedTimelineSerializer
 
 # Create your views here.
 
@@ -17,6 +18,18 @@ def match_detail(request, dl_match_id):
 
     serializer = MatchModelSerailizer(match)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def match_timeline(request, dl_match_id):
+    try:
+        match = MatchesModel.objects.get(deadlock_id=dl_match_id)
+    except MatchesModel.DoesNotExist:
+        return Response(status=404)
+
+    matchTimelineSerializer = MatchCombinedTimelineSerializer(match)
+    timeline = matchTimelineSerializer.data
+
+    return Response(timeline)
 
 @api_view(['GET'])
 def create_match_from_metadata(request, dl_match_id):

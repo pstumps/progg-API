@@ -37,10 +37,10 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
         return int(obj.match.length / 60)
 
     def get_date(self, obj):
-        return int(obj.match.date.timestamp())
+        return int(obj.match.date)
 
     def get_when(self, obj):
-        last = int(time.time()) - int(obj.match.date.timestamp())
+        last = int(time.time()) - int(obj.match.date)
 
         if last < 60:
             return f"{last} seconds "
