@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db.models import Q
 from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
 from apps.matches.Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
-from apps.matches.serializers.event.MatchPlayerTimelineEventSerializer import MatchPlayerTimelineEventSerializer, MatchPlayerTimelineItemEventSerializer
+from apps.matches.serializers.event.MatchPlayerTimelineEventSerializer import BuyEventSerializer, SellEventSerializer
 
 
 class PlayerCombinedTimelineSerializer(serializers.Serializer):
@@ -26,22 +26,16 @@ class PlayerCombinedTimelineSerializer(serializers.Serializer):
                 serialized_events.append(event)
             else:
                 if isinstance(event, MatchPlayerTimelineEvent):
-                    if event.type == 'item':
-                        serializer = MatchPlayerTimelineItemEventSerializer(event)
-                        event_data = serializer.data
-                        if isinstance(event_data, list):
-                            serialized_events.extend(event_data)
+                    if event.details.get('sold_time_s'):
+                        buyEvent = BuyEventSerializer(event).data
+                        sellEvent = SellEventSerializer(event).data
+                        serialized_events.extend([buyEvent, sellEvent])
                     else:
-                        serializer = MatchPlayerTimelineEventSerializer(event)
+                        serializer = BuyEventSerializer(event)
                         event_data = serializer.data
                 else:
                     continue
                 serialized_events.append(event_data)
 
-        for event in serialized_events:
-            if 'slayer_hero_id' in event and event['slayer_hero_id'] == heroID:
-                event['type'] = 'slay'
-            elif 'victim_hero_id' in event and event['victim_hero_id'] == heroID:
-                event['type'] = 'death'
 
         return serialized_events

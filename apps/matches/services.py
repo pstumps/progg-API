@@ -69,6 +69,7 @@ class proggAPIMatchesService:
         matchPlayerData = {}
         pvpEvents = []
         playerStatsGraphs = []
+        playerEvents = []
         streaks = {}
         lastKillTimes = {}
         multis = {}
@@ -108,38 +109,7 @@ class proggAPIMatchesService:
             playerToTrack = all_players[account_id]
 
             if account_id not in matchPlayerData:
-                matchPlayerData[account_id] = {
-                    'playerModel': playerToTrack,
-                    'match': match,
-                    'steam_id3': account_id,
-                    'team': player.get('team'),
-                    'playerSlot': player.get('player_slot'),
-                    'kills': player.get('kills', 0),
-                    'deaths': player.get('deaths', 0),
-                    'assists': player.get('assists', 0),
-                    'hero_deadlock_id': player.get('hero_id'),
-                    'level': player.get('level', 1),
-                    'items': {},
-                    'abilities': {},
-                    'souls': player.get('net_worth', 0),
-                    'soulsPerMin': 0,
-                    'lastHits': player.get('last_hits', 0),
-                    'denies': player.get('denies', 0),
-                    'party': player.get('party'),
-                    'lane': player.get('assigned_lane'),
-                    'laneCreeps': 0,
-                    'neutralCreeps': 0,
-                    'accuracy': 0,
-                    'heroCritPercent': 0,
-                    'soulsBreakdown': {},
-                    'heroDamage': 0,
-                    'objDamage': 0,
-                    'healing': 0,
-                    'win': player.get('team') == matchMetadata.get('winning_team'),
-                    'multiKills': [0] * 6,
-                    'streaks': [0] * 8,
-                    'medals': []
-                }
+                matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
 
             if player.get('death_details'):
                 self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
@@ -147,7 +117,7 @@ class proggAPIMatchesService:
 
             if player.get('items'):
                 for item_events in player.get('items'):
-                    self.processItemEvents(item_events, matchPlayerData, account_id)
+                    self.processItemEvents(item_events, matchPlayerData, account_id, playerEvents)
 
             if player.get('stats'):
                 for stat in player.get('stats'):
@@ -164,56 +134,23 @@ class proggAPIMatchesService:
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
             matchPlayerData[account_id].update(endStatsData)
 
-        objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
         PvPEvent.objects.bulk_create(pvpEvents)
 
+        objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
+        ObjectiveEvent.objects.bulk_create(objectiveEvents)
+        MidbossEvent.objects.bulk_create(midbossEvents)
+        MatchPlayerTimelineEvent.objects.bulk_create(playerEvents)
+
         print(f'account ids: {matchPlayerData.keys()}')
-
         matchPlayersToCreate = []
-        for account_id, data in matchPlayerData.items():  # multis and streaks have same keys
-            data['multiKills'] = multis[account_id]
-            data['streaks'] = streakCounts[account_id]
-            abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
-
-            mp = MatchPlayerModel(
-                player=data['playerModel'],
-                match=data['match'],
-                steam_id3=data['steam_id3'],
-                team=data['team'],
-                playerSlot=data['playerSlot'],
-                kills=data['kills'],
-                deaths=data['deaths'],
-                assists=data['assists'],
-                hero_deadlock_id=data['hero_deadlock_id'],
-                level=data['level'],
-                items=data['items'],
-                abilities=abilities,
-                souls=data['souls'],
-                soulsPerMin=data['soulsPerMin'],
-                lastHits=data['lastHits'],
-                denies=data['denies'],
-                party=data['party'],
-                lane=data['lane'],
-                laneCreeps=data['laneCreeps'],
-                neutralCreeps=data['neutralCreeps'],
-                accuracy=data['accuracy'],
-                heroCritPercent=data['heroCritPercent'],
-                soulsBreakdown=data['soulsBreakdown'],
-                heroDamage=data['heroDamage'],
-                objDamage=data['objDamage'],
-                healing=data['healing'],
-                win=data['win'],
-                multis=data['multiKills'],
-                streaks=data['streaks'],
-                medals=data['medals'],
-            )
-            matchPlayersToCreate.append(mp)
+        for account_id, data in matchPlayerData.items():
+            matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id), streakCounts.get(account_id))
             # Will also update PlayerHeroModel
             player = data['playerModel']
 
             player.updatePlayerStatsFromMatchPlayer(data['team'],
-                                                    data['multiKills'],
-                                                    data['streaks'],
+                                                    multis.get(account_id),
+                                                    streakCounts.get(account_id),
                                                     longestStreaks.get(account_id, 0),
                                                     objectiveEvents,
                                                     midbossEvents,
@@ -233,6 +170,81 @@ class proggAPIMatchesService:
             MatchPlayerModel.objects.bulk_update(matchPlayersToCreate, ['medals'])
 
         return matchPlayerData
+
+    def createMatchPlayerData(self, player, playerToTrack, match, matchMetadata):
+
+        return {
+            'playerModel': playerToTrack,
+            'match': match,
+            'steam_id3': player['account_id'],
+            'team': player.get('team'),
+            'playerSlot': player.get('player_slot'),
+            'kills': player.get('kills', 0),
+            'deaths': player.get('deaths', 0),
+            'assists': player.get('assists', 0),
+            'hero_deadlock_id': player.get('hero_id'),
+            'level': player.get('level', 1),
+            'items': {},
+            'abilities': {},
+            'souls': player.get('net_worth', 0),
+            'soulsPerMin': 0,
+            'lastHits': player.get('last_hits', 0),
+            'denies': player.get('denies', 0),
+            'party': player.get('party'),
+            'lane': player.get('assigned_lane'),
+            'laneCreeps': 0,
+            'neutralCreeps': 0,
+            'accuracy': 0,
+            'heroCritPercent': 0,
+            'soulsBreakdown': {},
+            'heroDamage': 0,
+            'objDamage': 0,
+            'healing': 0,
+            'win': player.get('team') == matchMetadata.get('winning_team'),
+            'multis': [0] * 6,
+            'streaks': [0] * 8,
+            'medals': []
+        }
+
+    def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts):
+        print(multis)
+        print(streakCounts)
+        abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
+
+        mp = MatchPlayerModel(
+            player=data['playerModel'],
+            match=data['match'],
+            steam_id3=data['steam_id3'],
+            team=data['team'],
+            playerSlot=data['playerSlot'],
+            kills=data['kills'],
+            deaths=data['deaths'],
+            assists=data['assists'],
+            hero_deadlock_id=data['hero_deadlock_id'],
+            level=data['level'],
+            items=data['items'],
+            abilities=abilities,
+            souls=data['souls'],
+            soulsPerMin=data['soulsPerMin'],
+            lastHits=data['lastHits'],
+            denies=data['denies'],
+            party=data['party'],
+            lane=data['lane'],
+            laneCreeps=data['laneCreeps'],
+            neutralCreeps=data['neutralCreeps'],
+            accuracy=data['accuracy'],
+            heroCritPercent=data['heroCritPercent'],
+            soulsBreakdown=data['soulsBreakdown'],
+            heroDamage=data['heroDamage'],
+            objDamage=data['objDamage'],
+            healing=data['healing'],
+            win=data['win'],
+            multis=multis,
+            streaks=streakCounts,
+            medals=data['medals'],
+        )
+        matchPlayersToCreate.append(mp)
+        return matchPlayersToCreate
 
     def processDeathDetails(self, player, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
                             match, pvpEvents):
@@ -287,7 +299,7 @@ class proggAPIMatchesService:
                     )
                 )
 
-    def processItemEvents(self, item_events, matchPlayerData, account_id):
+    def processItemEvents(self, item_events, matchPlayerData, account_id, playerEvents):
 
         item_data = self.DLItemsDict.get(item_events['item_id'])
         if not item_data:
@@ -301,8 +313,8 @@ class proggAPIMatchesService:
                 playerDict['abilities'][item_data['name']].append(item_events['game_time_s'])
 
             if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
-                self.createMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
-                                                           item_data)
+                self.handleMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                           item_data, playerEvents)
 
         elif item_data.get('type') == 'upgrade':
             playerItemsDictionary = playerDict['items']
@@ -325,27 +337,25 @@ class proggAPIMatchesService:
                         'target': item_data['name'],
                     })
             if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
-                self.createMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
-                                                        item_data)
+                self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                        item_data, playerEvents)
 
     def processObjectivesAndMidbossEvents(self, match, matchMetadata):
         objectiveEvents = []
         midbossEvents = []
 
-
-
         if matchMetadata.get('objectives'):
             for obj in matchMetadata['objectives']:
-                objectiveEvents.append(self.createMatchTimelineObjectiveEvent(match=match,
-                                                                              target=obj['team_objective_id'],
-                                                                              timestamp=obj['destroyed_time_s'],
-                                                                              team=obj['team']))
+                objectiveEvents.append(ObjectiveEvent(match=match,
+                                                      target=obj['team_objective_id'],
+                                                      timestamp=obj['destroyed_time_s'],
+                                                      team=obj['team']))
         if matchMetadata.get('mid_boss'):
             for midboss in matchMetadata['mid_boss']:
-                midbossEvents.append(self.createMatchTimelineMidbossEvent(match=match,
-                                                                          slayer=midboss['team_killed'],
-                                                                          team=midboss['team_claimed'],
-                                                                          timestamp=midboss['destroyed_time_s']))
+                midbossEvents.append(MidbossEvent(match=match,
+                                                  slayer=midboss['team_killed'],
+                                                  team=midboss['team_claimed'],
+                                                  timestamp=midboss['destroyed_time_s']))
 
         return objectiveEvents, midbossEvents
 
@@ -434,7 +444,7 @@ class proggAPIMatchesService:
             p.medals = (p.medals or []) + ['healing']
 
     @transaction.atomic
-    def createMatchPlayerTimelineItemEvent(self, player, match, item_event, item_data):
+    def handleMatchPlayerTimelineItemEvent(self, player, match, item_event, item_data, playerTimelineEvents):
         if item_data:
             itemDetails = {'target': item_data['name'],
                            'slot': item_data['item_slot_type']}
@@ -442,58 +452,24 @@ class proggAPIMatchesService:
             if item_event.get('sold_time_s') > 0:
                 itemDetails['sold_time_s'] = item_event['sold_time_s']
 
-            MatchPlayerTimelineEvent.objects.create(
+            playerTimelineEvents.append(MatchPlayerTimelineEvent(
                 match=match,
                 player=player,
                 timestamp=item_event['game_time_s'],
                 type='item',
                 details=itemDetails,
-            )
+            ))
 
-    @transaction.atomic
-    def createMatchPlayerTimelineAbilityEvent(self, player, match, item_event, item_data):
+    def handleMatchPlayerTimelineAbilityEvent(self, player, match, item_event, item_data, playerTimelineEvents):
         if item_data:
-            MatchPlayerTimelineEvent.objects.create(
+            playerTimelineEvents.append(MatchPlayerTimelineEvent(
                 match=match,
                 player=player,
                 timestamp=item_event['game_time_s'],
                 type='level',
                 details={'target': item_data['name']}
-            )
+            ))
 
-    @transaction.atomic
-    def createMatchTimelinePvPEvent(self, match, slayer_hero_id, victim_hero_id, timestamp, team):
-        PvPEvent.objects.create(
-            match=match,
-            timestamp=timestamp,
-            team=team,
-            slayer_hero_id=slayer_hero_id,
-            victim_hero_id=victim_hero_id
-        )
-
-    @transaction.atomic
-    def createMatchTimelineObjectiveEvent(self, match, target, timestamp, team):
-        objectiveEvent = ObjectiveEvent.objects.create(
-            match=match,
-            timestamp=timestamp,
-            team=team,
-            target=target
-        )
-
-        objectiveEvent.save()
-        return objectiveEvent
-
-    @transaction.atomic
-    def createMatchTimelineMidbossEvent(self, match, slayer, timestamp, team):
-        midbossEvent = MidbossEvent.objects.create(
-            match=match,
-            timestamp=timestamp,
-            team=team,
-            slayer=slayer
-        )
-
-        midbossEvent.save()
-        return midbossEvent
 
     '''
     def getPlayerMedals(self, match):

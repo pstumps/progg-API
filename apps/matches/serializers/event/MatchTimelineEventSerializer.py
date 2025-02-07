@@ -10,12 +10,16 @@ class MatchTimelineEventSerializer(serializers.ModelSerializer):
 
 class PvPEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
+    details = serializers.SerializerMethodField()
     class Meta:
         model = PvPEvent
-        fields = ['type', 'timestamp', 'slayer_hero_id', 'victim_hero_id']
+        fields = ['type', 'timestamp', 'details']
 
     def get_type(self, instance):
         return 'pvp'
+
+    def get_details(self, instance):
+        return {'slayer': instance.slayer_hero_id, 'victim': instance.victim_hero_id}
 
 
 class ObjectiveEventSerializer(serializers.ModelSerializer):

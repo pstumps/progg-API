@@ -8,18 +8,27 @@ class MatchPlayerTimelineEventSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class AbilityEventSerializer(MatchPlayerTimelineEventSerializer):
+    class Meta:
+        model = MatchPlayerTimelineEvent
+        fields = ['type', 'timestamp', 'details']
+
+
+
 class BuyEventSerializer(MatchPlayerTimelineEventSerializer):
-    type = serializers.SerializerMethodField()
     details = serializers.SerializerMethodField()
     class Meta:
         model = MatchPlayerTimelineEvent
-        fields = '__all__'
+        fields = ['type', 'timestamp', 'details']
 
-    def get_type(self, instance):
-        return 'item'
 
     def get_details(self, instance):
-        return {'target': instance.details['target']}
+        if instance.details['slot'] == 'weapon':
+            return {'color': 'orange', 'target': instance.details['target']}
+        elif instance.details['slot'] == 'vitality':
+            return {'color': 'green', 'target': instance.details['target']}
+        elif instance.details['slot'] == 'spirit':
+            return {'color': 'purple', 'target': instance.details['target']}
 
 
 class SellEventSerializer(MatchPlayerTimelineEventSerializer):
@@ -28,7 +37,7 @@ class SellEventSerializer(MatchPlayerTimelineEventSerializer):
     details = serializers.SerializerMethodField()
     class Meta:
         model = MatchPlayerTimelineEvent
-        fields = '__all__'
+        fields = ['type', 'timestamp', 'details']
 
     def get_type(self, instance):
         return 'sell'

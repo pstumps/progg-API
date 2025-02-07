@@ -36,9 +36,10 @@ def stats(request, steam_id3):
         player.updatePlayerStats()
         # return Response(status=201, data={"detail": "New Player"})
     else:
-        if (int(time.time()) - player.updated) / 60 > 900:
-            if playersService.updateMatchHistory(steam_id3):
-                player.updatePlayerStats()
+        if player:
+            if (int(time.time()) - (player.updated or 0)) / 60 > 900:
+                if playersService.updateMatchHistory(steam_id3):
+                    player.updatePlayerStats()
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
