@@ -50,7 +50,8 @@ class MidbossEventSerializer(serializers.ModelSerializer):
     details = serializers.SerializerMethodField()
     class Meta:
         model = MidbossEvent
-        fields = ['timestamp', 'type', 'slayer', 'details']
+        # fields = ['timestamp', 'type', 'team', 'details']
+        fields = ['timestamp', 'type', 'details']
 
     def get_type(self, instance):
         return 'midboss'
@@ -65,10 +66,11 @@ class RejuvEventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MidbossEvent
-        fields = ['timestamp', 'type', 'team', 'details']
+        # fields = ['timestamp', 'type', 'team', 'details']
+        fields = ['timestamp', 'type', 'details']
 
     def get_type(self, instance):
-        return 'midboss'
+        return 'rejuv'
 
     def get_details(self, instance):
         return {'target': instance.team}

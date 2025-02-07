@@ -9,6 +9,7 @@ from .services import proggAPIMatchesService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from .serializers.MatchModelSerializer import MatchModelSerailizer
+from apps.heroes.Models.HeroesModel import HeroesModel
 from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
 from apps.matches.Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
 from apps.matches.serializers.event.MatchTimelineEventSerializer import MatchTimelineEventSerializer, PvPEventSerializer, ObjectiveEventSerializer, MidbossEventSerializer, RejuvEventSerializer
@@ -50,7 +51,8 @@ def timelines(request, dl_match_id, user_id=None):
     player = PlayerModel.objects.get(steam_id3=55025907)
     matchPlayer = match.matchPlayerModels.filter(player=player).first()
     # End Testing code
-
+    teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber', 'k_ECitadelLobbyTeam_Team1': 'Sapphire'}
+    all_heroes = HeroesModel.objects.all()
     pvpEvents = list(match.pvpevent.all())
     objectiveEvents = list(match.objectiveevent.all())
     midbossEvents = list(match.midbossevent.all())
@@ -62,17 +64,22 @@ def timelines(request, dl_match_id, user_id=None):
     for event in timelineEvents:
         if isinstance(event, PvPEvent):
             pvpEvent = PvPEventSerializer(event).data
+            pvpEvent['details']['slayer'] = all_heroes.get(hero_deadlock_id=event.slayer_hero_id).name.lower()
+            pvpEvent['details']['victim'] = all_heroes.get(hero_deadlock_id=event.victim_hero_id).name.lower()
             pvpSerialized.append(pvpEvent)
         elif isinstance(event, ObjectiveEvent):
             if event.timestamp == 0:
                 continue
             else:
                 objEvent = ObjectiveEventSerializer(event).data
+                objEvent['team'] = teamDict.get(event.team)
                 objectiveSerialized.append(objEvent)
         elif isinstance(event, MidbossEvent):
             if event.slayer:
                 midbossEvent = MidbossEventSerializer(event).data
+                midbossEvent['details']['target'] = teamDict.get(event.slayer)
                 rejuvEvent = RejuvEventSerializer(event).data
+                rejuvEvent['details']['target'] = teamDict.get(event.team)
                 midbossSerialized.extend([midbossEvent, rejuvEvent])
             else:
                 midbossEvent = MidbossEventSerializer(event).data
@@ -105,7 +112,7 @@ def timelines(request, dl_match_id, user_id=None):
 
         player_pvpSerialized = [
             event for event in pvpSerialized
-            if event['details']['victim'] == matchPlayer.hero_deadlock_id or event['details']['slayer'] == matchPlayer.hero_deadlock_id
+            if event['details']['victim'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower() or event['details']['slayer'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower()
         ]
 
         playerTimeline = sorted(player_pvpSerialized + playerSerialized + objectiveSerialized + midbossSerialized, key=lambda x: x['timestamp'])
