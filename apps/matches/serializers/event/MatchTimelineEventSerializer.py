@@ -19,7 +19,7 @@ class PvPEventSerializer(serializers.ModelSerializer):
         return 'pvp'
 
     def get_details(self, instance):
-        return {'slayer': instance.slayer_hero_id, 'victim': instance.victim_hero_id}
+        return {'slayer': instance.slayer_hero_id, 'target': instance.victim_hero_id}
 
 
 class ObjectiveEventSerializer(serializers.ModelSerializer):

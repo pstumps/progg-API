@@ -1,25 +1,48 @@
 from rest_framework import serializers
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
+from apps.heroes.Models.HeroesModel import HeroesModel
 
 
 class UserMatchDetailsSerializer(serializers.ModelSerializer):
-    csSouls = serializers.IntegerField()
-    kaSouls = serializers.IntegerField()
-    otherSouls = serializers.IntegerField()
-    avgHeroDmg = serializers.IntegerField()
-    avgObjDmg = serializers.IntegerField()
-    avgHealing = serializers.IntegerField()
-    avgKills = serializers.IntegerField()
-    avgAssists = serializers.IntegerField()
-    avgDeaths = serializers.IntegerField()
-    avgSouls = serializers.IntegerField()
-    avgCS = serializers.IntegerField()
-    avgSoulsPerMin = serializers.FloatField()
+    hero = serializers.SerializerMethodField()
+    length = serializers.SerializerMethodField()
+    team = serializers.SerializerMethodField()
+    result = serializers.SerializerMethodField()
+    csSouls = serializers.SerializerMethodField()
+    kaSouls = serializers.SerializerMethodField()
+    otherSouls = serializers.SerializerMethodField()
+    avgHeroDmg = serializers.SerializerMethodField()
+    avgObjDmg = serializers.SerializerMethodField()
+    avgHealing = serializers.SerializerMethodField()
+    avgKills = serializers.SerializerMethodField()
+    avgAssists = serializers.SerializerMethodField()
+    avgDeaths = serializers.SerializerMethodField()
+    avgSouls = serializers.SerializerMethodField()
+    avgCS = serializers.SerializerMethodField()
+    avgSoulsPerMin = serializers.SerializerMethodField()
+    records = serializers.SerializerMethodField()
+    userMatchEvents = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchPlayerModel
-        fields = '__all__'
+        fields = ['hero', 'length', 'team', 'result', 'kills', 'deaths', 'assists', 'lastHits', 'heroDamage',
+                  'objDamage', 'healing', 'souls', 'csSouls', 'kaSouls', 'otherSouls', 'avgHeroDmg',
+                  'avgObjDmg', 'avgHealing', 'avgKills', 'avgAssists', 'avgDeaths', 'avgSouls', 'avgCS',
+                  'avgSoulsPerMin', 'records', 'userMatchEvents']
 
+    def get_hero(self, obj):
+        return HeroesModel.objects.get(hero_id=obj.hero_deadlock_id).name.lower()
+
+    def get_length(self, obj):
+        return obj.match.length
+
+    def get_team(self, obj):
+        teamDict = {'k_ECitadelLobbyTeam_Team0': 'The Amber Hand', 'k_ECitadelLobbyTeam_Team1': 'The Sapphire Flame'}
+        return teamDict[obj.team]
+
+    def get_result(self, obj):
+        teamDict = {'k_ECitadelLobbyTeam_Team0': 'amberhand', 'k_ECitadelLobbyTeam_Team1': 'sapphireflame'}
+        return teamDict[obj.team]
     def get_csSouls(self, obj):
         totalSouls = obj.soulsBreakdown
         csSouls = totalSouls.get('lane_creeps', 0) + totalSouls.get('neutrals', 0) + totalSouls.get('denies', 0)
@@ -94,3 +117,26 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
 
     def get_avgSoulsPerMin(self, obj):
         return obj.player.soulsPerMin
+
+    def get_records(self, obj):
+        arr = []
+        records = obj.player.records.get()
+        for name, value in records.items():
+            if name == 'kills' and value == [obj.hero_deadlock_id, obj.kills]:
+                arr.append('kills')
+            if name == 'deaths' and value == [obj.hero_deadlock_id, obj.deaths]:
+                arr.append('deaths')
+            if name == 'assists' and value == [obj.hero_deadlock_id, obj.assists]:
+                arr.append('assists')
+            if name == 'lastHits' and value == [obj.hero_deadlock_id, obj.lastHits]:
+                arr.append('lastHits')
+            if name == 'heroDamage' and value == [obj.hero_deadlock_id, obj.heroDamage]:
+                arr.append('heroDamage')
+            if name == 'objDamage' and value == [obj.hero_deadlock_id, obj.objDamage]:
+                arr.append('objDamage')
+            if name == 'healing' and value == [obj.hero_deadlock_id, obj.healing]:
+                arr.append('healing')
+        return arr
+
+    def get_userMatchEvents(self, obj):
+        return obj.context['playerMatchEvents']

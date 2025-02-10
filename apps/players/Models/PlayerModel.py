@@ -206,8 +206,7 @@ class PlayerModel(models.Model):
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons = self.patrons + 1 if self.patrons else 1
 
-        print(multis)
-        print(streaks)
+
         if any(x != 0 for x in multis):
             if self.multis is None:
                 self.multis = multis

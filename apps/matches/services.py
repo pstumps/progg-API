@@ -397,7 +397,7 @@ class proggAPIMatchesService:
 
         if playerSouls > 0:
             soulsBreakdown = {
-                key: round(getGold(end_stats.get('gold_sources', []), idx, incOrbs) / playerSouls, 1)
+                key: getGold(end_stats.get('gold_sources', []), idx, incOrbs)
                 for key, (idx, incOrbs) in goldMapping.items()
             }
         else:
