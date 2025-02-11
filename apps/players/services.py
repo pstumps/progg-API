@@ -5,9 +5,9 @@ from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsServi
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
-from ..matches.services import proggAPIMatchesService
+from apps.matches.services.MetadataServices import MetadataServices
 from ..matches.Models.MatchesModel import MatchesModel
-from ..matches.Models.MatchPlayerModel import MatchPlayerModel
+from ..matches.services.MatchServices import MatchServices
 from ..players.Models.PlayerModel import PlayerModel
 
 
@@ -44,7 +44,7 @@ class proGGPlayersService:
 
         if isinstance(matchHistory, list):
             DLItemsDict = self.DLAPIAssetsService.getItemsDict()
-            matchesService = proggAPIMatchesService(DLItemsDict)
+            metadataService = MetadataServices(DLItemsDict)
             if len(matchHistory) == 0:
                 print(f'Player {steam_id3} has no Match History.')
                 return False
@@ -65,7 +65,7 @@ class proGGPlayersService:
                     if matchMetadata.get('match_info'):
                         # TODO: This might be messed up, need to determine if match is already associated with player or not
                         print(f'Processing match {matchNum} of {len(matchHistory)}')
-                        matchesService.createNewMatchFromMetadata(matchMetadata)
+                        metadataService.createNewMatchFromMetadata(matchMetadata)
                     else:
                         print(f'Failed to get metadata for match {match["match_id"]}')
                     matchNum += 1
@@ -93,10 +93,8 @@ class proGGPlayersService:
             return None
 
     def deleteAllData(self):
-        matchesService = proggAPIMatchesService()
-        matchesService.deleteAllMatchesAndPlayersModels()
-
-
+        matchService = MatchServices()
+        matchService.deleteAllMatchesAndPlayersModels()
 
     def fillInMissingMatchPlayerMetadata(self, matchPlayer):
         matchMetadata = self.DLAPIDataService.getMatchMetadata(dl_match_id=matchPlayer.match.deadlock_id)

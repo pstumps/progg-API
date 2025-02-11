@@ -1,8 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
-from django.contrib.auth.models import User
 from .Models.MatchesModel import MatchesModel
 from apps.players.Models.PlayerModel import PlayerModel
 from .services import proggAPIMatchesService
@@ -112,7 +110,7 @@ def timelines(request, dl_match_id, user_id=None):
 
         player_pvpSerialized = [
             event for event in pvpSerialized
-            if event['details']['victim'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower() or event['details']['slayer'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower()
+            if event['details']['target'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower() or event['details']['slayer'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower()
         ]
 
         playerTimeline = sorted(player_pvpSerialized + playerSerialized + objectiveSerialized + midbossSerialized, key=lambda x: x['timestamp'])
