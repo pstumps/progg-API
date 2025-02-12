@@ -134,7 +134,6 @@ class PlayerModel(models.Model):
             for games in gameData:
                 if games['appid'] == 1422450:
                     self.timePlayed = games.get('playtime_forever') / 60
-
         self.save()
 
     def updatePlayerStats(self):
@@ -174,8 +173,6 @@ class PlayerModel(models.Model):
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
-
-        #self.updatePlayerFromSteamWebAPI()
 
         self.save()
 
@@ -219,7 +216,7 @@ class PlayerModel(models.Model):
                 self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
 
         self.matches.add(match)
-        self.save()
+
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
         if self.isUser and self.isInactive() is False:
@@ -235,7 +232,6 @@ class PlayerModel(models.Model):
             playerRecords.updateRecord('healing', heroId, healing)
             playerRecords.updateRecord('lastHits', heroId, lastHits)
 
-            playerRecords.save()
 
 
     def updatePlayerHeroStatsFromMatchPlayer(self, mp, longestStreaks):
@@ -257,5 +253,3 @@ class PlayerModel(models.Model):
 
         playerHero.createOrUpdatePlayerHero(mp, longestStreaks)
 
-
-        self.save()

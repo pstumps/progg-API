@@ -9,6 +9,7 @@ from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossE
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
+from proggbackend.services.SteamWebAPI import SteamWebAPIService
 
 
 def calculateAverageBadgeFromMetadata(metadata):
@@ -20,8 +21,10 @@ def calculateAverageBadgeFromMetadata(metadata):
             averageBadges[stat] = value
             badgesSum += value
 
-    averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges)) if averageBadges else 0
-    return averageBadges
+    if averageBadges:
+        averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges))
+        return averageBadges
+    return None
 
 
 class MetadataServices:
@@ -94,6 +97,7 @@ class MetadataServices:
         all_account_ids = [p['account_id'] for p in matchMetadata['players']]
         existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
         players_to_create = []
+        steamService = SteamWebAPIService()
         for acct_id in all_account_ids:
             if acct_id not in existing_players:
                 players_to_create.append(PlayerModel(steam_id3=acct_id))
@@ -147,6 +151,8 @@ class MetadataServices:
             # Will also update PlayerHeroModel
             player = data['playerModel']
 
+            # Below line is commmented out for testing only
+
             player.updatePlayerStatsFromMatchPlayer(data['team'],
                                                     multis.get(account_id),
                                                     streakCounts.get(account_id),
@@ -159,6 +165,8 @@ class MetadataServices:
 
             player.updatePlayerRecords(data['hero_deadlock_id'], data['kills'], data['deaths'], data['assists'],
                                        data['souls'], data['heroDamage'], data['objDamage'], data['healing'])
+
+            player.save()
 
         MatchPlayerGraph.objects.bulk_create(playerStatsGraphs)
         MatchPlayerModel.objects.bulk_create(matchPlayersToCreate)
@@ -206,8 +214,6 @@ class MetadataServices:
         }
 
     def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts):
-        print(multis)
-        print(streakCounts)
         abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
 
         mp = MatchPlayerModel(
@@ -326,15 +332,11 @@ class MetadataServices:
                         playerItemsDictionary['flex'] = []
 
                     playerItemsDictionary['flex'].append({
-                        'item_id': item_events['item_id'],
                         'target': item_data['name'],
                         'type': item_data['item_slot_type']
                     })
                 else:
-                    playerItemsDictionary[item_data['item_slot_type']].append({
-                        'item_id': item_events['item_id'],
-                        'target': item_data['name'],
-                    })
+                    playerItemsDictionary[item_data['item_slot_type']].append(item_data['name'])
             if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
                 self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
                                                         item_data, playerEvents)
@@ -396,7 +398,7 @@ class MetadataServices:
 
         if playerSouls > 0:
             soulsBreakdown = {
-                key: round(getGold(end_stats.get('gold_sources', []), idx, incOrbs) / playerSouls, 1)
+                key: getGold(end_stats.get('gold_sources', []), idx, incOrbs)
                 for key, (idx, incOrbs) in goldMapping.items()
             }
         else:

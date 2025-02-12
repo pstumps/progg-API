@@ -38,11 +38,13 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
         elif 'Tier2' in instance.target:
             return {'target': 'Walker'}
         elif 'BarrackBoss' in instance.target:
-            return {'target': 'BaseGuardian'}
+            return {'target': 'Guardian'}
         elif 'TitanShieldGenerator' in instance.target:
             return {'target': 'Shrine'}
         elif 'k_eCitadelTeamObjective_Core' in instance.target:
             return {'target': 'Patron'}
+        else:
+            return {'target': instance.target}
 
 
 class MidbossEventSerializer(serializers.ModelSerializer):

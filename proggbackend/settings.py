@@ -116,7 +116,7 @@ REST_FRAMEWORK = {
         'apps.players.throttles.StatsRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'stats': '5/minute',  # Adjust the rate as needed
+        'stats': '100/minute',  # Adjust the rate as needed
     }
 }
 

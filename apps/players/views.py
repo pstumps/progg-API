@@ -2,6 +2,8 @@ import time
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.throttling import UserRateThrottle
+
+from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .services import proGGPlayersService
 from .throttles import StatsRateThrottle
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
@@ -26,7 +28,7 @@ def stats(request, steam_id3):
 
     if newPlayer:
         #TODO: Use celery to update player match history
-        updated = playersService.updateMatchHistory(steam_id3)
+        updated = playersService.updateMatchHistory(steam_id3, newPlayer)
         if not updated:
             return Response(
                 data={"detail": "Player has no match history."},
@@ -71,6 +73,12 @@ def getMatchHistoryData(request, steam_id3):
     player = PlayerModel.objects.get(steam_id3=steam_id3)
     serializer = MatchHistoryDataSerializer(player)
     return Response(status=200, data=serializer.data)
+
+@api_view(['GET'])
+def getSteamInfo(request, steam_id3):
+    steamService = SteamWebAPIService()
+    playerInfo = steamService.getPlayerSummaries(steam_id3)
+    return Response(status=200, data=playerInfo)
 
 
 @api_view(['GET'])

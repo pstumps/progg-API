@@ -26,17 +26,21 @@ class proGGPlayersService:
         return player.getTopPlayerHeroes()
 
 
-    def updateMatchHistory(self, steam_id3):
+    def updateMatchHistory(self, steam_id3, newPlayer=False):
         # Internal API Only
-        '''
-        if not player.updated:
+        if newPlayer:
             matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
         else:
-            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
-                                                                            has_metadata=True,
-                                                                            min_unix_timestamp=player.updated)
-        '''
-        matchHistory = [{'match_id': '32152804'}]
+            player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
+            if not player.updated:
+                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
+            else:
+                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
+                                                                                has_metadata=True,
+                                                                                min_unix_timestamp=player.updated)
+
+        # For testing only
+        #matchHistory = [{'match_id': '32152804'}]
         if isinstance(matchHistory, dict) and matchHistory.get('detail'):
             print(f'No new matches since last update for player {steam_id3}')
             return True

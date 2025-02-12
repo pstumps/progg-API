@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.heroes.Models.HeroesModel import HeroesModel
+from apps.heroes.serializers import RecentMatchStatsHeroSerializer
 
 
 class UserMatchDetailsSerializer(serializers.ModelSerializer):
@@ -31,7 +32,7 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
                   'avgSoulsPerMin', 'records', 'userMatchEvents']
 
     def get_hero(self, obj):
-        return HeroesModel.objects.get(hero_id=obj.hero_deadlock_id).name.lower()
+        return RecentMatchStatsHeroSerializer(HeroesModel.objects.get(hero_deadlock_id=obj.hero_deadlock_id)).data
 
     def get_length(self, obj):
         return obj.match.length
@@ -41,8 +42,10 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
         return teamDict[obj.team]
 
     def get_result(self, obj):
-        teamDict = {'k_ECitadelLobbyTeam_Team0': 'amberhand', 'k_ECitadelLobbyTeam_Team1': 'sapphireflame'}
-        return teamDict[obj.team]
+        if obj.match.victor == obj.team:
+            return 'Victory'
+        return 'Defeat'
+
     def get_csSouls(self, obj):
         totalSouls = obj.soulsBreakdown
         csSouls = totalSouls.get('lane_creeps', 0) + totalSouls.get('neutrals', 0) + totalSouls.get('denies', 0)
@@ -120,7 +123,7 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
 
     def get_records(self, obj):
         arr = []
-        records = obj.player.records.get()
+        records = obj.player.playerrecords_set.get().records
         for name, value in records.items():
             if name == 'kills' and value == [obj.hero_deadlock_id, obj.kills]:
                 arr.append('kills')
@@ -139,4 +142,4 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
         return arr
 
     def get_userMatchEvents(self, obj):
-        return obj.context['playerMatchEvents']
+        return self.context['playerTimeline']
