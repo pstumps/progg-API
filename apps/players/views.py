@@ -25,7 +25,8 @@ def stats(request, steam_id3):
         # This is a new player. Create a player instance for them, and get their entire match history.
         print(f'Player does not exist. Creating new player for {steam_id3}')
         newPlayer = True
-
+    # Testing only
+    '''
     if newPlayer:
         #TODO: Use celery to update player match history
         updated = playersService.updateMatchHistory(steam_id3, newPlayer)
@@ -42,6 +43,9 @@ def stats(request, steam_id3):
             if (int(time.time()) - (player.updated or 0)) / 60 > 900:
                 if playersService.updateMatchHistory(steam_id3):
                     player.updatePlayerStats()
+    '''
+
+    player = PlayerModel.objects.get(steam_id3=steam_id3)
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 

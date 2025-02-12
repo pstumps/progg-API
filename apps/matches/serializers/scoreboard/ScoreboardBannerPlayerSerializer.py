@@ -41,7 +41,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         return obj.lane
 
     def get_build(self, obj):
-        build = {'weapon': 0, 'spirit': 0, 'vitality': 0}
+        build = {'weapon': 0, 'vitality': 0, 'spirit': 0,}
         percentArray = []
 
         for type, items in obj.items.items():
