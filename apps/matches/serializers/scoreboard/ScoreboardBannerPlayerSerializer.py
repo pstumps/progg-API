@@ -18,7 +18,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MatchPlayerModel
-        fields = ['name', 'hero', 'rank', 'lane', 'build', 'buildItems', 'kills', 'deaths', 'assists', 'souls', 'heroDamage',
+        fields = ['steam_id3', 'name', 'hero', 'rank', 'lane', 'build', 'buildItems', 'kills', 'deaths', 'assists', 'souls', 'heroDamage',
                   'objDamage', 'healing', 'lastHits', 'soulsPerMin', 'level', 'accuracy', 'heroCritPercent', 'denies',
                   'abilityOrder', 'medals', 'soulsBreakdown', 'party']
 
