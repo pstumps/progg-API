@@ -20,7 +20,6 @@ def match_details(request, dl_match_id):
 
     matchServices = MatchServices()
     matchEvents  = matchServices.getMatchTimeline(match)
-    print()
     serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
     return Response(serializer.data)
 

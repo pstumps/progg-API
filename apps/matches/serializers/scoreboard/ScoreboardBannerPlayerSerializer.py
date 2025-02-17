@@ -1,8 +1,8 @@
+import bisect
 from rest_framework import serializers
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.heroes.Models.HeroesModel import HeroesModel
 from apps.heroes.serializers import RecentMatchStatsHeroSerializer
-
 
 
 class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
@@ -13,7 +13,6 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
     build = serializers.SerializerMethodField()
     buildItems = serializers.SerializerMethodField()
     abilityOrder = serializers.SerializerMethodField()
-
 
 
     class Meta:
@@ -84,8 +83,6 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         for ability in obj.abilities:
             arr.append({'name': ability[0].replace(' ', ''), 'level': len(ability[1])})
         return arr
-
-
 
 
 
