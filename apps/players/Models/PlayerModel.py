@@ -127,7 +127,7 @@ class PlayerModel(models.Model):
         if playerData[0]:
             self.name = playerData[0].get('personaname')
             self.icon = playerData[0].get('avatarfull')
-            self.region = playerData[0].get('region')
+            self.region = playerData[0].get('loccountrycode')
 
         gameData = steamWebAPI.getOwnedGames(steam_id3=self.steam_id3).get('response').get('games')
         if gameData:
@@ -174,7 +174,6 @@ class PlayerModel(models.Model):
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
 
-        self.save()
 
     def updatePlayerStatsFromMatchPlayer(self, team, multis, streaks, longestStreak, objectiveEvents, midbossEvents, match):
 

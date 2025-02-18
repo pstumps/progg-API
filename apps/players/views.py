@@ -14,7 +14,7 @@ from .Models.PlayerModel import PlayerModel
 
 
 @api_view(['GET'])
-@throttle_classes([StatsRateThrottle])
+#@throttle_classes([StatsRateThrottle])
 def stats(request, steam_id3):
     playersService = proGGPlayersService()
     newPlayer = False
@@ -25,8 +25,8 @@ def stats(request, steam_id3):
         # This is a new player. Create a player instance for them, and get their entire match history.
         print(f'Player does not exist. Creating new player for {steam_id3}')
         newPlayer = True
+
     # Testing only
-    '''
     if newPlayer:
         #TODO: Use celery to update player match history
         updated = playersService.updateMatchHistory(steam_id3, newPlayer)
@@ -36,16 +36,23 @@ def stats(request, steam_id3):
                 status=400
             )
         player = PlayerModel.objects.get(steam_id3=steam_id3)
+        player.updatePlayerFromSteamWebAPI()
         player.updatePlayerStats()
+        player.save()
         # return Response(status=201, data={"detail": "New Player"})
     else:
         if player:
             if (int(time.time()) - (player.updated or 0)) / 60 > 900:
                 if playersService.updateMatchHistory(steam_id3):
+                    player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()
-    '''
+                    player.save()
+                else:
+                    return Response(
+                        data={"detail": "Player does not exist or has no match history."},
+                        status=400
+                    )
 
-    player = PlayerModel.objects.get(steam_id3=steam_id3)
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
@@ -83,6 +90,13 @@ def getSteamInfo(request, steam_id3):
     steamService = SteamWebAPIService()
     playerInfo = steamService.getPlayerSummaries(steam_id3)
     return Response(status=200, data=playerInfo)
+
+@api_view(['GET'])
+def updatePlayerSteamWebAPI(request, steam_id3):
+    player = PlayerModel.objects.get(steam_id3=steam_id3)
+    player.updatePlayerFromSteamWebAPI()
+    player.save()
+    return Response(status=200, data={"detail": "Player updated."})
 
 
 @api_view(['GET'])

@@ -23,7 +23,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj):
         if obj.player:
-            if obj.player.name == None:
+            if obj.player.name == '':
                 obj.player.updatePlayerFromSteamWebAPI()
                 return obj.player.name
             return obj.player.name
@@ -61,12 +61,13 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         buildItemsDict = {'orange': [], 'purple': [], 'green': [], 'flex': []}
         for type, items in obj.items.items():
             if type == 'weapon':
-                buildItemsDict['orange'] = [i.replace(' ', '_') for i in items]
+                buildItemsDict['orange'] = [i for i in items]
             elif type == 'spirit':
-                buildItemsDict['purple'] = [i.replace(' ', '_') for i in items]
+                buildItemsDict['purple'] = [i for i in items]
             elif type == 'vitality':
-                buildItemsDict['green'] = [i.replace(' ', '_') for i in items]
+                buildItemsDict['green'] = [i for i in items]
             elif type == 'flex':
+                '''
                 for flexItem in items:
                     if flexItem['type'] == 'weapon':
                         flexItem['type'] = 'orange'
@@ -74,8 +75,11 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                         flexItem['type'] = 'purple'
                     elif flexItem['type'] == 'vitality':
                         flexItem['type'] = 'green'
-                    flexItem['target'] = flexItem['target'].replace(' ', '_')
+
                     buildItemsDict['flex'].append({'type': flexItem['type'], 'target': flexItem['target']})
+                '''
+                for flexItem in items:
+                    buildItemsDict['flex'].append(flexItem['target'])
         return buildItemsDict
 
     def get_abilityOrder(self, obj):

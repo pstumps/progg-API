@@ -124,20 +124,21 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
     def get_records(self, obj):
         arr = []
         records = obj.player.playerrecords_set.get().records
+
         for name, value in records.items():
-            if name == 'kills' and value == [obj.hero_deadlock_id, obj.kills]:
+            if name == 'kills' and value == list([obj.hero_deadlock_id, obj.kills]):
                 arr.append('kills')
-            if name == 'deaths' and value == [obj.hero_deadlock_id, obj.deaths]:
+            if name == 'deaths' and value == list([obj.hero_deadlock_id, obj.deaths]):
                 arr.append('deaths')
-            if name == 'assists' and value == [obj.hero_deadlock_id, obj.assists]:
+            if name == 'assists' and value == list([obj.hero_deadlock_id, obj.assists]):
                 arr.append('assists')
-            if name == 'lastHits' and value == [obj.hero_deadlock_id, obj.lastHits]:
+            if name == 'lastHits' and value == list([obj.hero_deadlock_id, obj.lastHits]):
                 arr.append('lastHits')
-            if name == 'heroDamage' and value == [obj.hero_deadlock_id, obj.heroDamage]:
+            if name == 'heroDamage' and value == list([obj.hero_deadlock_id, obj.heroDamage]):
                 arr.append('heroDamage')
-            if name == 'objDamage' and value == [obj.hero_deadlock_id, obj.objDamage]:
+            if name == 'objDamage' and value == list([obj.hero_deadlock_id, obj.objDamage]):
                 arr.append('objDamage')
-            if name == 'healing' and value == [obj.hero_deadlock_id, obj.healing]:
+            if name == 'healing' and value == list([obj.hero_deadlock_id, obj.healing]):
                 arr.append('healing')
         return arr
 

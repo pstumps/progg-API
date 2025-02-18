@@ -97,7 +97,6 @@ class MetadataServices:
         all_account_ids = [p['account_id'] for p in matchMetadata['players']]
         existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
         players_to_create = []
-        steamService = SteamWebAPIService()
         for acct_id in all_account_ids:
             if acct_id not in existing_players:
                 players_to_create.append(PlayerModel(steam_id3=acct_id))
@@ -144,7 +143,6 @@ class MetadataServices:
         MidbossEvent.objects.bulk_create(midbossEvents)
         MatchPlayerTimelineEvent.objects.bulk_create(playerEvents)
 
-        print(f'account ids: {matchPlayerData.keys()}')
         matchPlayersToCreate = []
         for account_id, data in matchPlayerData.items():
             matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id), streakCounts.get(account_id))
@@ -163,8 +161,8 @@ class MetadataServices:
 
             player.updatePlayerHeroStatsFromMatchPlayer(data, longestStreaks.get(account_id, 0))
 
-            player.updatePlayerRecords(data['hero_deadlock_id'], data['kills'], data['deaths'], data['assists'],
-                                       data['souls'], data['heroDamage'], data['objDamage'], data['healing'])
+            player.updatePlayerRecords(data['hero_deadlock_id'], data['kills'], data['assists'], data['souls'],
+                                       data['heroDamage'], data['objDamage'], data['healing'], data['lastHits'])
 
             player.save()
 
@@ -330,13 +328,17 @@ class MetadataServices:
                 if len(playerItemsDictionary[item_data['item_slot_type']]) >= 4:
                     if not playerItemsDictionary.get('flex'):
                         playerItemsDictionary['flex'] = []
-
+                    '''
                     playerItemsDictionary['flex'].append({
-                        'target': item_data['name'],
+                        'target': item_data['id'],
                         'type': item_data['item_slot_type']
                     })
+                    '''
+                    playerItemsDictionary['flex'].append(
+                        item_data['id']
+                    )
                 else:
-                    playerItemsDictionary[item_data['item_slot_type']].append(item_data['name'])
+                    playerItemsDictionary[item_data['item_slot_type']].append(item_data['id'])
             if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
                 self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
                                                         item_data, playerEvents)

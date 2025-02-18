@@ -7,5 +7,6 @@ urlpatterns = [
     path('<int:steam_id3>/top-player-heroes', views.topPlayerHeroes, name='topPlayerHeroes'),
     path('<int:steam_id3>/match-history-data', views.getMatchHistoryData, name='matchHistoryData'),
     path('<int:steam_id3>/steam-info', views.getSteamInfo, name='getSteamInfo'),
+    path('<int:steam_id3>/update-steam-info', views.updatePlayerSteamWebAPI, name='updatePlayerSteamWebAPI'),
     path('delete-all-data', views.deleteAllData, name='deleteAllData')
 ]

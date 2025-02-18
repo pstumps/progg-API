@@ -10,3 +10,4 @@ class PlayerRecords(models.Model):
         currentRecord = self.records.get(recordType, [None, 0])
         if newValue > currentRecord[1]:
             self.records[recordType] = [heroId, newValue]
+            self.save()
