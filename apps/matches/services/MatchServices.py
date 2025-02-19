@@ -8,11 +8,18 @@ from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossE
 from apps.matches.serializers.event.MatchTimelineEventSerializer import PvPEventSerializer, ObjectiveEventSerializer, MidbossEventSerializer, RejuvEventSerializer
 from apps.matches.serializers.event.MatchPlayerTimelineEventSerializer import AbilityEventSerializer, BuyEventSerializer, SellEventSerializer
 
+from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+
 
 class MatchServices:
     def __init__(self):
         self.teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber', 'k_ECitadelLobbyTeam_Team1': 'Sapphire'}
         self.all_heroes = HeroesModel.objects.all()
+
+    def getMatchMetadata(self, dl_match_id):
+        DL_API = deadlockAPIDataService()
+        matchMetadata = DL_API.getMatchMetadata(dl_match_id)
+        return matchMetadata
 
     def getMatchTimeline(self, match, matchPlayer=None):
         pvpEvents = list(match.pvpevent.all())

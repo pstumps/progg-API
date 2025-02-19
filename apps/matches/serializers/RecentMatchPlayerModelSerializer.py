@@ -4,6 +4,7 @@ from rest_framework import serializers
 from ..Models.MatchPlayerModel import MatchPlayerModel
 from ...heroes.serializers import RecentMatchStatsHeroSerializer
 from ...heroes.Models.HeroesModel import HeroesModel
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
@@ -96,13 +97,16 @@ class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
     def get_build(self, obj):
         build = {'weapon': 0, 'vitality': 0, 'spirit': 0, }
         percentArray = []
+        dlItemsDict = deadlockAPIAssetsService().getItemsDict()
 
         for type, items in obj.items.items():
             if type != 'flex':
                 build[type] = len(items)
             else:
                 for fItem in items:
-                    build[fItem['type']] += 1
+                    itemData = dlItemsDict.get(fItem)
+                    if itemData:
+                        build[itemData.get('item_slot_type')] += 1
 
         for count in build.values():
             filled = min(count, 8)

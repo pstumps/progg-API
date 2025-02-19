@@ -16,11 +16,19 @@ def match_details(request, dl_match_id):
     try:
         match = MatchesModel.objects.prefetch_related('matchPlayerModels', 'matchPlayerTimelineEvents').get(deadlock_id=dl_match_id)
     except MatchesModel.DoesNotExist:
-        return Response(status=404)
+        DataAPI = deadlockAPIDataService()
+        matchMetadata = DataAPI.getMatchMetadata(dl_match_id)
+
+        AssetsApi = deadlockAPIAssetsService()
+        itemsDict = AssetsApi.getItemsDict()
+
+        match = MetadataServices(itemsDict).createNewMatchFromMetadata(matchMetadata)
 
     matchServices = MatchServices()
     matchEvents  = matchServices.getMatchTimeline(match)
+    print('Serializing match...')
     serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
+    print('done!')
     return Response(serializer.data)
 
 @api_view(['GET'])

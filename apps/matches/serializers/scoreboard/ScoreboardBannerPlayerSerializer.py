@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.heroes.Models.HeroesModel import HeroesModel
 from apps.heroes.serializers import RecentMatchStatsHeroSerializer
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
@@ -13,13 +14,14 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
     build = serializers.SerializerMethodField()
     buildItems = serializers.SerializerMethodField()
     abilityOrder = serializers.SerializerMethodField()
+    orbsPerMin = serializers.SerializerMethodField()
 
 
     class Meta:
         model = MatchPlayerModel
         fields = ['steam_id3', 'name', 'hero', 'rank', 'lane', 'build', 'buildItems', 'kills', 'deaths', 'assists', 'souls', 'heroDamage',
-                  'objDamage', 'healing', 'lastHits', 'soulsPerMin', 'level', 'accuracy', 'heroCritPercent', 'denies',
-                  'abilityOrder', 'medals', 'soulsBreakdown', 'party']
+                  'objDamage', 'healing', 'lastHits', 'soulsPerMin', 'orbsPerMin', 'level', 'accuracy', 'heroCritPercent', 'denies',
+                  'abilityOrder', 'medals', 'soulsBreakdown', 'party', 'multis', 'streaks']
 
     def get_name(self, obj):
         if obj.player:
@@ -43,12 +45,16 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         build = {'weapon': 0, 'vitality': 0, 'spirit': 0,}
         percentArray = []
 
+        dlItemsDict = deadlockAPIAssetsService().getItemsDict()
+
         for type, items in obj.items.items():
             if type != 'flex':
                 build[type] = len(items)
             else:
                 for fItem in items:
-                    build[fItem['type']] += 1
+                    itemData = dlItemsDict.get(fItem)
+                    if itemData:
+                        build[itemData.get('item_slot_type')] += 1
 
         for count in build.values():
             filled = min(count, 8)
@@ -79,7 +85,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                     buildItemsDict['flex'].append({'type': flexItem['type'], 'target': flexItem['target']})
                 '''
                 for flexItem in items:
-                    buildItemsDict['flex'].append(flexItem['target'])
+                    buildItemsDict['flex'].append(flexItem)
         return buildItemsDict
 
     def get_abilityOrder(self, obj):
@@ -87,6 +93,9 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         for ability in obj.abilities:
             arr.append({'name': ability[0].replace(' ', ''), 'level': len(ability[1])})
         return arr
+
+    def get_orbsPerMin(self, obj):
+        return obj.lastHits / (obj.match.length * 60)
 
 
 

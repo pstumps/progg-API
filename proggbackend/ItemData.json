@@ -55625,6 +55625,7 @@
         "value": "4.0",
         "can_set_token_override": true,
         "css_class": "duration",
+        "tooltip_section": "passive",
         "disable_value": "0",
         "tooltip_is_important": false
       },
@@ -55645,6 +55646,7 @@
       "ActivatedFireRate": {
         "value": "30",
         "provided_property_type": "MODIFIER_VALUE_FIRE_RATE",
+        "tooltip_section": "passive",
         "css_class": "fireRate",
         "tooltip_is_important": true
       },
@@ -55664,6 +55666,7 @@
       "BonusMoveSpeed": {
         "value": "2m",
         "provided_property_type": "MODIFIER_VALUE_MOVEMENT_SPEED_MAX",
+        "tooltip_section": "passive",
         "css_class": "move_speed",
         "tooltip_is_important": true
       },

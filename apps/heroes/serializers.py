@@ -7,13 +7,14 @@ class HeroSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HeroesModel
-        fields = ['name', 'tier', 'winrate', 'kda', 'pickrate', 'beta', 'abilities']
+        fields = ['name', 'tier', 'wins', 'losses', 'kills', 'deaths', 'assists', 'winrate', 'kda', 'pickrate', 'beta', 'abilities']
 
-    def getWinrate(self, obj):
+    def get_winrate(self, obj):
         return self.calculateWinrate(obj.wins, obj.losses)
 
-    def getKDA(self, obj):
-        self.calculateKDA(obj.kills, obj.deaths, obj.assists)
+    def get_kda(self, obj):
+        kda = self.calculateKDA(obj.kills, obj.deaths, obj.assists)
+        return kda
 
     def calculateWinrate(self, wins, losses):
         winrate = (wins / wins + losses) * 100

@@ -9,8 +9,6 @@ from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossE
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
-from proggbackend.services.SteamWebAPI import SteamWebAPIService
-
 
 def calculateAverageBadgeFromMetadata(metadata):
     averageBadges = {}
@@ -45,8 +43,6 @@ class MetadataServices:
             if existingMatch:
                 return existingMatch
 
-            print(f'dl match id: {dl_match_id}')
-
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
             match = MatchesModel.objects.create(
                 deadlock_id=dl_match_id,
@@ -62,12 +58,14 @@ class MetadataServices:
 
             match.calculateTeamStats()
             match.save()
+            print('Match created successfully!')
 
             return match
         return None
 
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata):
+        print('Parsing match metadata...')
         matchPlayerData = {}
         pvpEvents = []
         playerStatsGraphs = []
@@ -77,9 +75,9 @@ class MetadataServices:
         multis = {}
         streakCounts = {}
         longestStreaks = {}
-
         player_details = {}
 
+        '''
         for player in matchMetadata['players']:
             account_id = player['account_id']
             player_slot = player['player_slot']
@@ -88,11 +86,12 @@ class MetadataServices:
             streaks[account_id] = 0
             lastKillTimes[account_id] = []
             multis[account_id] = [0] * 6
-            streakCounts[account_id] = [0] * 8
+            streakCounts[account_id] = [0] * 7
             player_details[player_slot] = {
                 'account_id': account_id,
                 'hero_id': hero_id
             }
+            '''
 
         all_account_ids = [p['account_id'] for p in matchMetadata['players']]
         existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
@@ -101,21 +100,32 @@ class MetadataServices:
             if acct_id not in existing_players:
                 players_to_create.append(PlayerModel(steam_id3=acct_id))
         PlayerModel.objects.bulk_create(players_to_create)
-        # for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids):
-        #    p.save()
-        #    all_players[p.steam_id3] = p
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
         for player in matchMetadata['players']:
             account_id = player['account_id']
             playerToTrack = all_players[account_id]
+            player_slot = player['player_slot']
+            hero_id = player['hero_id']
+
+            streaks[account_id] = 0
+            lastKillTimes[account_id] = {
+                'prev_time': None,
+                'consecutive_count': 0
+            }
+            multis[account_id] = [0] * 6
+            streakCounts[account_id] = [0] * 7
+            player_details[player_slot] = {
+                'account_id': account_id,
+                'hero_id': hero_id
+            }
 
             if account_id not in matchPlayerData:
                 matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
 
-            if player.get('death_details'):
-                self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
-                                         longestStreaks, matchPlayerData[account_id]['match'], pvpEvents)
+            #if player.get('death_details'):
+            #    self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
+            #                             longestStreaks, matchPlayerData[account_id]['match'], pvpEvents)
 
             if player.get('items'):
                 for item_events in player.get('items'):
@@ -136,13 +146,35 @@ class MetadataServices:
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
             matchPlayerData[account_id].update(endStatsData)
 
-        PvPEvent.objects.bulk_create(pvpEvents)
 
+        # Process death details
+        all_deaths = []
+        for player in matchMetadata['players']:
+            if player.get('death_details'):
+                for death_event in player['death_details']:
+                    slayer_slot = death_event.get('killer_player_slot')
+                    if slayer_slot is not None:
+                        all_deaths.append({
+                            'game_time_s': death_event['game_time_s'],
+                            'slayer_slot': slayer_slot,
+                            'victim_slot': player['player_slot'],
+                            'team': player['team'],
+                        })
+        all_deaths.sort(key=lambda x: x['game_time_s'])
+        self.processDeathDetails(all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
+                                 match, pvpEvents)
+
+        # Process objectives and midboss events
         objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
+
+
+        #Create all objects
+        PvPEvent.objects.bulk_create(pvpEvents)
         ObjectiveEvent.objects.bulk_create(objectiveEvents)
         MidbossEvent.objects.bulk_create(midbossEvents)
         MatchPlayerTimelineEvent.objects.bulk_create(playerEvents)
 
+        #Create Match Players
         matchPlayersToCreate = []
         for account_id, data in matchPlayerData.items():
             matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id), streakCounts.get(account_id))
@@ -206,8 +238,8 @@ class MetadataServices:
             'objDamage': 0,
             'healing': 0,
             'win': player.get('team') == matchMetadata.get('winning_team'),
-            'multis': [0] * 6,
-            'streaks': [0] * 8,
+            'multis': None,
+            'streaks': None,
             'medals': []
         }
 
@@ -249,56 +281,91 @@ class MetadataServices:
         matchPlayersToCreate.append(mp)
         return matchPlayersToCreate
 
-    def processDeathDetails(self, player, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
+    def processDeathDetails(self, all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
                             match, pvpEvents):
-        for death_event in player['death_details']:
-            slayer_slot = death_event.get('killer_player_slot')
+        for death_event in all_deaths:
+            slayer_slot = death_event.get('slayer_slot')
             if slayer_slot is None:
                 continue
 
-            if slayer_slot not in player_details:
+            slayer_info = player_details.get(slayer_slot)
+            if slayer_info is None:
                 continue
 
-            slayer_info = player_details[slayer_slot]
             slayer_account_id = slayer_info['account_id']
+
+            victim_slot = death_event.get('victim_slot')
+            if victim_slot is None:
+                continue
+
+            victim_info = player_details[victim_slot]
+            victim_account_id = victim_info['account_id']
 
             # Kill streak tracking
             if slayer_account_id not in streaks:
                 streaks[slayer_account_id] = 0
             streaks[slayer_account_id] += 1
-            streaks[player['account_id']] = 0
+            streaks[victim_account_id] = 0
 
             if streaks[slayer_account_id] > longestStreaks.get(slayer_account_id, 0):
                 longestStreaks[slayer_account_id] = streaks[slayer_account_id]
 
             if 3 <= streaks[slayer_account_id] <= 8:
                 streakCounts[slayer_account_id][streaks[slayer_account_id] - 3] += 1
-            elif streaks[slayer_account_id] > 8:
-                streakCounts[slayer_account_id][7] += 1
+            #elif streaks[slayer_account_id] > 8:
+            #    streakCounts[slayer_account_id][5] += 1
+
+
+            streakCounts[slayer_account_id][6] = max(
+                streakCounts[slayer_account_id][6],
+                streaks[slayer_account_id]
+            )
 
             # Multi-kill tracking
+            # Previous logic
+            # if slayer_account_id not in lastKillTimes
+            #   lastKillTimes[slayer_account_id] = []
+
+            # lastKillTimes[slayer_account_id].append(death_event['game_time_s'])
+            # lastKillTimes[slayer_account_id] = [time for time in lastKillTimes[slayer_account_id] if
+            #                                    time > death_event['game_time_s'] - 15]
+            # multiKillCount = len(lastKillTimes[slayer_account_id])
+            # if multiKillCount > 1:
+            #    multis[slayer_account_id][min(multiKillCount, 7) - 2] += 1
+
             if slayer_account_id not in lastKillTimes:
-                lastKillTimes[slayer_account_id] = []
-            lastKillTimes[slayer_account_id].append(death_event['game_time_s'])
-            lastKillTimes[slayer_account_id] = [time for time in lastKillTimes[slayer_account_id] if
-                                                time > death_event['game_time_s'] - 5]
+                lastKillTimes[slayer_account_id] = {
+                    'prev_time': None,
+                    'consecutive_count': 0
+                }
 
-            # Track each multi-kill for the slayer
-            if slayer_account_id not in multis:
-                multis[slayer_account_id] = [0] * 6
+            prev_time = lastKillTimes[slayer_account_id]['prev_time']
 
-            multiKillCount = len(lastKillTimes[slayer_account_id])
-            if multiKillCount > 1:
-                multis[slayer_account_id][min(multiKillCount, 7) - 2] += 1
+            if prev_time is None or (death_event['game_time_s'] - prev_time > 10):
+                # More than 5s since last kill => reset
+                lastKillTimes[slayer_account_id]['consecutive_count'] = 1
+            else:
+                # Within 5s => increment the chain
+                lastKillTimes[slayer_account_id]['consecutive_count'] += 1
+
+            current_count = lastKillTimes[slayer_account_id]['consecutive_count']
+            # If it's at least a "Double Kill" (2 or more)
+            if current_count >= 2:
+                # Index in your array: Double→0, Triple→1, Ultra→2, etc.
+                # So subtract 2 from current_count, clamp at 0..5
+                multis[slayer_account_id][min(current_count, 7) - 2] += 1
+
+            # Update 'prev_time' to the current kill's time
+            lastKillTimes[slayer_account_id]['prev_time'] = death_event['game_time_s']
 
             if match.date < int(time.time()) - 604800:
                 pvpEvents.append(
                     PvPEvent(
                         match=match,
                         timestamp=death_event['game_time_s'],
-                        team=player['team'],
+                        team=death_event.get('team'),
                         slayer_hero_id=slayer_info['hero_id'],
-                        victim_hero_id=player['hero_id']
+                        victim_hero_id=victim_info['hero_id']
                     )
                 )
 

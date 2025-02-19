@@ -87,7 +87,8 @@ class proGGAPIHeroesService:
         # TODO: Configure to run every 6 hours at some point
         # Updates heroes stats models in database
 
-        data = self.DLAPIAnalyticsService.getHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
+        # data = self.DLAPIAnalyticsService.getHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp)
+        data = self.DLAPIAnalyticsService.getHeroesWinLossStats()
         newHero = False
 
         if data:
@@ -127,6 +128,7 @@ class proGGAPIHeroesService:
                     hero.className = dlAPIhero['class_name']
                     hero.description = dlAPIhero['description']
                     hero.abilities = dlAPIhero['items']
+                    hero.beta = dlAPIhero['in_development']
                     hero.images = {
                           "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
                           "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
@@ -141,6 +143,7 @@ class proGGAPIHeroesService:
                     }
                     hero.save()
 
+                '''
                 heroData = {
                     'name': heroName,
                     'wins': stats['wins'],
@@ -157,9 +160,20 @@ class proGGAPIHeroesService:
                     serializer.save()
                 else:
                     print(serializer.errors)
+                '''
+
+                hero.wins = stats['wins']
+                hero.losses = stats['losses']
+                hero.kills = stats['total_kills']
+                hero.deaths = stats['total_deaths']
+                hero.assists = stats['total_assists']
+                hero.matches = stats['matches']
+                hero.pickrate = round((stats['matches'] / total_matches) * 100, 2) if total_matches > 0 else 0
 
                 if newHero:
                     self.calculateTierForEachHero()
+
+                hero.save()
 
                 # active_matches = DLAPIDataService.getActiveMatches()
                 # if active_matches:
