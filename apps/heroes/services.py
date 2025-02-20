@@ -80,8 +80,6 @@ class proGGAPIHeroesService:
         self.DLAPIAnalyticsService = deadlockAPIAnalyticsService()
         self.DLAPIDataService = deadlockAPIDataService()
         self.DLAPIAssetsService = deadlockAPIAssetsService()
-        self.bigPatchDaysTimestamp = [self.DLAPIDataService.convertToUnixTimestamp(patches) for patches in self.DLAPIDataService.getBigPatchDays()]
-        self.latest_patch_timestamp = self.bigPatchDaysTimestamp[0]
 
     def updateHeroes(self):
         # TODO: Configure to run every 6 hours at some point
@@ -119,48 +117,29 @@ class proGGAPIHeroesService:
                         }
                     )
                     hero.save()
-                else:
-                    hero = HeroesModel.objects.get(hero_deadlock_id=stats['hero_id'])
-                    # if not hero.description or not hero.abilities or not hero.images or not hero.name or not hero.className:
-                    dlAPIhero = self.DLAPIAssetsService.getHeroAssetsById(stats['hero_id'])
-                    underscoreName = dlAPIhero['name'].replace(' ', '_')
-                    hero.name = dlAPIhero['name']
-                    hero.className = dlAPIhero['class_name']
-                    hero.description = dlAPIhero['description']
-                    hero.abilities = dlAPIhero['items']
-                    hero.beta = dlAPIhero['in_development']
-                    hero.images = {
-                          "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
-                          "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
-                          "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
-                          "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
-                          "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
-                          "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
-                          "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
-                          "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
-                          "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
-                          "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
-                    }
-                    hero.save()
 
-                '''
-                heroData = {
-                    'name': heroName,
-                    'wins': stats['wins'],
-                    'losses': stats['losses'],
-                    'kills': stats['total_kills'],
-                    'deaths': stats['total_deaths'],
-                    'assists': stats['total_assists'],
-                    'matches': stats['matches'],
-                    'pickrate': round((stats['matches'] / total_matches) * 100, 2) if total_matches > 0 else 0
+                hero = HeroesModel.objects.get(hero_deadlock_id=stats['hero_id'])
+                # if not hero.description or not hero.abilities or not hero.images or not hero.name or not hero.className:
+                dlAPIhero = self.DLAPIAssetsService.getHeroAssetsById(stats['hero_id'])
+                underscoreName = dlAPIhero['name'].replace(' ', '_')
+                hero.name = dlAPIhero['name']
+                hero.className = dlAPIhero['class_name']
+                hero.description = dlAPIhero['description']
+                hero.abilities = dlAPIhero['items']
+                hero.beta = dlAPIhero['in_development']
+                hero.images = {
+                      "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
+                      "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
+                      "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
+                      "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
+                      "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
+                      "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
+                      "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
+                      "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
+                      "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
+                      "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
                 }
 
-                serializer = HeroSerializer(hero, data=heroData)
-                if serializer.is_valid():
-                    serializer.save()
-                else:
-                    print(serializer.errors)
-                '''
 
                 hero.wins = stats['wins']
                 hero.losses = stats['losses']
@@ -183,6 +162,8 @@ class proGGAPIHeroesService:
             raise Exception('No data returned from Deadlock API')
 
     def getHeroCombinationData(self, hero_name=None):
+        self.bigPatchDaysTimestamp = [self.DLAPIDataService.convertToUnixTimestamp(patches) for patches in self.DLAPIDataService.getBigPatchDays()]
+        self.latest_patch_timestamp = self.bigPatchDaysTimestamp[0]
         if hero_name:
             data = self.DLAPIAnalyticsService.getCombinedHeroesWinLossStats(min_unix_timestamp=self.latest_patch_timestamp,
                                                                             include_hero_ids=idDict[hero_name])
@@ -199,6 +180,9 @@ class proGGAPIHeroesService:
         return data, patchBeforeLastData
 
     def getHeroMatchupData(self, hero_name=None):
+        self.bigPatchDaysTimestamp = [self.DLAPIDataService.convertToUnixTimestamp(patches) for patches in
+                                      self.DLAPIDataService.getBigPatchDays()]
+        self.latest_patch_timestamp = self.bigPatchDaysTimestamp[0]
         if hero_name:
             data = self.DLAPIAnalyticsService.getMatchupStats(min_unix_timestamp=self.latest_patch_timestamp)
             patchBeforeLastData = self.DLAPIAnalyticsService.getMatchupStats(
@@ -215,10 +199,11 @@ class proGGAPIHeroesService:
         return data, patchBeforeLastData
 
     def calculateStats(self, data1, data2, hero_name=None, matchupData=False):
-        def calculateRank(wr, kda):
-            wrWeight = 0.6
-            kdaWeight = 0.25
-            return (wr * wrWeight) + (kda * kdaWeight)
+        def calculateRank(wr, kda, matches):
+            wrWeight = 0.7
+            kdaWeight = 0.1
+            matchesWeight = 0.05
+            return (wr * wrWeight) + (kda * kdaWeight) + (matches * matchesWeight)
         json_data = []
         if data1 and data2:
             statsDict = {}
@@ -259,7 +244,7 @@ class proGGAPIHeroesService:
                         'kda': kda,
                         'kda_diff': round(kda - previousKda, 2),
                         'matches': matches,
-                        'rank': calculateRank(winrate, kda)
+                        'rank': calculateRank(winrate, kda, matches)
                     })
 
             for hero, heroStats in statsDict.items():
@@ -308,11 +293,16 @@ class proGGAPIHeroesService:
 
         for hero in all_heroes:
             score = self.calculateScore(hero, max_kda, max_matches)
-            scores.append(score)
+            scores.append((hero, score))
 
+        scores.sort(key=lambda x: x[1], reverse=True)
+
+        for rank, (hero, score) in enumerate(scores, start=1):
+            hero.rank = rank
+
+        scores = [score for _, score in scores]
         mean = np.mean(scores)
         std = np.std(scores)
-
         z_scores = [(s - mean) / std for s in scores]
 
         sorted_zscores = sorted(z_scores)
@@ -345,10 +335,10 @@ class proGGAPIHeroesService:
         #pickrate = hero.pickrate
         matches = hero.matches
 
-        winrate_weight = 0.5
-        kda_weight = 0.2
+        winrate_weight = 0.7
+        kda_weight = 0.05
         #pickrate_weight = 0.05
-        matches_weight = 0.1
+        matches_weight = 0.01
 
         normalized_winrate = winrate / 100
         normalized_kda = min(kda / max_kda, 1)
@@ -359,19 +349,6 @@ class proGGAPIHeroesService:
                  (normalized_kda * kda_weight) +
                  #(normalized_pickrate * pickrate_weight) +
                  (normalized_matches * matches_weight))
-
-        '''
-        if score > 0.8:
-            return 'S'
-        elif score > 0.6:
-            return 'A'
-        elif score > 0.5:
-            return 'B'
-        elif score > 0.4:
-            return 'C'
-        else:
-            return 'D'
-        '''
 
         return score
 

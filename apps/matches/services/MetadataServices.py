@@ -77,28 +77,12 @@ class MetadataServices:
         longestStreaks = {}
         player_details = {}
 
-        '''
-        for player in matchMetadata['players']:
-            account_id = player['account_id']
-            player_slot = player['player_slot']
-            hero_id = player['hero_id']
-
-            streaks[account_id] = 0
-            lastKillTimes[account_id] = []
-            multis[account_id] = [0] * 6
-            streakCounts[account_id] = [0] * 7
-            player_details[player_slot] = {
-                'account_id': account_id,
-                'hero_id': hero_id
-            }
-            '''
-
         all_account_ids = [p['account_id'] for p in matchMetadata['players']]
         existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
         players_to_create = []
         for acct_id in all_account_ids:
             if acct_id not in existing_players:
-                players_to_create.append(PlayerModel(steam_id3=acct_id))
+                players_to_create.append(PlayerModel(steam_id3=acct_id, created=int(time.time())))
         PlayerModel.objects.bulk_create(players_to_create)
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
@@ -358,7 +342,7 @@ class MetadataServices:
             # Update 'prev_time' to the current kill's time
             lastKillTimes[slayer_account_id]['prev_time'] = death_event['game_time_s']
 
-            if match.date < int(time.time()) - 604800:
+            if match.date >= int(time.time()) - 1296000:
                 pvpEvents.append(
                     PvPEvent(
                         match=match,
@@ -532,14 +516,14 @@ class MetadataServices:
 
     def handleMatchPlayerTimelineAbilityEvent(self, player, match, item_event, item_data, playerTimelineEvents):
         if item_data:
-            playerTimelineEvents.append(MatchPlayerTimelineEvent(
-                match=match,
-                player=player,
-                timestamp=item_event['game_time_s'],
-                type='level',
-                details={'target': item_data['name']}
-            ))
-
+            if match.date >= int(time.time()) - 1296000:
+                playerTimelineEvents.append(MatchPlayerTimelineEvent(
+                    match=match,
+                    player=player,
+                    timestamp=item_event['game_time_s'],
+                    type='level',
+                    details={'target': item_data['name']}
+                ))
 
     '''
     def getPlayerMedals(self, match):

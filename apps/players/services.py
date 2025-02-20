@@ -33,7 +33,8 @@ class proGGPlayersService:
         else:
             player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
             if not player.updated:
-                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
+                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
+                                                                                has_metadata=True)
             else:
                 matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
                                                                                 has_metadata=True,
@@ -55,20 +56,23 @@ class proGGPlayersService:
             else:
                 matchNum = 1
                 for match in matchHistory:
+                    print(f'Processing match {matchNum} of {len(matchHistory)}')
                     if not isinstance(match, dict):
                         print('Match is not a dictionary.')
+                        matchNum += 1
                         continue
                     if not match.get('match_id'):
                         print('match_id not found in Match History.')
+                        matchNum += 1
                         continue
                     if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
                         print(f"Match {match['match_id']} already exists.")
+                        matchNum += 1
                         continue
 
                     matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
                     if matchMetadata.get('match_info'):
                         # TODO: This might be messed up, need to determine if match is already associated with player or not
-                        print(f'Processing match {matchNum} of {len(matchHistory)}')
                         metadataService.createNewMatchFromMetadata(matchMetadata)
                     else:
                         print(f'Failed to get metadata for match {match["match_id"]}')
@@ -76,10 +80,6 @@ class proGGPlayersService:
         else:
             print(f'Unexpected matchHistory response: {matchHistory}')
             return True
-
-        player = PlayerModel.objects.get(steam_id3=steam_id3)
-        player.updated = int(time.time())
-        player.save()
 
         return True
 

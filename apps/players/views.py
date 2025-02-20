@@ -3,13 +3,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.throttling import UserRateThrottle
 
-from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .services import proGGPlayersService
-from .throttles import StatsRateThrottle
+from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
 from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
 from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
-from ..matches.serializers.MatchModelSerializer import MatchModelSerailizer
+from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerializer
 from .Models.PlayerModel import PlayerModel
 
 
@@ -38,6 +37,7 @@ def stats(request, steam_id3):
         player = PlayerModel.objects.get(steam_id3=steam_id3)
         player.updatePlayerFromSteamWebAPI()
         player.updatePlayerStats()
+        player.updated = int(time.time())
         player.save()
         # return Response(status=201, data={"detail": "New Player"})
     else:
@@ -46,6 +46,7 @@ def stats(request, steam_id3):
                 if playersService.updateMatchHistory(steam_id3):
                     player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()
+                    player.updated = int(time.time())
                     player.save()
                 else:
                     return Response(
@@ -66,8 +67,8 @@ def matchHistory(request, steam_id3):
             data={"detail": "Player not found."},
             status=404
         )
-    history = player.matches
-    serializer = MatchModelSerailizer(history, many=True)
+    history = player.matchPlayerModels.all().order_by('-match__date')
+    serializer = RecentMatchPlayerModelSerializer(history, many=True)
     return Response(status=200, data=serializer.data)
 
 

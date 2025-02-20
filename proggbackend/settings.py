@@ -44,8 +44,10 @@ INSTALLED_APPS = [
     'apps.heroes.apps.HeroesConfig',
     'apps.matches.apps.MatchesConfig',
     'apps.players.apps.PlayersConfig',
+    'user_mgmt.apps.UserMgmtConfig',
     'corsheaders',
     'rest_framework',
+    'social_django',
 
 ]
 
@@ -111,14 +113,40 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.steam.SteamOpenId',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SOCIAL_AUTH_STEAM_API_KEY = env('STEAM_WEB_API_KEY')
+
 REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'apps.players.throttles.StatsRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'stats': '100/minute',  # Adjust the rate as needed
-    }
+        'stats': '100/minute',
+    },
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',  # THIS IS CRITICAL
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',  # For now, allow anyone (optional)
+    ),
 }
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    #'user_mgmt.pipeline.connect_steam_account',
+    'user_mgmt.pipeline.social_auth_redirect',
+)
 
 
 # Internationalization
@@ -142,10 +170,28 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_SAMESITE = "None"  # Downgrade for development
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = True
 
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000", #Dev only
+]
+
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+#LOGIN_REDIRECT_URL = 'http://localhost:3000'
+
+NEXTJS_FRONTEND_URL = 'http://localhost:3000'

@@ -63,15 +63,17 @@ class TeamSerializer(serializers.ModelSerializer):
             10: 'Ascendant',
             11: 'Eternus'
         }
+        rank = None
         team_value = self.context.get('team')
-        if 'Team0' in team_value:
-            rank = obj.averageRank.get('average_badge_team0')
-        elif 'Team1' in team_value:
-            rank = obj.averageRank.get('average_badge_team1')
-        else:
-            raise ValueError("Invalid team value")
+        if obj.averageRank:
+            if 'Team0' in team_value:
+                rank = obj.averageRank.get('average_badge_team0')
+            elif 'Team1' in team_value:
+                rank = obj.averageRank.get('average_badge_team1')
+            else:
+                raise ValueError("Invalid team value")
 
-        if rank is not None:
+        if rank:
             if rank == 0:
                 return {'name': 'Obscurus', 'image': 'http://127.0.0.1/images/ranks/0/base/small.webp'}
             rank_str = str(rank)

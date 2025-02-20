@@ -7,7 +7,7 @@ from ...heroes.Models.HeroesModel import HeroesModel
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
-class RecentMatchPlayerModelSerailizer(serializers.ModelSerializer):
+class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
     deadlock_id = serializers.SerializerMethodField()
     team = serializers.SerializerMethodField()
     length = serializers.SerializerMethodField()

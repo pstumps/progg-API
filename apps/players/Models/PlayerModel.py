@@ -7,6 +7,9 @@ from .PlayerRecords import PlayerRecords
 from ...heroes.Models.HeroesModel import HeroesModel
 from ...matches.Models.MatchesModel import MatchesModel
 
+def current_timestamp():
+    return int(time.time())
+
 
 class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
@@ -46,34 +49,14 @@ class PlayerModel(models.Model):
     mmr = models.BigIntegerField(default=0)
     lastLogin = models.BigIntegerField(null=True, blank=True)
     timePlayed = models.IntegerField(null=True, blank=True)
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.BigIntegerField(
+        default=current_timestamp,
+        null=True,
+        blank=True
+    )
     updated = models.BigIntegerField(null=True)
     isUser = models.BooleanField(default=True) # TODO: Change default to False after testing
     inactive = models.BooleanField(default=False) # TODO: Change default to True after testing
-    '''
-    def save(self, *args, **kwargs):
-        # If new object (pk=None), do the Steam check
-        if self.pk is None:
-            steamWebApi = SteamWebAPIService()
-            playerData = steamWebApi.getPlayerSummaries(steam_id3=self.steam_id3)['response'].get('players')
-
-            if not playerData or not playerData[0]:
-                raise ValidationError("Player not found in Steam database.")
-
-            steam_player = playerData[0]
-            self.name = steam_player.get('personaname', '')
-            self.icon = steam_player.get('avatarfull', '')
-            self.region = steam_player.get('region', '')
-
-            gameData = steamWebApi.getOwnedGames(steam_id3=self.steam_id3).get('response', {}).get('games', [])
-            for g in gameData:
-                if g['appid'] == 1422450:
-                    self.timePlayed = g.get('playtime_forever', 0) / 60
-                    break
-
-        super().save(*args, **kwargs)
-    '''
-
 
     def __str__(self):
         return self.name

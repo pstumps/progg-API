@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ...matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerailizer
+from ...matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerializer
 from .PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
 from ..Models.PlayerModel import PlayerModel
 
@@ -46,11 +46,10 @@ class PlayerModelSerializer(serializers.ModelSerializer):
 
     def get_recentMatches(self, obj):
         recentMatches = []
-        for matchPlayerModel in obj.matchPlayerModels.all():
-            matchPlayerModel = RecentMatchPlayerModelSerailizer(matchPlayerModel)
+        for matchPlayerModel in obj.matchPlayerModels.select_related('match').order_by('-match__date')[:10]:
+            matchPlayerModel = RecentMatchPlayerModelSerializer(matchPlayerModel)
             recentMatches.append(matchPlayerModel.data)
-        sorted_recentMatches = sorted(recentMatches, key=lambda x: x['date'], reverse=True)
-        return sorted_recentMatches
+        return recentMatches
 
     def get_matchHistoryData(self, obj):
         return MatchHistoryDataSerializer(obj).data
@@ -62,7 +61,6 @@ class PlayerModelSerializer(serializers.ModelSerializer):
         return round(obj.heroCritPercent * 100, 1)
 
     def get_doubles(self, obj):
-        print(obj.multis)
         return obj.multis[0] if obj.multis else 0
 
     def get_triples(self, obj):

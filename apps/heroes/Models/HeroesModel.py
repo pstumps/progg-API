@@ -39,6 +39,7 @@ class HeroesModel(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False)
     className = models.CharField(max_length=100, null=True)
     hero_deadlock_id = models.IntegerField(unique=True, null=True)
+    rank = models.IntegerField(null=True)
     description = models.JSONField(null=True)
     abilities = models.JSONField(null=True)
     wins = models.BigIntegerField(null=True)

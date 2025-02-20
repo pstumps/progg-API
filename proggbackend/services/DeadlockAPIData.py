@@ -50,7 +50,6 @@ class deadlockAPIDataService:
         url = self.base_url + '/v1/big-patch-days'
         response = requests.get(url)
         # print(response.json())
-        print('Big Patch Days: ', response.json())
         return response.json()
         # Temporary for testing
         #return ['2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
