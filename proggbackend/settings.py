@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'user_mgmt.apps.UserMgmtConfig',
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     'social_django',
 
 ]
@@ -60,6 +61,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'proggbackend.urls'
@@ -144,8 +148,8 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    #'user_mgmt.pipeline.connect_steam_account',
-    'user_mgmt.pipeline.social_auth_redirect',
+    #'user_mgmt.pipeline.social_auth_redirect',
+    #'user_mgmt.views.steam_callback',
 )
 
 
@@ -173,25 +177,28 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_COOKIE_SAMESITE = "None"  # Downgrade for development
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = None  # Downgrade for development
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 
-CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = None
 CSRF_COOKIE_SECURE = False
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+CORS_ALLOW_ALL_ORIGINS = True
+#CORS_ALLOWED_ORIGINS = [
+#    "http://localhost:3000",
+#    "http://127.0.0.1:3000"
+#]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000", #Dev only
+    "http://127.0.0.1:3000"
 ]
 
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-#LOGIN_REDIRECT_URL = 'http://localhost:3000'
+LOGIN_REDIRECT_URL = 'http://localhost:3000/matchdetails/29095078'
 
 NEXTJS_FRONTEND_URL = 'http://localhost:3000'

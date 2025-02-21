@@ -5,6 +5,7 @@ from rest_framework.throttling import UserRateThrottle
 
 from .services import proGGPlayersService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
+from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
 from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
 from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
@@ -28,6 +29,7 @@ def stats(request, steam_id3):
     # Testing only
     if newPlayer:
         #TODO: Use celery to update player match history
+        PlayerModel.objects.create(steam_id3=steam_id3, created=int(time.time()))
         updated = playersService.updateMatchHistory(steam_id3, newPlayer)
         if not updated:
             return Response(
@@ -105,4 +107,10 @@ def deleteAllData(request):
     playersService = proGGPlayersService()
     playersService.deleteAllData()
     return Response({"detail": "All data deleted."})
+
+@api_view(['GET'])
+def getDeadlockAPIMatchHistory(request, steam_id3):
+    playersService = deadlockAPIAnalyticsService()
+    history = playersService.getPlayerMatchHistory(steam_id3)
+    return Response({"detail": history})
 

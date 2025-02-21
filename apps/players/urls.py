@@ -8,5 +8,6 @@ urlpatterns = [
     path('<int:steam_id3>/match-history-data', views.getMatchHistoryData, name='matchHistoryData'),
     path('<int:steam_id3>/steam-info', views.getSteamInfo, name='getSteamInfo'),
     path('<int:steam_id3>/update-steam-info', views.updatePlayerSteamWebAPI, name='updatePlayerSteamWebAPI'),
+    path('<int:steam_id3>/deadlock-api-match-history', views.getDeadlockAPIMatchHistory, name='getDeadlockAPIMatchHistory'),
     path('delete-all-data', views.deleteAllData, name='deleteAllData')
 ]

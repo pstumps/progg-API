@@ -34,28 +34,19 @@ def match_details(request, dl_match_id):
 @api_view(['GET'])
 def user_match_details(request, dl_match_id, user_id=None):
     try:
-        match = MatchesModel.objects.prefetch_related('matchPlayerModels', 'matchPlayerTimelineEvents').get(deadlock_id=dl_match_id)
+        match = MatchesModel.objects.prefetch_related('matchPlayerModels').get(deadlock_id=dl_match_id)
     except MatchesModel.DoesNotExist:
-        return Response(status=404)
+        return Response({'details': 'Match does not exist.'},status=404)
 
-    '''
-    if user_id is None and request.user.is_authenticated:
-        user_id = request.user.id
+    matchPlayer = None
+    user = request.user
+    if user and user.playermodel:
+        matchPlayer = match.matchPlayerModels.filter(player=user.playermodel).first()
 
-    try:
-        user = User.objects.get(id=user_id)
-    except (User.DoesNotExist, PlayerModel.DoesNotExist):
-        return Response(data={'details': 'User does not exist or does not have a player connected to their account.'}, status=404)
-    if user_id:
-        player = PlayerModel.objects.get(user=user)
-        matchTimeline, playerTimeline = matchServices.getMatchTimeline(match, player)
-        return Response({'matchTimeline': matchTimeline, 'playerTimeline': playerTimeline})
-    '''
+    if not matchPlayer:
+        return Response({'details': 'User not in this match.'}, status=404)
 
     matchServices = MatchServices()
-    # Testing only
-    player = PlayerModel.objects.get(steam_id3=44046862)
-    matchPlayer = match.matchPlayerModels.get(player=player)
     playerTimeline, matchTimeline = matchServices.getMatchTimeline(match, matchPlayer)
 
     serializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerTimeline})

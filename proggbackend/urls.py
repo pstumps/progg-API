@@ -27,7 +27,7 @@ urlpatterns = [
     path('players/', include('apps.players.urls')),
     path('matches/', include('apps.matches.urls')),
     path('user_mgmt/', include('user_mgmt.urls')),
-    path('auth/', include('social_django.urls', namespace='social')),
+    path('oauth/', include('social_django.urls', namespace='social')),
 ]
 
 if settings.DEBUG:

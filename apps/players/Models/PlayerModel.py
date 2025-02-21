@@ -92,7 +92,6 @@ class PlayerModel(models.Model):
         matches_weight = 0.35
         accuracy_weight = 0.15
 
-
         score = ((winrate * winrate_weight) +
                  (kda * kda_weight) +
                  (hero.soulsPerMin * soulsPerMin_weight) +
@@ -185,17 +184,14 @@ class PlayerModel(models.Model):
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons = self.patrons + 1 if self.patrons else 1
 
-
         if any(x != 0 for x in multis):
             if self.multis is None:
-                self.multis = multis
-            else:
-                self.multis = [sum(x) for x in zip(self.multis, multis)]
+                self.multis = [0] * len(multis)
+            self.multis = [sum(x) for x in zip(self.multis, multis)]
         if any(x != 0 for x in streaks):
             if self.streaks is None:
-                self.streaks = streaks
-            else:
-                self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
+                self.streaks = [0] * len(streaks)
+            self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
 
         self.matches.add(match)
 
