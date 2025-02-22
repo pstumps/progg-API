@@ -8,22 +8,29 @@ from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossE
 from apps.matches.serializers.event.MatchTimelineEventSerializer import PvPEventSerializer, ObjectiveEventSerializer, MidbossEventSerializer, RejuvEventSerializer
 from apps.matches.serializers.event.MatchPlayerTimelineEventSerializer import AbilityEventSerializer, BuyEventSerializer, SellEventSerializer
 
+
+from apps.matches.services.MetadataServices import MetadataServices
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 class MatchServices:
     def __init__(self):
         self.teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber', 'k_ECitadelLobbyTeam_Team1': 'Sapphire'}
-        self.all_heroes = HeroesModel.objects.all()
 
-    def getMatchMetadata(self, dl_match_id):
-        DL_API = deadlockAPIDataService()
-        matchMetadata = DL_API.getMatchMetadata(dl_match_id)
-        return matchMetadata
+    def createMatch(self, dl_match_id):
+        DataAPI = deadlockAPIDataService()
+        matchMetadata = DataAPI.getMatchMetadata(dl_match_id)
+        AssetsApi = deadlockAPIAssetsService()
+        itemsDict = AssetsApi.getItemsDict()
+        match = MetadataServices(itemsDict).createNewMatchFromMetadata(matchMetadata)
+        return match
+
 
     def getMatchTimeline(self, match, matchPlayer=None):
+        all_heroes = HeroesModel.objects.all()
         pvpEvents = list(match.pvpevent.all())
-        pvpSerialized = self.serializePvpEvents(pvpEvents)
+        pvpSerialized = self.serializePvpEvents(pvpEvents, all_heroes)
         objectiveEvents = list(match.objectiveevent.all())
         objectiveSerialized = self.serializeObjectiveEvents(objectiveEvents)
         midbossEvents = list(match.midbossevent.all())
@@ -37,8 +44,8 @@ class MatchServices:
 
             player_pvpSerialized = [
                 event for event in pvpSerialized
-                if event['details']['target'] == self.all_heroes.get(
-                    hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower() or event['details']['slayer'] == self.all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower()
+                if event['details']['target'] == all_heroes.get(
+                    hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower() or event['details']['slayer'] == all_heroes.get(hero_deadlock_id=matchPlayer.hero_deadlock_id).name.lower()
             ]
 
             playerTimeline = sorted(player_pvpSerialized + playerSerialized + objectiveSerialized + midbossSerialized,
@@ -47,13 +54,13 @@ class MatchServices:
             return playerTimeline, matchTimeline
         return matchTimeline
 
-    def serializePvpEvents(self, pvpEvents):
+    def serializePvpEvents(self, pvpEvents, all_heroes):
         serializedEvents = []
         for event in pvpEvents:
             if isinstance(event, PvPEvent):
                 pvpEvent = PvPEventSerializer(event).data
-                pvpEvent['details']['slayer'] = self.all_heroes.get(hero_deadlock_id=event.slayer_hero_id).name.lower()
-                pvpEvent['details']['target'] = self.all_heroes.get(hero_deadlock_id=event.victim_hero_id).name.lower()
+                pvpEvent['details']['slayer'] = all_heroes.get(hero_deadlock_id=event.slayer_hero_id).name.lower()
+                pvpEvent['details']['target'] = all_heroes.get(hero_deadlock_id=event.victim_hero_id).name.lower()
                 serializedEvents.append(pvpEvent)
             else:
                 continue

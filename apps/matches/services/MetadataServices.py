@@ -39,7 +39,11 @@ class MetadataServices:
         if matchMetadata:
             dl_match_id = matchMetadata.get('match_id')
 
-            existingMatch = MatchesModel.objects.filter(deadlock_id=dl_match_id).first()
+            try:
+                existingMatch = MatchesModel.objects.get(deadlock_id=dl_match_id)
+            except MatchesModel.DoesNotExist:
+                existingMatch = None
+
             if existingMatch:
                 return existingMatch
 
@@ -61,7 +65,9 @@ class MetadataServices:
             print('Match created successfully!')
 
             return match
-        return None
+        else:
+            print('Invalid Metadata. Metadata does not contain match_info.')
+            return None
 
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata):
@@ -82,7 +88,7 @@ class MetadataServices:
         players_to_create = []
         for acct_id in all_account_ids:
             if acct_id not in existing_players:
-                players_to_create.append(PlayerModel(steam_id3=acct_id, created=int(time.time())))
+                players_to_create.append(PlayerModel(steam_id3=acct_id))
         PlayerModel.objects.bulk_create(players_to_create)
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
@@ -162,23 +168,25 @@ class MetadataServices:
         matchPlayersToCreate = []
         for account_id, data in matchPlayerData.items():
             matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id), streakCounts.get(account_id))
-            # Will also update PlayerHeroModel
             player = data['playerModel']
 
-            # Below line is commmented out for testing only
+            player.createOrUpdatePlayerHeroStatsFromMatchPlayer(data,
+                                                                multis.get(account_id),
+                                                                streakCounts.get(account_id),
+                                                                objectiveEvents,
+                                                                midbossEvents,
+                                                                longestStreaks.get(account_id, 0))
 
-            player.updatePlayerStatsFromMatchPlayer(data['team'],
-                                                    multis.get(account_id),
-                                                    streakCounts.get(account_id),
-                                                    longestStreaks.get(account_id, 0),
-                                                    objectiveEvents,
-                                                    midbossEvents,
-                                                    data['match'])
+            player.updatePlayerRecords(data['hero_deadlock_id'],
+                                       data['kills'],
+                                       data['assists'],
+                                       data['souls'],
+                                       data['heroDamage'],
+                                       data['objDamage'],
+                                       data['healing'],
+                                       data['lastHits'])
 
-            player.updatePlayerHeroStatsFromMatchPlayer(data, longestStreaks.get(account_id, 0))
-
-            player.updatePlayerRecords(data['hero_deadlock_id'], data['kills'], data['assists'], data['souls'],
-                                       data['heroDamage'], data['objDamage'], data['healing'], data['lastHits'])
+            player.addMatch(match)
 
             player.save()
 
@@ -459,7 +467,7 @@ class MetadataServices:
 
         return {
             'souls': playerSouls,
-            'soulsPerMin': round(playerSouls / match_length, 2),
+            'soulsPerMin': round(playerSouls / (match_length/60), 2),
             'laneCreeps': end_stats.get('creep_kills', 0),
             'neutralCreeps': end_stats.get('neutral_kills', 0),
             'accuracy': accuracy,
@@ -497,7 +505,6 @@ class MetadataServices:
         for p in top_healing_players:
             p.medals = (p.medals or []) + ['healing']
 
-    @transaction.atomic
     def handleMatchPlayerTimelineItemEvent(self, player, match, item_event, item_data, playerTimelineEvents):
         if item_data:
             itemDetails = {'target': item_data['name'],

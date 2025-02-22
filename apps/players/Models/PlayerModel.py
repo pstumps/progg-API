@@ -10,10 +10,16 @@ from ...matches.Models.MatchesModel import MatchesModel
 def current_timestamp():
     return int(time.time())
 
+def default_multis():
+    return [0, 0, 0, 0, 0, 0]
+
+def default_streaks():
+    return [0, 0, 0, 0, 0, 0, 0]
+
 
 class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
-    steam_id3 = models.BigIntegerField(null=True, db_index=True, unique=True)
+    steam_id3 = models.BigIntegerField(null=True, db_index=True, unique=True) #TODO Change from null=True to False after testing
     name = models.CharField(max_length=100)
     icon = models.JSONField(null=True)
     region = models.CharField(max_length=2, null=True, blank=True)
@@ -43,8 +49,12 @@ class PlayerModel(models.Model):
     neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
     denies = models.IntegerField(default=0)
-    multis = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0]
-    streaks = models.JSONField(null=True) # [0, 0, 0, 0, 0, 0, 0]
+    multis = models.JSONField(
+        default=default_multis,
+        null=True) # [0, 0, 0, 0, 0, 0]
+    streaks = models.JSONField(
+        default=default_streaks,
+        null=True) # [0, 0, 0, 0, 0, 0, 0]
     longestStreak = models.IntegerField(default=0)
     mmr = models.BigIntegerField(default=0)
     lastLogin = models.BigIntegerField(null=True, blank=True)
@@ -133,6 +143,13 @@ class PlayerModel(models.Model):
             neutralCreeps=models.Sum('neutralCreeps'),
             lastHits=models.Sum('lastHits'),
             denies=models.Sum('denies'),
+            guardians=models.Sum('guardians'),
+            walkers=models.Sum('walkers'),
+            baseGuardians=models.Sum('baseGuardians'),
+            shieldGenerators=models.Sum('shieldGenerators'),
+            patrons=models.Sum('patrons'),
+            midbosses=models.Sum('midbosses'),
+            rejuvinators=models.Sum('rejuvinators'),
             longestStreak=models.Max('longestStreak'),
             accuracy=models.Avg('accuracy'),
             heroCritPercent=models.Avg('heroCritPercent'),
@@ -155,45 +172,30 @@ class PlayerModel(models.Model):
         self.accuracy = round(stats['accuracy'], 4) if stats['accuracy'] is not None else 1
         self.heroCritPercent = round(stats['heroCritPercent'], 4) if stats['heroCritPercent'] is not None else 1
         self.soulsPerMin = round(stats['soulsPerMin'], 4) if stats['soulsPerMin'] is not None else 1
+        self.guardians = stats['guardians'] or 0
+        self.walkers = stats['walkers'] or 0
+        self.baseGuardians = stats['baseGuardians'] or 0
+        self.shieldGenerators = stats['shieldGenerators'] or 0
+        self.patrons = stats['patrons'] or 0
+        self.midbosses = stats['midbosses'] or 0
+        self.rejuvinators = stats['rejuvinators'] or 0
 
+        multis_list = list(self.player_hero_stats.values_list('multis', flat=True))
+        multis_arrays = [m for m in multis_list if m]
+        if multis_arrays:
+            multis_sum = [sum(x) for x in zip(*multis_arrays)]
+        else:
+            multis_sum = []
+        self.multis = multis_sum
 
-    def updatePlayerStatsFromMatchPlayer(self, team, multis, streaks, longestStreak, objectiveEvents, midbossEvents, match):
-
-        self.longestStreak = max(self.longestStreak, longestStreak)
-
-        for event in midbossEvents:
-            if event.team == team:
-                self.rejuvinators = self.rejuvinators + 1 if self.rejuvinators else 1
-            if event.slayer == team:
-                self.midbosses = self.midbosses + 1 if self.midbosses else 1
-
-        # Sketchy way of getting opposite teams
-        oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
-                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
-
-        for event in objectiveEvents:
-            if oppositeTeams[event.team] == team:
-                if 'Tier1' in event.target:
-                    self.guardians = self.guardians + 1 if self.guardians else 1
-                elif 'Tier2' in event.target:
-                    self.walkers = self.walkers + 1 if self.walkers else 1
-                elif 'BarrackBoss' in event.target:
-                    self.baseGuardians = self.baseGuardians + 2 if self.baseGuardians else 2
-                elif 'TitanShieldGenerator' in event.target:
-                    self.shieldGenerators = self.shieldGenerators + 1 if self.shieldGenerators else 1
-                elif 'k_eCitadelTeamObjective_Core' in event.target:
-                    self.patrons = self.patrons + 1 if self.patrons else 1
-
-        if any(x != 0 for x in multis):
-            if self.multis is None:
-                self.multis = [0] * len(multis)
-            self.multis = [sum(x) for x in zip(self.multis, multis)]
-        if any(x != 0 for x in streaks):
-            if self.streaks is None:
-                self.streaks = [0] * len(streaks)
-            self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
-
-        self.matches.add(match)
+        streaks_list = list(self.player_hero_stats.values_list('streaks', flat=True))
+        streaks_array = [m for m in streaks_list if m]
+        if streaks_array:
+            streaks_sum = [sum(x) for x in zip(*streaks_array)]
+        else:
+            streaks_sum = []
+        self.streaks = streaks_sum
+        self.save()
 
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
@@ -210,9 +212,7 @@ class PlayerModel(models.Model):
             playerRecords.updateRecord('healing', heroId, healing)
             playerRecords.updateRecord('lastHits', heroId, lastHits)
 
-
-
-    def updatePlayerHeroStatsFromMatchPlayer(self, mp, longestStreaks):
+    def createOrUpdatePlayerHeroStatsFromMatchPlayer(self, mp, multis, streaks, objectiveEvents, midbossEvents, longestStreak):
         # Update player hero model
         hero = HeroesModel.objects.filter(hero_deadlock_id=mp['hero_deadlock_id']).first()
         if not hero:
@@ -229,5 +229,10 @@ class PlayerModel(models.Model):
                 hero=hero
             )
 
-        playerHero.createOrUpdatePlayerHero(mp, longestStreaks)
+        playerHero.updatePlayerHero(mp, multis, streaks, objectiveEvents, midbossEvents, longestStreak)
+
+    def addMatch(self, match):
+        if match not in self.matches.all():
+            self.matches.add(match)
+            self.save()
 

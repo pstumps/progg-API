@@ -42,7 +42,6 @@ class deadlockAPIDataService:
             print(f'json error: {e}')
             return None
 
-        print(f"Metadata retrieved")
         return data
 
 

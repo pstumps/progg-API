@@ -35,6 +35,7 @@ class MatchPlayerModel(models.Model):
     streaks = models.JSONField(null=True)
     win = models.BooleanField(default=0)
     medals = models.JSONField(null=True)
+    longestStreak = models.IntegerField(default=0)
     abandoned = models.BooleanField(default=False)
     abandonedTime = models.IntegerField(default=0)
 

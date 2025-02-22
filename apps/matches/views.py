@@ -1,30 +1,23 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .Models.MatchesModel import MatchesModel
+from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.players.Models.PlayerModel import PlayerModel
 from apps.matches.services.MatchServices import MatchServices
-from apps.matches.services.MetadataServices import MetadataServices
-from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
-from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
-from .serializers.MatchModelSerializer import MatchModelSerailizer
 from .serializers.UserMatchDetailsSerializer import UserMatchDetailsSerializer
 from .serializers.scoreboard.MatchScoreboardSerializer import MatchScoreboardSerializer
 
 
 @api_view(['GET'])
 def match_details(request, dl_match_id):
+    matchServices = MatchServices()
     try:
         match = MatchesModel.objects.prefetch_related('matchPlayerModels', 'matchPlayerTimelineEvents').get(deadlock_id=dl_match_id)
     except MatchesModel.DoesNotExist:
-        DataAPI = deadlockAPIDataService()
-        matchMetadata = DataAPI.getMatchMetadata(dl_match_id)
+        match = matchServices.createMatch(dl_match_id)
+        if not match:
+            return Response({'details': 'Match does not exist.'}, status=404)
 
-        AssetsApi = deadlockAPIAssetsService()
-        itemsDict = AssetsApi.getItemsDict()
-
-        match = MetadataServices(itemsDict).createNewMatchFromMetadata(matchMetadata)
-
-    matchServices = MatchServices()
     matchEvents  = matchServices.getMatchTimeline(match)
     print('Serializing match...')
     serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
@@ -32,7 +25,7 @@ def match_details(request, dl_match_id):
     return Response(serializer.data)
 
 @api_view(['GET'])
-def user_match_details(request, dl_match_id, user_id=None):
+def user_match_details(request, dl_match_id):
     try:
         match = MatchesModel.objects.prefetch_related('matchPlayerModels').get(deadlock_id=dl_match_id)
     except MatchesModel.DoesNotExist:
@@ -41,16 +34,23 @@ def user_match_details(request, dl_match_id, user_id=None):
     matchPlayer = None
     user = request.user
     if user and user.playermodel:
-        matchPlayer = match.matchPlayerModels.filter(player=user.playermodel).first()
+        try:
+            matchPlayer = match.matchPlayerModels.get(player=user.playermodel)
+        except MatchPlayerModel.DoesNotExist:
+            return Response({'details': 'User not in this match.'}, status=404)
 
-    if not matchPlayer:
-        return Response({'details': 'User not in this match.'}, status=404)
 
     matchServices = MatchServices()
-    playerTimeline, matchTimeline = matchServices.getMatchTimeline(match, matchPlayer)
+    print('Serializing match and player events...')
+    playerEvents, matchEvents = matchServices.getMatchTimeline(match, matchPlayer)
+    detailsSerializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerEvents})
+    print('done!')
 
-    serializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerTimeline})
-    return Response(serializer.data)
+    print('Serializing match...')
+    scoreboardSerializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
+    print('done!')
+
+    return Response({'userMatchDetails': detailsSerializer.data, 'matchScoreboardData': scoreboardSerializer.data})
 
 @api_view(['GET'])
 def timelines(request, dl_match_id, user_id=None):
@@ -68,19 +68,3 @@ def timelines(request, dl_match_id, user_id=None):
     # End Testing code
 
     #return Response({'matchTimeline': matchTimeline})
-
-@api_view(['GET'])
-def create_match_from_metadata(request, dl_match_id):
-    dlDataAPI = deadlockAPIDataService()
-    dlAssetsAPI = deadlockAPIAssetsService()
-    itemsDict = dlAssetsAPI.getItemsDict()
-
-    MetadataService = MetadataServices(itemsDict)
-    matchMetadata = dlDataAPI.getMatchMetadata(dl_match_id)
-    if matchMetadata:
-        match = MetadataService.createNewMatchFromMetadata(matchMetadata)
-        serializer = MatchModelSerailizer(match)
-        return Response(serializer.data)
-        # return Response(stats=200)
-    else:
-        return Response(status=404)

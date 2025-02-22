@@ -29,7 +29,6 @@ def stats(request, steam_id3):
     # Testing only
     if newPlayer:
         #TODO: Use celery to update player match history
-        PlayerModel.objects.create(steam_id3=steam_id3, created=int(time.time()))
         updated = playersService.updateMatchHistory(steam_id3, newPlayer)
         if not updated:
             return Response(
@@ -44,7 +43,9 @@ def stats(request, steam_id3):
         # return Response(status=201, data={"detail": "New Player"})
     else:
         if player:
-            if (int(time.time()) - (player.updated or 0)) / 60 > 900:
+            print('Player exists.')
+            if (int(time.time()) - (player.updated or 0)) > (60 * 15):
+                print('Updating player...')
                 if playersService.updateMatchHistory(steam_id3):
                     player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()

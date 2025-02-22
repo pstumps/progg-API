@@ -29,16 +29,21 @@ class proGGPlayersService:
     def updateMatchHistory(self, steam_id3, newPlayer=False):
         # Internal API Only
         if newPlayer:
+            player = PlayerModel.objects.create(steam_id3=steam_id3)
             matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3, has_metadata=True)
         else:
-            player = PlayerModel.objects.filter(steam_id3=steam_id3).first()
-            if not player.updated:
-                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
-                                                                                has_metadata=True)
-            else:
-                matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(account_id=steam_id3,
-                                                                                has_metadata=True,
-                                                                                min_unix_timestamp=player.updated)
+            try:
+                player = PlayerModel.objects.prefetch_related('matches').get(steam_id3=steam_id3)
+            except PlayerModel.DoesNotExist:
+                print(f'Player {steam_id3} not found.')
+                return False
+
+            lastUpdateTime = None if not player.updated else player.updated
+            matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(
+                account_id=steam_id3,
+                has_metadata=True,
+                min_unix_timestamp=lastUpdateTime
+            )
 
         # For testing only
         #matchHistory = [{'match_id': '32152804'}]
@@ -46,40 +51,53 @@ class proGGPlayersService:
             print(f'No new matches since last update for player {steam_id3}')
             return True
 
-
-        if isinstance(matchHistory, list):
-            DLItemsDict = self.DLAPIAssetsService.getItemsDict()
-            metadataService = MetadataServices(DLItemsDict)
-            if len(matchHistory) == 0:
-                print(f'Player {steam_id3} has no Match History.')
-                return False
-            else:
-                matchNum = 1
-                for match in matchHistory:
-                    print(f'Processing match {matchNum} of {len(matchHistory)}')
-                    if not isinstance(match, dict):
-                        print('Match is not a dictionary.')
-                        matchNum += 1
-                        continue
-                    if not match.get('match_id'):
-                        print('match_id not found in Match History.')
-                        matchNum += 1
-                        continue
-                    if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
-                        print(f"Match {match['match_id']} already exists.")
-                        matchNum += 1
-                        continue
-
-                    matchMetadata = self.DLAPIDataService.getMatchMetadata(match['match_id'])
-                    if matchMetadata.get('match_info'):
-                        # TODO: This might be messed up, need to determine if match is already associated with player or not
-                        metadataService.createNewMatchFromMetadata(matchMetadata)
-                    else:
-                        print(f'Failed to get metadata for match {match["match_id"]}')
-                    matchNum += 1
-        else:
+        if not isinstance(matchHistory, list):
             print(f'Unexpected matchHistory response: {matchHistory}')
-            return True
+            return False
+
+        if not matchHistory:
+            print(f'Player {steam_id3} has no Match History.')
+            return False
+
+        DLItemsDict = self.DLAPIAssetsService.getItemsDict()
+        metadataService = MetadataServices(DLItemsDict)
+        matchesToAdd = []
+        matchPlayersToAdd = []
+        for i, match in enumerate(matchHistory, start=1):
+            print(f'Processing match {i} of {len(matchHistory)}')
+            if not isinstance(match, dict):
+                print('Match is not a dictionary. Skipping...')
+                continue
+
+            matchId = match.get('match_id')
+            if not matchId:
+                print('match_id not found in Match History. Skipping...')
+                continue
+
+            if MatchesModel.objects.filter(deadlock_id=match['match_id']).exists():
+                print(f"Match {match['match_id']} already exists.")
+                if matchId not in {m.deadlock_id for m in player.matches.all()}:
+                    print('Match not associated with player, adding match to player.')
+                    oldMatch = MatchesModel.objects.prefetch_related('matchPlayerModels').get(deadlock_id=matchId)
+                    matchesToAdd.append(oldMatch)
+
+                    matchPlayers = oldMatch.matchPlayerModels.all()
+                    playerMatchPlayers = player.matchPlayerModels.all()
+                    for matchPlayer in matchPlayers:
+                        if matchPlayer not in playerMatchPlayers:
+                            matchPlayersToAdd.append(matchPlayer)
+                continue
+
+            matchMetadata = self.DLAPIDataService.getMatchMetadata(matchId)
+            if not matchMetadata.get('match_info'):
+                print(f'Failed to get metadata for match {matchId}')
+                continue
+            metadataService.createNewMatchFromMetadata(matchMetadata)
+
+        if matchesToAdd or matchPlayersToAdd:
+            player.matches.add(*matchesToAdd)
+            player.matchPlayerModels.add(*matchPlayersToAdd)
+            player.save()
 
         return True
 
