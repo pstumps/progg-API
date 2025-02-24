@@ -10,16 +10,19 @@ class deadlockAPIAssetsService:
         self.base_url = 'https://assets.deadlock-api.com'
 
     def getHeroAssets(self):
+        print('Getting hero assets from assets.deadlock-api...')
         url = self.base_url + '/v2/heroes'
         response = requests.get(url)
         return response.json()
 
     def getHeroAssetsById(self, hero_id):
+        print('Getting hero assets by id from assets.deadlock-api...')
         url = self.base_url + '/v2/heroes/' + str(hero_id)
         response = requests.get(url)
         return response.json()
 
     def getItemAssets(self):
+        print('Getting item assets from assets.deadlock-api...')
         url = self.base_url + '/v2/items'
         response = requests.get(url)
         return response.json()

@@ -113,10 +113,6 @@ class MetadataServices:
             if account_id not in matchPlayerData:
                 matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
 
-            #if player.get('death_details'):
-            #    self.processDeathDetails(player, player_details, streaks, lastKillTimes, multis, streakCounts,
-            #                             longestStreaks, matchPlayerData[account_id]['match'], pvpEvents)
-
             if player.get('items'):
                 for item_events in player.get('items'):
                     self.processItemEvents(item_events, matchPlayerData, account_id, playerEvents)
@@ -200,79 +196,6 @@ class MetadataServices:
 
         return matchPlayerData
 
-    def createMatchPlayerData(self, player, playerToTrack, match, matchMetadata):
-
-        return {
-            'playerModel': playerToTrack,
-            'match': match,
-            'steam_id3': player['account_id'],
-            'team': player.get('team'),
-            'playerSlot': player.get('player_slot'),
-            'kills': player.get('kills', 0),
-            'deaths': player.get('deaths', 0),
-            'assists': player.get('assists', 0),
-            'hero_deadlock_id': player.get('hero_id'),
-            'level': player.get('level', 1),
-            'items': {},
-            'abilities': {},
-            'souls': player.get('net_worth', 0),
-            'soulsPerMin': 0,
-            'lastHits': player.get('last_hits', 0),
-            'denies': player.get('denies', 0),
-            'party': player.get('party'),
-            'lane': player.get('assigned_lane'),
-            'laneCreeps': 0,
-            'neutralCreeps': 0,
-            'accuracy': 0,
-            'heroCritPercent': 0,
-            'soulsBreakdown': {},
-            'heroDamage': 0,
-            'objDamage': 0,
-            'healing': 0,
-            'win': player.get('team') == matchMetadata.get('winning_team'),
-            'multis': None,
-            'streaks': None,
-            'medals': []
-        }
-
-    def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts):
-        abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
-
-        mp = MatchPlayerModel(
-            player=data['playerModel'],
-            match=data['match'],
-            steam_id3=data['steam_id3'],
-            team=data['team'],
-            playerSlot=data['playerSlot'],
-            kills=data['kills'],
-            deaths=data['deaths'],
-            assists=data['assists'],
-            hero_deadlock_id=data['hero_deadlock_id'],
-            level=data['level'],
-            items=data['items'],
-            abilities=abilities,
-            souls=data['souls'],
-            soulsPerMin=data['soulsPerMin'],
-            lastHits=data['lastHits'],
-            denies=data['denies'],
-            party=data['party'],
-            lane=data['lane'],
-            laneCreeps=data['laneCreeps'],
-            neutralCreeps=data['neutralCreeps'],
-            accuracy=data['accuracy'],
-            heroCritPercent=data['heroCritPercent'],
-            soulsBreakdown=data['soulsBreakdown'],
-            heroDamage=data['heroDamage'],
-            objDamage=data['objDamage'],
-            healing=data['healing'],
-            win=data['win'],
-            multis=multis,
-            streaks=streakCounts,
-            medals=data['medals'],
-        )
-        matchPlayersToCreate.append(mp)
-        return matchPlayersToCreate
-
     def processDeathDetails(self, all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
                             match, pvpEvents):
         for death_event in all_deaths:
@@ -304,26 +227,12 @@ class MetadataServices:
 
             if 3 <= streaks[slayer_account_id] <= 8:
                 streakCounts[slayer_account_id][streaks[slayer_account_id] - 3] += 1
-            #elif streaks[slayer_account_id] > 8:
-            #    streakCounts[slayer_account_id][5] += 1
 
 
             streakCounts[slayer_account_id][6] = max(
                 streakCounts[slayer_account_id][6],
                 streaks[slayer_account_id]
             )
-
-            # Multi-kill tracking
-            # Previous logic
-            # if slayer_account_id not in lastKillTimes
-            #   lastKillTimes[slayer_account_id] = []
-
-            # lastKillTimes[slayer_account_id].append(death_event['game_time_s'])
-            # lastKillTimes[slayer_account_id] = [time for time in lastKillTimes[slayer_account_id] if
-            #                                    time > death_event['game_time_s'] - 15]
-            # multiKillCount = len(lastKillTimes[slayer_account_id])
-            # if multiKillCount > 1:
-            #    multis[slayer_account_id][min(multiKillCount, 7) - 2] += 1
 
             if slayer_account_id not in lastKillTimes:
                 lastKillTimes[slayer_account_id] = {
@@ -343,8 +252,6 @@ class MetadataServices:
             current_count = lastKillTimes[slayer_account_id]['consecutive_count']
             # If it's at least a "Double Kill" (2 or more)
             if current_count >= 2:
-                # Index in your array: Double→0, Triple→1, Ultra→2, etc.
-                # So subtract 2 from current_count, clamp at 0..5
                 multis[slayer_account_id][min(current_count, 7) - 2] += 1
 
             # Update 'prev_time' to the current kill's time
@@ -387,12 +294,6 @@ class MetadataServices:
                 if len(playerItemsDictionary[item_data['item_slot_type']]) >= 4:
                     if not playerItemsDictionary.get('flex'):
                         playerItemsDictionary['flex'] = []
-                    '''
-                    playerItemsDictionary['flex'].append({
-                        'target': item_data['id'],
-                        'type': item_data['item_slot_type']
-                    })
-                    '''
                     playerItemsDictionary['flex'].append(
                         item_data['id']
                     )
@@ -420,6 +321,38 @@ class MetadataServices:
                                                   timestamp=midboss['destroyed_time_s']))
 
         return objectiveEvents, midbossEvents
+
+    def getPlayerGraphs(self, metadata):
+        statsGraphs = {}
+        matchInfo = metadata.get('match_info')
+        if matchInfo:
+            for player in matchInfo['players']:
+                account_id = player['account_id']
+                stats = player.get('stats')
+                if stats:
+                    for stat in stats:
+                        if stat['time_stamp_s'] not in statsGraphs:
+                            statsGraphs[stat['time_stamp_s']] = {}
+                        statsGraphs[stat['time_stamp_s']][account_id] = {
+                            'team': player.get('team'),
+                            'lane': player.get('assigned_lane'),
+                            'stats': {
+                                'souls': stat.get('net_worth', 0),
+                                'heroDmg': stat.get('player_damage', 0),
+                                'objDmg': stat.get('boss_damage', 0),
+                                'healing': stat.get('player_healing', 0)
+                            }
+                        }
+            return statsGraphs
+        return None
+
+
+    def checkForAbandonment(self, stats):
+        for i in range(len(stats) - 1):
+            if i == len(stats) - 2:
+                if stats[i]['time_stamp_s'] > stats[i + 1]['time_stamp_s'] and stats[i]['net_worth'] == stats[i + 1]['net_worth']:
+                    return stats[i]['time_stamp_s']
+        return None
 
     def computePlayerMetadata(self, matchMetadata, playerMetadata):
         match_info = matchMetadata
@@ -532,96 +465,74 @@ class MetadataServices:
                     details={'target': item_data['name']}
                 ))
 
-    '''
-    def getPlayerMedals(self, match):
-        players = list(MatchPlayerModel.objects.filter(match=match))
-        top_kills_player = max(players, key=lambda x: x.kills) if players else None
-        top_hero_damage_player = max(players, key=lambda x: x.heroDamage) if players else None
-        top_souls_player = max(players, key=lambda x: x.souls) if players else None
-        top_assists_player = max(players, key=lambda x: x.assists) if players else None
-        top_obj_damage_player = max(players, key=lambda x: x.objDamage) if players else None
-        top_healing_player = max(players, key=lambda x: x.healing) if players else None
-
-        medals_dict = {}
-
-        def add_medal(player, medal):
-            if player:
-                if player.match_player_id not in medals_dict:
-                    medals_dict[player.match_player_id] = {'player': player, 'medals': []}
-                medals_dict[player.match_player_id]['medals'].append(medal)
-
-        add_medal(top_kills_player, 'slays')
-        add_medal(top_hero_damage_player, 'heroDmg')
-        add_medal(top_souls_player, 'souls')
-        add_medal(top_assists_player, 'assists')
-        add_medal(top_obj_damage_player, 'objDmg')
-        add_medal(top_healing_player, 'healing')
-
-        for player_data in medals_dict.values():
-            player = player_data['player']
-            medals = player_data['medals']
-            if not player.medals:
-                player.medals = medals
-            else:
-                existing_medals = player.medals
-                existing_medals.extend(medals)
-                player.medals = existing_medals
-            player.save()
-    '''
-
-    '''
-    @transaction.atomic
-    def createNewMatchPlayerFromMetadata(self, playerModel, match, playerMetadata, matchMetaData):
-        def getGold(goldSources, index, includeOrbs=True):
-            try:
-                source = goldSources[index]
-            except (IndexError, TypeError):
-                return 0
-            gold = source.get('gold', 0)
-            if includeOrbs:
-                gold += source.get('gold_orbs', 0)
-            return gold
-
-        goldMapping = {
-            'hero': (0, True),
-            'lane_creeps': (1, True),
-            'neutrals': (2, True),
-            'objectives': (3, True),
-            'crates': (4, False),
-            'denies': (5, False),
-            'other': (6, False),
-            'assists': (7, False)
+    def createMatchPlayerData(self, player, playerToTrack, match, matchMetadata):
+        return {
+            'playerModel': playerToTrack,
+            'match': match,
+            'steam_id3': player['account_id'],
+            'team': player.get('team'),
+            'playerSlot': player.get('player_slot'),
+            'kills': player.get('kills', 0),
+            'deaths': player.get('deaths', 0),
+            'assists': player.get('assists', 0),
+            'hero_deadlock_id': player.get('hero_id'),
+            'level': player.get('level', 1),
+            'items': {},
+            'abilities': {},
+            'souls': player.get('net_worth', 0),
+            'soulsPerMin': 0,
+            'lastHits': player.get('last_hits', 0),
+            'denies': player.get('denies', 0),
+            'party': player.get('party'),
+            'lane': player.get('assigned_lane'),
+            'laneCreeps': 0,
+            'neutralCreeps': 0,
+            'accuracy': 0,
+            'heroCritPercent': 0,
+            'soulsBreakdown': {},
+            'heroDamage': 0,
+            'objDamage': 0,
+            'healing': 0,
+            'win': player.get('team') == matchMetadata.get('winning_team'),
+            'multis': None,
+            'streaks': None,
+            'medals': []
         }
 
-        endStats = playerMetadata['stats'][-1]
-        playerSouls = endStats.get('net_worth')
-        matchPlayer = MatchPlayerModel.objects.create(
-            player=playerModel,
-            match=match,
-            steam_id3=playerMetadata.get('account_id'),
-            team=playerMetadata.get('team'),
-            playerSlot=playerMetadata.get('player_slot'),
-            kills=playerMetadata.get('kills'),
-            deaths=playerMetadata.get('deaths'),
-            assists=playerMetadata.get('assists'),
-            hero_deadlock_id=playerMetadata.get('hero_id'),
-            level=playerMetadata.get('level'),
-            souls=playerSouls,
-            soulsPerMin=round(playerSouls / match.length, 2),
-            lastHits=playerMetadata.get('last_hits'),
-            denies=playerMetadata.get('denies'),
-            party=playerMetadata.get('party'),
-            lane=playerMetadata.get('assigned_lane'),
-            laneCreeps=endStats.get('creep_kills'),
-            neutralCreeps=endStats.get('neutral_kills'),
-            accuracy=round(endStats.get('shots_hit') / (endStats.get('shots_hit') + endStats.get('shots_missed')), 4) if (endStats.get('shots_hit') + endStats.get('shots_missed')) > 0 else 0,
-            heroCritPercent=round(endStats.get('hero_bullets_hit_crit') / endStats.get('hero_bullets_hit'), 4) if endStats.get('hero_bullets_hit') > 0 else 0,
-            # dictionary of the key in goldMapping to the value returned by getGold function
-            soulsBreakdown= {key: round(getGold(endStats.get('gold_sources'), index, includeOrbs) / playerSouls, 1)  if playerSouls > 0 else 0 for key, (index, includeOrbs) in goldMapping.items()},
-            heroDamage=endStats.get('player_damage'),
-            objDamage=endStats.get('boss_damage'),
-            healing=endStats.get('player_healing'),
-            win=playerMetadata.get('team') == matchMetaData.get('winning_team'),
+    def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts):
+        abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
+        mp = MatchPlayerModel(
+            player=data['playerModel'],
+            match=data['match'],
+            steam_id3=data['steam_id3'],
+            team=data['team'],
+            playerSlot=data['playerSlot'],
+            kills=data['kills'],
+            deaths=data['deaths'],
+            assists=data['assists'],
+            hero_deadlock_id=data['hero_deadlock_id'],
+            level=data['level'],
+            items=data['items'],
+            abilities=abilities,
+            souls=data['souls'],
+            soulsPerMin=data['soulsPerMin'],
+            lastHits=data['lastHits'],
+            denies=data['denies'],
+            party=data['party'],
+            lane=data['lane'],
+            laneCreeps=data['laneCreeps'],
+            neutralCreeps=data['neutralCreeps'],
+            accuracy=data['accuracy'],
+            heroCritPercent=data['heroCritPercent'],
+            soulsBreakdown=data['soulsBreakdown'],
+            heroDamage=data['heroDamage'],
+            objDamage=data['objDamage'],
+            healing=data['healing'],
+            win=data['win'],
+            multis=multis,
+            streaks=streakCounts,
+            medals=data['medals'],
         )
-        return matchPlayer
-    '''
+        matchPlayersToCreate.append(mp)
+        return matchPlayersToCreate
+

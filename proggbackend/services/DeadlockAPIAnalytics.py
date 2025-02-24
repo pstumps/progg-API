@@ -10,6 +10,7 @@ class deadlockAPIAnalyticsService:
     def getHeroesWinLossStats(self, mid_badge_level=None, max_badge_level=None, min_hero_matches_per_player=None,
                               max_hero_matches_per_player=None, min_unix_timestamp=None, max_unix_timestamp=None,
                               match_mode=None, region=None):
+        print('Getting hero win/loss from analytics.deadlock-api...')
         url = self.base_url + '/v2/hero-win-loss-stats'
 
         params = {
@@ -31,6 +32,7 @@ class deadlockAPIAnalyticsService:
                                       min_total_matches=None, sorted_by=None, limit=None, min_badge_level=None,
                                       max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
                                       match_mode=None, region=None):
+        print('Getting combined heroes win/loss stats from analytics.deadlock-api...')
         url = self.base_url + '/v2/combined-heroes-win-loss-stats'
 
         params = {
@@ -72,6 +74,7 @@ class deadlockAPIAnalyticsService:
                               min_match_id=None, max_match_id=None, min_duration_s=None, max_duration_s=None,
                               match_mode=None):
         url = self.base_url + '/v2/players/' + str(account_id) + '/match-history'
+        print('Getting player match history from analytics.deadlock-api...')
 
         params = {'account_id': account_id,
                     'has_metadata': has_metadata,
@@ -94,6 +97,7 @@ class deadlockAPIAnalyticsService:
     def getMatchupStats(self, min_badge_level=None, max_badge_level=None, min_unix_timestamp=None, max_unix_timestamp=None,
                         match_mode=None, region=None):
         url = self.base_url + '/v2/hero-matchups-win-loss-stats'
+        print('Getting hero matchup stats from analytics.deadlock-api...')
 
         params = {
             'min_badge_level': min_badge_level,

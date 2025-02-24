@@ -4,8 +4,10 @@ from .Models.MatchesModel import MatchesModel
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.players.Models.PlayerModel import PlayerModel
 from apps.matches.services.MatchServices import MatchServices
+from apps.matches.services.MetadataServices import MetadataServices
 from .serializers.UserMatchDetailsSerializer import UserMatchDetailsSerializer
 from .serializers.scoreboard.MatchScoreboardSerializer import MatchScoreboardSerializer
+from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 
 
 @api_view(['GET'])
@@ -18,7 +20,7 @@ def match_details(request, dl_match_id):
         if not match:
             return Response({'details': 'Match does not exist.'}, status=404)
 
-    matchEvents  = matchServices.getMatchTimeline(match)
+    matchEvents = matchServices.getMatchTimeline(match)
     print('Serializing match...')
     serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
     print('done!')
@@ -41,7 +43,7 @@ def user_match_details(request, dl_match_id):
 
 
     matchServices = MatchServices()
-    print('Serializing match and player events...')
+    print('Serializing events...')
     playerEvents, matchEvents = matchServices.getMatchTimeline(match, matchPlayer)
     detailsSerializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerEvents})
     print('done!')
@@ -68,3 +70,13 @@ def timelines(request, dl_match_id, user_id=None):
     # End Testing code
 
     #return Response({'matchTimeline': matchTimeline})
+
+@api_view(['GET'])
+def graphs(request, dl_match_id):
+    dlAPIDataService = deadlockAPIDataService()
+    metadata = dlAPIDataService.getMatchMetadataTest(dl_match_id)
+
+    metadataService = MetadataServices()
+    graphs = metadataService.getPlayerGraphs(metadata)
+
+    return Response(data=graphs, status=200)

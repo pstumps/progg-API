@@ -2,7 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('<int:steam_id3>', views.stats, name='stats'),
+    # Test stats for testing only
+    path('<int:steam_id3>', views.testStats, name='stats'),
+    path('<int:steam_id3>/heroes/', views.playerHeroes, name='playerHeroes'),
     path('<int:steam_id3>/match-history/', views.matchHistory, name='matchHistory'),
     path('<int:steam_id3>/top-player-heroes', views.topPlayerHeroes, name='topPlayerHeroes'),
     path('<int:steam_id3>/match-history-data', views.getMatchHistoryData, name='matchHistoryData'),

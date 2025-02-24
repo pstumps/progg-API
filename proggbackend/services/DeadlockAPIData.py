@@ -12,12 +12,13 @@ class deadlockAPIDataService:
         self.dl_api_key = DL_API_KEY
 
     def getActiveMatches(self):
+        print('Getting active matches from data.deadlock-api...')
         url = self.base_url + '/v1/active-matches'
         response = requests.get(url)
         return response.json()
 
     def getMatchMetadata(self, dl_match_id, api_key=None):
-        print('Retrieving metadata for match ', dl_match_id)
+        print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
         url = self.base_url + '/v1/matches/' + str(dl_match_id) + '/metadata'
 
         params = {
@@ -44,14 +45,22 @@ class deadlockAPIDataService:
 
         return data
 
+    def getMatchMetadataTest(self, dl_match_id, api_key=None):
+        print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
+        with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
+            response = json.load(f)
+        return response
+
+
 
     def getBigPatchDays(self):
+        print('Getting big patch days from data.deadlock-api...')
         url = self.base_url + '/v1/big-patch-days'
-        response = requests.get(url)
+        #response = requests.get(url)
         # print(response.json())
-        return response.json()
+        #return response.json()
         # Temporary for testing
-        #return ['2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
+        return ['2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
 
     def getLatestPatchUnixTimestamp(self):
         data = self.getBigPatchDays()

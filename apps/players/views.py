@@ -60,6 +60,54 @@ def stats(request, steam_id3):
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
+@api_view(['GET'])
+#@throttle_classes([StatsRateThrottle])
+def testStats(request, steam_id3):
+    playersService = proGGPlayersService()
+    newPlayer = False
+    try:
+        print(f'Looking for player: {steam_id3}')
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        # This is a new player. Create a player instance for them, and get their entire match history.
+        print(f'Player does not exist. Creating new player for {steam_id3}')
+        newPlayer = True
+
+    # Testing only
+    if newPlayer:
+        #TODO: Use celery to update player match history
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+        player.updated = int(time.time())
+        player.save()
+        # return Response(status=201, data={"detail": "New Player"})
+    else:
+        if player:
+            print('Player exists.')
+            if (int(time.time()) - (player.updated or 0)) > (60 * 15):
+                print('Updating player...')
+                player.updatePlayerStats()
+                player.updated = int(time.time())
+                player.save()
+
+    serializer = PlayerModelSerializer(player)
+    return Response(status=200, data=serializer.data)
+
+@api_view(['GET'])
+def playerHeroes(request, steam_id3):
+    try:
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        return Response(
+            data={'detail': 'Player not found.'},
+            status=404
+        )
+
+    playerHeroes = player.player_hero_stats.all()
+
+    pheroSerializer = PlayerHeroModelSerializer(playerHeroes, many=True)
+
+    return Response(data=pheroSerializer.data, status=200)
+
 
 @api_view(['GET'])
 def matchHistory(request, steam_id3):
