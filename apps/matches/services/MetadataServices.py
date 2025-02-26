@@ -10,6 +10,7 @@ from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsServi
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
+
 def calculateAverageBadgeFromMetadata(metadata):
     averageBadges = {}
     badgesSum = 0
@@ -93,6 +94,10 @@ class MetadataServices:
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
         for player in matchMetadata['players']:
+            abandonTime = None
+            if player.get('stats'):
+                abandonTime = self.checkForAbandonment(stats=player.get('stats'))
+
             account_id = player['account_id']
             playerToTrack = all_players[account_id]
             player_slot = player['player_slot']
@@ -111,12 +116,16 @@ class MetadataServices:
             }
 
             if account_id not in matchPlayerData:
-                matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
+                if abandonTime is not None:
+                    matchPlayerData[account_id] = self.createMatchPlayer(player, playerToTrack, match, matchMetadata, abandoned=abandonTime)
+                else:
+                    matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
 
             if player.get('items'):
                 for item_events in player.get('items'):
                     self.processItemEvents(item_events, matchPlayerData, account_id, playerEvents)
 
+            '''
             if player.get('stats'):
                 for stat in player.get('stats'):
                     playerStatsGraphs.append(MatchPlayerGraph(
@@ -128,10 +137,10 @@ class MetadataServices:
                         boss_damage=stat.get('boss_damage', 0),
                         player_healing=stat.get('player_healing', 0)
                     ))
+            '''
 
             endStatsData = self.computePlayerMetadata(matchMetadata, player)
             matchPlayerData[account_id].update(endStatsData)
-
 
         # Process death details
         all_deaths = []
@@ -147,12 +156,12 @@ class MetadataServices:
                             'team': player['team'],
                         })
         all_deaths.sort(key=lambda x: x['game_time_s'])
-        self.processDeathDetails(all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
+        self.processDeathDetails(all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts,
+                                 longestStreaks,
                                  match, pvpEvents)
 
         # Process objectives and midboss events
         objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
-
 
         #Create all objects
         PvPEvent.objects.bulk_create(pvpEvents)
@@ -163,7 +172,8 @@ class MetadataServices:
         #Create Match Players
         matchPlayersToCreate = []
         for account_id, data in matchPlayerData.items():
-            matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id), streakCounts.get(account_id))
+            matchPlayersToCreate = self.createMatchPlayer(matchPlayersToCreate, data, multis.get(account_id),
+                                                          streakCounts.get(account_id))
             player = data['playerModel']
 
             player.createOrUpdatePlayerHeroStatsFromMatchPlayer(data,
@@ -196,8 +206,8 @@ class MetadataServices:
 
         return matchPlayerData
 
-    def processDeathDetails(self, all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts, longestStreaks,
-                            match, pvpEvents):
+    def processDeathDetails(self, all_deaths, player_details, streaks, lastKillTimes,
+                            multis, streakCounts, longestStreaks, match, pvpEvents):
         for death_event in all_deaths:
             slayer_slot = death_event.get('slayer_slot')
             if slayer_slot is None:
@@ -228,7 +238,6 @@ class MetadataServices:
             if 3 <= streaks[slayer_account_id] <= 8:
                 streakCounts[slayer_account_id][streaks[slayer_account_id] - 3] += 1
 
-
             streakCounts[slayer_account_id][6] = max(
                 streakCounts[slayer_account_id][6],
                 streaks[slayer_account_id]
@@ -242,7 +251,7 @@ class MetadataServices:
 
             prev_time = lastKillTimes[slayer_account_id]['prev_time']
 
-            if prev_time is None or (death_event['game_time_s'] - prev_time > 10):
+            if prev_time is None or (death_event['game_time_s'] - prev_time > 5):
                 # More than 5s since last kill => reset
                 lastKillTimes[slayer_account_id]['consecutive_count'] = 1
             else:
@@ -324,34 +333,103 @@ class MetadataServices:
 
     def getPlayerGraphs(self, metadata):
         statsGraphs = {}
+        teamDict = {}
+        # souls, heroDmg, objDmg, healing = {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}
+        souls, heroDmg, objDmg, healing = [], [], [], []
         matchInfo = metadata.get('match_info')
         if matchInfo:
             for player in matchInfo['players']:
-                account_id = player['account_id']
+                hero_id = player['hero_id']
+                team = player.get('team')
+                lane = player.get('assigned_lane')
+                if team not in teamDict:
+                    teamDict[team] = {}
+                if lane not in teamDict[team]:
+                    teamDict[team][lane] = [hero_id]
+                else:
+                    teamDict[team][lane].append(hero_id)
+
                 stats = player.get('stats')
                 if stats:
                     for stat in stats:
-                        if stat['time_stamp_s'] not in statsGraphs:
-                            statsGraphs[stat['time_stamp_s']] = {}
-                        statsGraphs[stat['time_stamp_s']][account_id] = {
-                            'team': player.get('team'),
-                            'lane': player.get('assigned_lane'),
-                            'stats': {
-                                'souls': stat.get('net_worth', 0),
-                                'heroDmg': stat.get('player_damage', 0),
-                                'objDmg': stat.get('boss_damage', 0),
-                                'healing': stat.get('player_healing', 0)
+                        time = stat['time_stamp_s']
+
+                        if time not in statsGraphs:
+                            statsGraphs[time] = {
+                                # 'teams': {},
+                                # 'lanes': {},
+                                # 'players': {}
                             }
+                        '''
+                        if team not in statsGraphs[time]:
+                            statsGraphs[time]['teams'][team] = {
+                                'souls': 0,
+                                'heroDmg': 0,
+                                'objDmg': 0,
+                                'healing': 0
+                            }
+                        lane_key = f'{team}-{lane}'
+                        if lane not in statsGraphs[time]:
+                            statsGraphs[time]['lanes'][lane_key] = {
+                                'souls': 0,
+                                'heroDmg': 0,
+                                'objDmg': 0,
+                                'healing': 0
+                            }
+                        '''
+                        player_data = {
+                            'souls': stat.get('net_worth', 0),
+                            'heroDmg': stat.get('player_damage', 0),
+                            'objDmg': stat.get('boss_damage', 0),
+                            'healing': stat.get('player_healing', 0)
                         }
-            return statsGraphs
+
+                        statsGraphs[time][hero_id] = player_data
+                        '''
+                        statsGraphs[time]['teams'][team]['souls'] += player_data['souls']
+                        statsGraphs[time]['teams'][team]['heroDmg'] += player_data['heroDmg']
+                        statsGraphs[time]['teams'][team]['objDmg'] += player_data['objDmg']
+                        statsGraphs[time]['teams'][team]['healing'] += player_data['healing']
+
+                        statsGraphs[time]['lanes'][lane_key]['souls'] += player_data['souls']
+                        statsGraphs[time]['lanes'][lane_key]['heroDmg'] += player_data['heroDmg']
+                        statsGraphs[time]['lanes'][lane_key]['objDmg'] += player_data['objDmg']
+                        statsGraphs[time]['lanes'][lane_key]['healing'] += player_data['healing']
+                        '''
+
+            for t, d in statsGraphs.items():
+                '''
+                souls['teams'].append({'timestamp': t, **{k: v['souls'] for k, v in d['teams'].items()}})
+                heroDmg['teams'].append({'timestamp': t, **{k: v['heroDmg'] for k, v in d['teams'].items()}})
+                objDmg['teams'].append({'timestamp': t, **{k: v['objDmg'] for k, v in d['teams'].items()}})
+                healing['teams'].append({'timestamp': t, **{k: v['healing'] for k, v in d['teams'].items()}})
+
+                souls['lanes'].append({'timestamp': t, **{k: v['souls'] for k, v in d['lanes'].items()}})
+                heroDmg['lanes'].append({'timestamp': t, **{k: v['heroDmg'] for k, v in d['lanes'].items()}})
+                objDmg['lanes'].append({'timestamp': t, **{k: v['objDmg'] for k, v in d['lanes'].items()}})
+                healing['lanes'].append({'timestamp': t, **{k: v['healing'] for k, v in d['lanes'].items()}})
+                '''
+                souls.append({'timestamp': t, **{k: v['souls'] for k, v in d.items()}})
+                heroDmg.append({'timestamp': t, **{k: v['heroDmg'] for k, v in d.items()}})
+                objDmg.append({'timestamp': t, **{k: v['objDmg'] for k, v in d.items()}})
+                healing.append({'timestamp': t, **{k: v['healing'] for k, v in d.items()}})
+
+
+            return {'teamKey': teamDict, 'souls': souls, 'heroDmg': heroDmg, 'objDmg': objDmg, 'healing': healing}
+
         return None
 
-
     def checkForAbandonment(self, stats):
-        for i in range(len(stats) - 1):
-            if i == len(stats) - 2:
-                if stats[i]['time_stamp_s'] > stats[i + 1]['time_stamp_s'] and stats[i]['net_worth'] == stats[i + 1]['net_worth']:
-                    return stats[i]['time_stamp_s']
+        if len(stats) - 2 < 0:
+            return None
+        for i in range(len(stats) - 2):
+            if (stats[i]['time_stamp_s'] > stats[i + 1]['time_stamp_s'] and
+                    stats[i].get('shots_hit') == stats[i + 1].get('shots_hit') and
+                    stats[i].get('shots_missed') == stats[i+1].get('shots_missed') and
+                    stats[i].get('player_damage') == stats[i+1].get('player_damage') and
+                    stats[i].get('creep_damage') == stats[i+1].get('creep_damage')):
+                # Player must be doing nothing
+                return stats[i]['time_stamp_s']
         return None
 
     def computePlayerMetadata(self, matchMetadata, playerMetadata):
@@ -400,7 +478,7 @@ class MetadataServices:
 
         return {
             'souls': playerSouls,
-            'soulsPerMin': round(playerSouls / (match_length/60), 2),
+            'soulsPerMin': round(playerSouls / (match_length / 60), 2),
             'laneCreeps': end_stats.get('creep_kills', 0),
             'neutralCreeps': end_stats.get('neutral_kills', 0),
             'accuracy': accuracy,
@@ -456,7 +534,7 @@ class MetadataServices:
 
     def handleMatchPlayerTimelineAbilityEvent(self, player, match, item_event, item_data, playerTimelineEvents):
         if item_data:
-            if match.date >= int(time.time()) - 1296000:
+            if match.date - int(time.time()) >= 1296000:
                 playerTimelineEvents.append(MatchPlayerTimelineEvent(
                     match=match,
                     player=player,
@@ -465,7 +543,18 @@ class MetadataServices:
                     details={'target': item_data['name']}
                 ))
 
-    def createMatchPlayerData(self, player, playerToTrack, match, matchMetadata):
+    def createMatchPlayerData(self, player, playerToTrack, match, matchMetadata, abandoned=None):
+        if abandoned:
+            return {
+                'playerModel': playerToTrack,
+                'match': match,
+                'steam_id3': player['account_id'],
+                'team': player.get('team'),
+                'playerSlot': player.get('player_slot'),
+                'abandoned': True,
+                'abandonedTime': abandoned,
+            }
+
         return {
             'playerModel': playerToTrack,
             'match': match,
@@ -499,40 +588,50 @@ class MetadataServices:
             'medals': []
         }
 
-    def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts):
-        abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
-        mp = MatchPlayerModel(
-            player=data['playerModel'],
-            match=data['match'],
-            steam_id3=data['steam_id3'],
-            team=data['team'],
-            playerSlot=data['playerSlot'],
-            kills=data['kills'],
-            deaths=data['deaths'],
-            assists=data['assists'],
-            hero_deadlock_id=data['hero_deadlock_id'],
-            level=data['level'],
-            items=data['items'],
-            abilities=abilities,
-            souls=data['souls'],
-            soulsPerMin=data['soulsPerMin'],
-            lastHits=data['lastHits'],
-            denies=data['denies'],
-            party=data['party'],
-            lane=data['lane'],
-            laneCreeps=data['laneCreeps'],
-            neutralCreeps=data['neutralCreeps'],
-            accuracy=data['accuracy'],
-            heroCritPercent=data['heroCritPercent'],
-            soulsBreakdown=data['soulsBreakdown'],
-            heroDamage=data['heroDamage'],
-            objDamage=data['objDamage'],
-            healing=data['healing'],
-            win=data['win'],
-            multis=multis,
-            streaks=streakCounts,
-            medals=data['medals'],
-        )
+    def createMatchPlayer(self, matchPlayersToCreate, data, multis, streakCounts, abandoned=None):
+        if abandoned:
+            mp = MatchPlayerModel(
+                player=data['playerModel'],
+                match=data['match'],
+                steam_id3=data['steam_id3'],
+                team=data['team'],
+                playerSlot=data['playerSlot'],
+                abandoned=True,
+                abandonedTime=abandoned,
+            )
+        else:
+            abilities = sorted(data['abilities'].items(), key=lambda x: (-len(x[1]), x[1]))
+            mp = MatchPlayerModel(
+                player=data['playerModel'],
+                match=data['match'],
+                steam_id3=data['steam_id3'],
+                team=data['team'],
+                playerSlot=data['playerSlot'],
+                kills=data['kills'],
+                deaths=data['deaths'],
+                assists=data['assists'],
+                hero_deadlock_id=data['hero_deadlock_id'],
+                level=data['level'],
+                items=data['items'],
+                abilities=abilities,
+                souls=data['souls'],
+                soulsPerMin=data['soulsPerMin'],
+                lastHits=data['lastHits'],
+                denies=data['denies'],
+                party=data['party'],
+                lane=data['lane'],
+                laneCreeps=data['laneCreeps'],
+                neutralCreeps=data['neutralCreeps'],
+                accuracy=data['accuracy'],
+                heroCritPercent=data['heroCritPercent'],
+                soulsBreakdown=data['soulsBreakdown'],
+                heroDamage=data['heroDamage'],
+                objDamage=data['objDamage'],
+                healing=data['healing'],
+                win=data['win'],
+                multis=multis,
+                streaks=streakCounts,
+                medals=data['medals'],
+            )
         matchPlayersToCreate.append(mp)
         return matchPlayersToCreate
-
