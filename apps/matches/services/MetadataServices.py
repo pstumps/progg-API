@@ -334,7 +334,6 @@ class MetadataServices:
     def getPlayerGraphs(self, metadata):
         statsGraphs = {}
         teamDict = {}
-        # souls, heroDmg, objDmg, healing = {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}, {'teams': [], 'lanes': [], 'players': []}
         souls, heroDmg, objDmg, healing = [], [], [], []
         matchInfo = metadata.get('match_info')
         if matchInfo:
@@ -415,7 +414,15 @@ class MetadataServices:
                 healing.append({'timestamp': t, **{k: v['healing'] for k, v in d.items()}})
 
 
-            return {'teamKey': teamDict, 'souls': souls, 'heroDmg': heroDmg, 'objDmg': objDmg, 'healing': healing}
+            data = {'teamKey': teamDict,
+                    'graphs': {
+                        'souls': souls,
+                        'heroDmg': heroDmg,
+                        'objDmg': objDmg,
+                        'healing': healing
+                        },
+                    }
+            return data
 
         return None
 
