@@ -29,11 +29,15 @@ class HeroSerializer(serializers.ModelSerializer):
         return round(((kills + assists) / deaths), 2)
 
 class RecentMatchStatsHeroSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
 
     class Meta:
         model = HeroesModel
-        fields = ['name', 'image']
+        fields = ['id', 'name', 'image']
+
+    def get_id(self, obj):
+        return obj.hero_deadlock_id
 
     def get_image(self, obj):
         return obj.images['icon_hero_card']
