@@ -413,7 +413,7 @@ class MetadataServices:
                 objDmg.append({'timestamp': t, **{k: v['objDmg'] for k, v in d.items()}})
                 healing.append({'timestamp': t, **{k: v['healing'] for k, v in d.items()}})
 
-
+            print('Graphs created successfully!')
             data = {'teamKey': teamDict,
                     'graphs': {
                         'souls': souls,

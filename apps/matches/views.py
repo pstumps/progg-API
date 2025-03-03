@@ -19,10 +19,15 @@ def match_details(request, dl_match_id):
         match = matchServices.createMatch(dl_match_id)
         if not match:
             return Response({'details': 'Match does not exist.'}, status=404)
+    dlAPIDataService = deadlockAPIDataService()
 
+    metadata = dlAPIDataService.getMatchMetadataTest(dl_match_id)
     matchEvents = matchServices.getMatchTimeline(match)
+
+    metadataServices = MetadataServices()
+    graphData = metadataServices.getPlayerGraphs(metadata)
     print('Serializing match...')
-    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
+    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents, 'graphData': graphData})
     print('done!')
     return Response(serializer.data)
 

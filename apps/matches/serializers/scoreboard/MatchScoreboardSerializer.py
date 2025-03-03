@@ -11,10 +11,11 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
     overallAverageRank = serializers.SerializerMethodField()
     teams = serializers.SerializerMethodField()
     matchEvents = serializers.SerializerMethodField()
+    graphData = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchesModel
-        fields = ['date', 'result', 'matchType', 'length', 'overallAverageRank', 'teams', 'matchEvents']
+        fields = ['date', 'result', 'matchType', 'length', 'overallAverageRank', 'teams', 'matchEvents', 'graphData']
 
 
     def get_date(self, obj):
@@ -78,5 +79,8 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
 
     def get_matchEvents(self, obj):
         return self.context.get('matchEvents')
+
+    def get_graphData(self, obj):
+        return self.context.get('graphData')
 
 
