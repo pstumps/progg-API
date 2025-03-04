@@ -24,11 +24,12 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                   'abilityOrder', 'medals', 'soulsBreakdown', 'party', 'multis', 'streaks']
 
     def get_name(self, obj):
-        if obj.player:
-            if obj.player.name == '':
-                obj.player.updatePlayerFromSteamWebAPI()
-                return obj.player.name
-            return obj.player.name
+        # Testing only
+        # if obj.player:
+        #    if obj.player.name == '':
+        #        obj.player.updatePlayerFromSteamWebAPI()
+        #        return obj.player.name
+        #    return obj.player.name
         return None
 
     def get_hero(self, obj):
