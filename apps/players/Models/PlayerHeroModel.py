@@ -49,7 +49,7 @@ class PlayerHeroModel(models.Model):
         return self.hero.name
 
 
-    def updatePlayerHero(self, matchPlayer, multis, streaks, objectiveEvents, midbossEvents, longestStreak):
+    def updateFromMatchPlayerStats(self, matchPlayer, longestStreak):
         self.steam_id3 = matchPlayer['steam_id3']
         self.wins += 1 if matchPlayer['win'] else 0
         self.matches += 1
@@ -76,18 +76,24 @@ class PlayerHeroModel(models.Model):
             self.heroCritPercent = (self.heroCritPercent + matchPlayer['heroCritPercent']) / 2
 
 
+    def updatePlayerHeroMultis(self, multis, streaks):
+        if any(x != 0 for x in multis):
+            self.multis = [sum(x) for x in zip(self.multis, multis)]
+        if any(x != 0 for x in streaks):
+            self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
+
+    def updateMidbossStats(self, team, midbossEvents):
         for event in midbossEvents:
-            if event.team == matchPlayer['team']:
+            if event.team == team:
                 self.rejuvinators = self.rejuvinators + 1 if self.rejuvinators else 1
-            if event.slayer == matchPlayer['team']:
+            if event.slayer == team:
                 self.midbosses = self.midbosses + 1 if self.midbosses else 1
 
-        # Sketchy way of getting opposite teams
+    def updateLegacyTeamObjectiveStats(self, team, objectiveEvents):
         oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
                          'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
-
         for event in objectiveEvents:
-            if oppositeTeams[event.team] == matchPlayer['team']:
+            if oppositeTeams[event.team] == team:
                 if 'Tier1' in event.target:
                     self.guardians = self.guardians + 1 if self.guardians else 1
                 elif 'Tier2' in event.target:
@@ -101,9 +107,19 @@ class PlayerHeroModel(models.Model):
                 elif 'k_eCitadelTeamObjective_Core' in event.target:
                     self.patrons = self.patrons + 1 if self.patrons else 1
 
-        if any(x != 0 for x in multis):
-            self.multis = [sum(x) for x in zip(self.multis, multis)]
-        if any(x != 0 for x in streaks):
-            self.streaks = [sum(x) for x in zip(self.streaks, streaks)]
+    def updateTeamObjectiveStats(self, team, objectiveEvents):
+        oppositeTeams = {'0': '1',
+                         '1': '0'}
 
-        self.save()
+        for event in objectiveEvents:
+            if oppositeTeams[event.team] == team:
+                if '1' or '3' or '4' in event.target:
+                    self.guardians = self.guardians + 1 if self.guardians else 1
+                elif '5' or '7' or '8' in event.target:
+                    self.walkers = self.walkers + 1 if self.walkers else 1
+                elif '9' or '10' or '11' or '12' or '13' in event.target:
+                    self.baseGuardians = self.baseGuardians + 2 if self.baseGuardians else 2
+                elif '14' or '15' in event.target:
+                    self.shieldGenerators = self.shieldGenerators + 1 if self.shieldGenerators else 1
+                elif '0' in event.target:
+                    self.patrons = self.patrons + 1 if self.patrons else 1

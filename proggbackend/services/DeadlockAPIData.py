@@ -27,7 +27,7 @@ class deadlockAPIDataService:
         }
 
         #For Testing only
-        with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
+        with open(str(BASE_DIR) + '\\proggbackend\\Response_newmetadata.json') as f:
             response = json.load(f)
         return response
         '''

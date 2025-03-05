@@ -176,12 +176,20 @@ class MetadataServices:
                                                           streakCounts.get(account_id))
             player = data['playerModel']
 
-            player.createOrUpdatePlayerHeroStatsFromMatchPlayer(data,
-                                                                multis.get(account_id),
-                                                                streakCounts.get(account_id),
-                                                                objectiveEvents,
-                                                                midbossEvents,
-                                                                longestStreaks.get(account_id, 0))
+            playerHero = player.getOrCreatePlayerHero(data)
+
+            playerHero.updatePlayerHeroStats(data, longestStreaks.get(account_id, 0))
+            playerHero.updatePlayerHeroMultis(multis.get(account_id), streakCounts.get(account_id))
+            playerHero.updateMidbosses(data['team'], midbossEvents)
+
+            # Objective IDs changed after this start time
+            if int(matchMetadata['start_time']) < 2147385473:
+                playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
+            else:
+                playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
+
+            playerHero.save()
+
 
             player.updatePlayerRecords(data['hero_deadlock_id'],
                                        data['kills'],
@@ -355,27 +363,7 @@ class MetadataServices:
 
                         if time not in statsGraphs:
                             statsGraphs[time] = {
-                                # 'teams': {},
-                                # 'lanes': {},
-                                # 'players': {}
                             }
-                        '''
-                        if team not in statsGraphs[time]:
-                            statsGraphs[time]['teams'][team] = {
-                                'souls': 0,
-                                'heroDmg': 0,
-                                'objDmg': 0,
-                                'healing': 0
-                            }
-                        lane_key = f'{team}-{lane}'
-                        if lane not in statsGraphs[time]:
-                            statsGraphs[time]['lanes'][lane_key] = {
-                                'souls': 0,
-                                'heroDmg': 0,
-                                'objDmg': 0,
-                                'healing': 0
-                            }
-                        '''
                         player_data = {
                             'souls': stat.get('net_worth', 0),
                             'heroDmg': stat.get('player_damage', 0),
@@ -384,30 +372,8 @@ class MetadataServices:
                         }
 
                         statsGraphs[time][hero_id] = player_data
-                        '''
-                        statsGraphs[time]['teams'][team]['souls'] += player_data['souls']
-                        statsGraphs[time]['teams'][team]['heroDmg'] += player_data['heroDmg']
-                        statsGraphs[time]['teams'][team]['objDmg'] += player_data['objDmg']
-                        statsGraphs[time]['teams'][team]['healing'] += player_data['healing']
-
-                        statsGraphs[time]['lanes'][lane_key]['souls'] += player_data['souls']
-                        statsGraphs[time]['lanes'][lane_key]['heroDmg'] += player_data['heroDmg']
-                        statsGraphs[time]['lanes'][lane_key]['objDmg'] += player_data['objDmg']
-                        statsGraphs[time]['lanes'][lane_key]['healing'] += player_data['healing']
-                        '''
 
             for t, d in statsGraphs.items():
-                '''
-                souls['teams'].append({'timestamp': t, **{k: v['souls'] for k, v in d['teams'].items()}})
-                heroDmg['teams'].append({'timestamp': t, **{k: v['heroDmg'] for k, v in d['teams'].items()}})
-                objDmg['teams'].append({'timestamp': t, **{k: v['objDmg'] for k, v in d['teams'].items()}})
-                healing['teams'].append({'timestamp': t, **{k: v['healing'] for k, v in d['teams'].items()}})
-
-                souls['lanes'].append({'timestamp': t, **{k: v['souls'] for k, v in d['lanes'].items()}})
-                heroDmg['lanes'].append({'timestamp': t, **{k: v['heroDmg'] for k, v in d['lanes'].items()}})
-                objDmg['lanes'].append({'timestamp': t, **{k: v['objDmg'] for k, v in d['lanes'].items()}})
-                healing['lanes'].append({'timestamp': t, **{k: v['healing'] for k, v in d['lanes'].items()}})
-                '''
                 souls.append({'timestamp': t, **{k: v['souls'] for k, v in d.items()}})
                 heroDmg.append({'timestamp': t, **{k: v['heroDmg'] for k, v in d.items()}})
                 objDmg.append({'timestamp': t, **{k: v['objDmg'] for k, v in d.items()}})
@@ -464,16 +430,29 @@ class MetadataServices:
                 gold += source.get('gold_orbs', 0)
             return gold
 
-        goldMapping = {
-            'hero': (0, True),
-            'lane_creeps': (1, True),
-            'neutrals': (2, True),
-            'objectives': (3, True),
-            'crates': (4, False),
-            'denies': (5, False),
-            'other': (6, False),
-            'assists': (7, False)
-        }
+        if int(matchMetadata['start_time']) < 2147385473:
+            # gold mappings changed after this time
+            goldMapping = {
+                'hero': (0, True),
+                'lane_creeps': (1, True),
+                'neutrals': (2, True),
+                'objectives': (3, True),
+                'crates': (4, False),
+                'denies': (5, False),
+                'other': (6, False),
+                'assists': (7, False)
+            }
+        else:
+            goldMapping = {
+                'hero': (0, True),
+                'lane_creeps': (1, True),
+                'neutrals': (2, True),
+                'objectives': (3, True),
+                'crates': (4, False),
+                'assists': (7, False),
+                'denies': (5, False),
+                'other': (6, False)
+            }
 
         if playerSouls > 0:
             soulsBreakdown = {

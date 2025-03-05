@@ -212,15 +212,15 @@ class PlayerModel(models.Model):
             playerRecords.updateRecord('healing', heroId, healing)
             playerRecords.updateRecord('lastHits', heroId, lastHits)
 
-    def createOrUpdatePlayerHeroStatsFromMatchPlayer(self, mp, multis, streaks, objectiveEvents, midbossEvents, longestStreak):
+    def getOrCreatePlayerHero(self, heroId):
         # Update player hero model
-        hero = HeroesModel.objects.filter(hero_deadlock_id=mp['hero_deadlock_id']).first()
+        hero = HeroesModel.objects.filter(hero_deadlock_id=heroId).first()
         if not hero:
             DLAPIAssets = deadlockAPIAssetsService()
-            heroName = DLAPIAssets.getHeroAssetsById(mp['hero_deadlock_id']).get('name')
+            heroName = DLAPIAssets.getHeroAssetsById(heroId).get('name')
             hero = HeroesModel.objects.create(
                 name=heroName,
-                hero_deadlock_id=mp['hero_deadlock_id']
+                hero_deadlock_id=heroId
             )
         playerHero = PlayerHeroModel.objects.filter(player=self, hero=hero).first()
         if not playerHero:
@@ -229,7 +229,8 @@ class PlayerModel(models.Model):
                 hero=hero
             )
 
-        playerHero.updatePlayerHero(mp, multis, streaks, objectiveEvents, midbossEvents, longestStreak)
+        return playerHero
+
 
     def addMatch(self, match):
         if match not in self.matches.all():
