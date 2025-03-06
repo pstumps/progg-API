@@ -18,9 +18,12 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ['name', 'totalKills', 'totalHeroDmg', 'totalObjDmg', 'totalHealing', 'averageRank', 'players']
 
     def get_name(self, obj):
-        team_value = self.context.get('team')
-        teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber', 'k_ECitadelLobbyTeam_Team1': 'Sapphire'}
-        return teamDict[team_value]
+        team = self.context.get('team')
+        if '0' in team:
+            team = 'Amber'
+        elif '1' in team:
+            team = 'Sapphire'
+        return team
 
     def get_team_players(self, obj):
         team_value = self.context.get('team')
@@ -66,9 +69,9 @@ class TeamSerializer(serializers.ModelSerializer):
         rank = None
         team_value = self.context.get('team')
         if obj.averageRank:
-            if 'Team0' in team_value:
+            if '0' in team_value:
                 rank = obj.averageRank.get('average_badge_team0')
-            elif 'Team1' in team_value:
+            elif '1' in team_value:
                 rank = obj.averageRank.get('average_badge_team1')
             else:
                 raise ValueError("Invalid team value")

@@ -22,8 +22,13 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
         return datetime.fromtimestamp(obj.date, timezone.utc)
 
     def get_result(self, obj):
-        teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber Hand', 'k_ECitadelLobbyTeam_Team1': 'Sapphire Flame'}
-        return teamDict[obj.victor]
+        if '0' in obj.victor:
+            team = 'Amber Hand'
+        elif '1' in obj.victor:
+            team = 'Sapphire Flame'
+        else:
+            team = obj.victor
+        return team
 
     def get_matchType(self, obj):
         if obj.matchMode == 'k_ECitadelMatchMode_Unranked':

@@ -176,14 +176,14 @@ class MetadataServices:
                                                           streakCounts.get(account_id))
             player = data['playerModel']
 
-            playerHero = player.getOrCreatePlayerHero(data)
+            playerHero = player.getOrCreatePlayerHero(data['hero_deadlock_id'])
 
-            playerHero.updatePlayerHeroStats(data, longestStreaks.get(account_id, 0))
-            playerHero.updatePlayerHeroMultis(multis.get(account_id), streakCounts.get(account_id))
-            playerHero.updateMidbosses(data['team'], midbossEvents)
+            playerHero.updateFromMatchPlayerStats(data, longestStreaks.get(account_id, 0))
+            playerHero.updateMultisStreaksStats(multis.get(account_id), streakCounts.get(account_id))
+            playerHero.updateMidbossStats(data['team'], midbossEvents)
 
-            # Objective IDs changed after this start time
-            if int(matchMetadata['start_time']) < 2147385473:
+            # Objective IDs changed after this patch day
+            if int(matchMetadata['start_time']) < 1740549073:
                 playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
             else:
                 playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
@@ -430,7 +430,7 @@ class MetadataServices:
                 gold += source.get('gold_orbs', 0)
             return gold
 
-        if int(matchMetadata['start_time']) < 2147385473:
+        if int(matchMetadata['start_time']) < 1740549073:
             # gold mappings changed after this time
             goldMapping = {
                 'hero': (0, True),
@@ -545,7 +545,7 @@ class MetadataServices:
             'playerModel': playerToTrack,
             'match': match,
             'steam_id3': player['account_id'],
-            'team': player.get('team'),
+            'team': str(player.get('team')),
             'playerSlot': player.get('player_slot'),
             'kills': player.get('kills', 0),
             'deaths': player.get('deaths', 0),

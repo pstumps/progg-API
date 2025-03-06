@@ -16,7 +16,11 @@ from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 class MatchServices:
     def __init__(self):
-        self.teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber', 'k_ECitadelLobbyTeam_Team1': 'Sapphire'}
+        self.teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber',
+                         'k_ECitadelLobbyTeam_Team1': 'Sapphire',
+                         '0': 'Amber',
+                         '1': 'Sapphire'}
+
 
     def createMatch(self, dl_match_id):
         DataAPI = deadlockAPIDataService()

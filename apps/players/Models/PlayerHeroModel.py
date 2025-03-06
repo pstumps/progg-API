@@ -76,7 +76,7 @@ class PlayerHeroModel(models.Model):
             self.heroCritPercent = (self.heroCritPercent + matchPlayer['heroCritPercent']) / 2
 
 
-    def updatePlayerHeroMultis(self, multis, streaks):
+    def updateMultisStreaksStats(self, multis, streaks):
         if any(x != 0 for x in multis):
             self.multis = [sum(x) for x in zip(self.multis, multis)]
         if any(x != 0 for x in streaks):
@@ -112,7 +112,7 @@ class PlayerHeroModel(models.Model):
                          '1': '0'}
 
         for event in objectiveEvents:
-            if oppositeTeams[event.team] == team:
+            if oppositeTeams[str(event.team)] == team:
                 if '1' or '3' or '4' in event.target:
                     self.guardians = self.guardians + 1 if self.guardians else 1
                 elif '5' or '7' or '8' in event.target:

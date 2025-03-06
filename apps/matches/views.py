@@ -21,7 +21,7 @@ def match_details(request, dl_match_id):
             return Response({'details': 'Match does not exist.'}, status=404)
     dlAPIDataService = deadlockAPIDataService()
 
-    metadata = dlAPIDataService.getMatchMetadataTest(dl_match_id)
+    metadata = dlAPIDataService.getMatchMetadata(dl_match_id)
     matchEvents = matchServices.getMatchTimeline(match)
 
     metadataServices = MetadataServices()
@@ -79,7 +79,7 @@ def timelines(request, dl_match_id, user_id=None):
 @api_view(['GET'])
 def graphs(request, dl_match_id):
     dlAPIDataService = deadlockAPIDataService()
-    metadata = dlAPIDataService.getMatchMetadataTest(dl_match_id)
+    metadata = dlAPIDataService.getMatchMetadata(dl_match_id)
 
     metadataService = MetadataServices()
     graphs = metadataService.getPlayerGraphs(metadata)
