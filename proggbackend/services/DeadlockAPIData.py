@@ -25,7 +25,7 @@ class deadlockAPIDataService:
             'match_id': dl_match_id,
             'api_key': api_key if api_key else self.dl_api_key
         }
-        '''
+
         #For Testing only
         with open(str(BASE_DIR) + '\\proggbackend\\Response_newmetadata.json') as f:
             response = json.load(f)
@@ -44,6 +44,7 @@ class deadlockAPIDataService:
             return None
 
         return data
+        '''
 
 
     def getMatchMetadataTest(self, dl_match_id, api_key=None):
@@ -59,7 +60,7 @@ class deadlockAPIDataService:
         # print(response.json())
         #return response.json()
         # Temporary for testing
-        return ['2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
+        return ['2025-02-25T21:51:13Z', '2024-12-06T20:05:10Z', '2024-11-21T23:21:49Z', '2024-11-07T21:31:34Z', '2024-10-24T19:39:08Z', '2024-10-10T20:24:45Z', '2024-09-26T21:17:58Z']
 
     def getLatestPatchUnixTimestamp(self):
         data = self.getBigPatchDays()

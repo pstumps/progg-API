@@ -11,6 +11,7 @@ class MatchesModel(models.Model):
     length = models.IntegerField(default=0)
     teamStats = models.JSONField(null=True)
     victor = models.CharField(max_length=50, null=True)
+    legacyFourLaneMap = models.BooleanField(default=False)
 
     def __str__(self):
         return self.deadlock_id

@@ -90,11 +90,9 @@ class MatchServices:
         serializedEvents = []
         for event in midbossEvents:
             if isinstance(event, MidbossEvent):
-                if event.slayer:
+                if event.team:
                     midbossEvent = MidbossEventSerializer(event).data
-                    midbossEvent['details']['target'] = self.teamDict.get(event.slayer)
                     rejuvEvent = RejuvEventSerializer(event).data
-                    rejuvEvent['details']['target'] = self.teamDict.get(event.team)
                     serializedEvents.extend([midbossEvent, rejuvEvent])
                 else:
                     midbossEvent = MidbossEventSerializer(event).data

@@ -56,10 +56,14 @@ class MetadataServices:
                 gameMode=matchMetadata.get('game_mode'),
                 matchMode=matchMetadata.get('match_mode'),
                 length=matchMetadata.get('duration_s'),
-                victor=matchMetadata.get('winning_team')
+                victor=matchMetadata.get('winning_team'),
             )
 
-            self.parseMatchEventsFromMetadata(match, matchMetadata)
+            legacyFourLaneMap = False
+            if int(matchMetadata.get('start_time')) < 1740549073:
+                match.legacyFourLaneMap = True
+
+            self.parseMatchEventsFromMetadata(match, matchMetadata, legacyFourLaneMap)
 
             match.calculateTeamStats()
             match.save()
@@ -71,7 +75,7 @@ class MetadataServices:
             return None
 
     @transaction.atomic
-    def parseMatchEventsFromMetadata(self, match, matchMetadata):
+    def parseMatchEventsFromMetadata(self, match, matchMetadata, legacyFourLaneMap=False):
         print('Parsing match metadata...')
         matchPlayerData = {}
         pvpEvents = []
@@ -125,21 +129,13 @@ class MetadataServices:
                 for item_events in player.get('items'):
                     self.processItemEvents(item_events, matchPlayerData, account_id, playerEvents)
 
-            '''
-            if player.get('stats'):
-                for stat in player.get('stats'):
-                    playerStatsGraphs.append(MatchPlayerGraph(
-                        match=match,
-                        steam_id3=account_id,
-                        timestamp=stat['time_stamp_s'],
-                        net_worth=stat.get('net_worth', 0),
-                        player_damage=stat.get('player_damage', 0),
-                        boss_damage=stat.get('boss_damage', 0),
-                        player_healing=stat.get('player_healing', 0)
-                    ))
-            '''
+            # map was 4 lanes instead of new 3
+            if legacyFourLaneMap:
+                endStatsData = self.computePlayerMetadata(matchMetadata, player, legacy=True)
+            else:
+                endStatsData = self.computePlayerMetadata(matchMetadata, player)
 
-            endStatsData = self.computePlayerMetadata(matchMetadata, player)
+
             matchPlayerData[account_id].update(endStatsData)
 
         # Process death details
@@ -183,7 +179,7 @@ class MetadataServices:
             playerHero.updateMidbossStats(data['team'], midbossEvents)
 
             # Objective IDs changed after this patch day
-            if int(matchMetadata['start_time']) < 1740549073:
+            if legacyFourLaneMap:
                 playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
             else:
                 playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
@@ -405,7 +401,7 @@ class MetadataServices:
                 return stats[i]['time_stamp_s']
         return None
 
-    def computePlayerMetadata(self, matchMetadata, playerMetadata):
+    def computePlayerMetadata(self, matchMetadata, playerMetadata, legacyFourLaneMap=False):
         match_info = matchMetadata
         match_length = match_info.get('duration_s', 1) or 1
         end_stats = playerMetadata['stats'][-1]
@@ -430,7 +426,7 @@ class MetadataServices:
                 gold += source.get('gold_orbs', 0)
             return gold
 
-        if int(matchMetadata['start_time']) < 1740549073:
+        if legacyFourLaneMap:
             # gold mappings changed after this time
             goldMapping = {
                 'hero': (0, True),

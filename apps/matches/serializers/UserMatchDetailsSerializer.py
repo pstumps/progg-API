@@ -23,13 +23,14 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
     avgSoulsPerMin = serializers.SerializerMethodField()
     records = serializers.SerializerMethodField()
     userMatchEvents = serializers.SerializerMethodField()
+    numLanes = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchPlayerModel
         fields = ['hero', 'length', 'team', 'result', 'kills', 'deaths', 'assists', 'lastHits', 'heroDamage',
                   'objDamage', 'healing', 'souls', 'csSouls', 'kaSouls', 'otherSouls', 'avgHeroDmg',
                   'avgObjDmg', 'avgHealing', 'avgKills', 'avgAssists', 'avgDeaths', 'avgSouls', 'avgCS',
-                  'avgSoulsPerMin', 'records', 'userMatchEvents']
+                  'avgSoulsPerMin', 'records', 'userMatchEvents', 'numLanes']
 
     def get_hero(self, obj):
         return RecentMatchStatsHeroSerializer(HeroesModel.objects.get(hero_deadlock_id=obj.hero_deadlock_id)).data
@@ -144,3 +145,8 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
 
     def get_userMatchEvents(self, obj):
         return self.context['playerTimeline']
+
+    def get_numLanes(self, obj):
+        if obj.match.legacyFourLaneMap:
+            return 4
+        return 3
