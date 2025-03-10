@@ -9,6 +9,7 @@ from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsServi
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
 from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
 from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
+from .serializers.SearchHistoryPlayerSerializer import SearchHistoryPlayer
 from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerializer
 from .Models.PlayerModel import PlayerModel
 
@@ -162,4 +163,14 @@ def getDeadlockAPIMatchHistory(request, steam_id3):
     playersService = deadlockAPIAnalyticsService()
     history = playersService.getPlayerMatchHistory(steam_id3)
     return Response({"detail": history})
+
+@api_view(['GET'])
+def searchHistoryItem(request, steam_id3):
+    player = PlayerModel.objects.get(steam_id3=steam_id3)
+    playerMatches = player.matches.all()
+    print('player matches are: ')
+    print(playerMatches)
+    serializer = SearchHistoryPlayer(player)
+    print(serializer.data)
+    return Response(status=200, data=serializer.data)
 

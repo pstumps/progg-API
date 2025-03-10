@@ -12,17 +12,84 @@ from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 def calculateAverageBadgeFromMetadata(metadata):
+    def parse_badge(badge_int):
+        """Parse the stored integer into (main_rank, sub_rank)."""
+        if badge_int is None:
+            return None, None  # Or handle however you like
+
+        if badge_int == 0:
+            return 0, 0
+
+        s = str(badge_int)
+        if len(s) == 1 and s == "0":
+            return 0, 0
+
+        main_rank = int(s[:-1])
+        sub_rank = int(s[-1])
+
+        return main_rank, sub_rank
+
+    def to_rank_index(main_rank, sub_rank):
+        if main_rank == 0:
+            return 0
+
+        return (main_rank - 1) * 6 + sub_rank
+
+    def from_rank_index(idx):
+        if idx < 0:
+            idx = 0
+        elif idx > 66:
+            idx = 66
+
+        if idx == 0:
+            return (0, 0)
+
+        main_rank = (idx - 1) // 6 + 1
+        sub_rank = (idx - 1) % 6 + 1
+        return (main_rank, sub_rank)
+
+    def main_sub_to_badge(mr, sr):
+        """
+        Convert (main_rank, sub_rank) to a single integer badge:
+        e.g. (5,6) -> 56, (10,6) -> 106, (11,6) -> 116, (0,0) -> 0.
+        """
+        if mr == 0:
+            return 0
+        return int(f"{mr}{sr}")
+
+    def average_rank(badge0, badge1):
+        mr0, sr0 = parse_badge(badge0)
+        mr1, sr1 = parse_badge(badge1)
+
+        idx0 = to_rank_index(mr0, sr0)
+        idx1 = to_rank_index(mr1, sr1)
+
+        avg_idx = (idx0 + idx1) / 2.0  # average as float
+
+        avg_idx_int = round(avg_idx)
+
+        final_mr, final_sr = from_rank_index(avg_idx_int)
+
+        final_badge = main_sub_to_badge(final_mr, final_sr)
+        return final_badge
+
     averageBadges = {}
-    badgesSum = 0
 
-    for stat, value in metadata.items():
-        if stat.startswith('average_badge'):
-            averageBadges[stat] = value
-            badgesSum += value
+    badge_team0 = metadata.get("average_badge_team0")
+    badge_team1 = metadata.get("average_badge_team1")
 
-    if averageBadges:
-        averageBadges['match_average_badge'] = int(badgesSum / len(averageBadges))
+    if badge_team0 is None or badge_team1 is None:
+        return None
+
+    avg_rank = average_rank(badge_team0, badge_team1)
+
+
+    if avg_rank is not None:
+        averageBadges['average_badge_team0'] = badge_team0
+        averageBadges['average_badge_team1'] = badge_team1
+        averageBadges['match_average_badge'] = avg_rank
         return averageBadges
+
     return None
 
 
@@ -62,6 +129,7 @@ class MetadataServices:
             legacyFourLaneMap = False
             if int(matchMetadata.get('start_time')) < 1740549073:
                 match.legacyFourLaneMap = True
+                legacyFourLaneMap = True
 
             self.parseMatchEventsFromMetadata(match, matchMetadata, legacyFourLaneMap)
 
@@ -131,7 +199,7 @@ class MetadataServices:
 
             # map was 4 lanes instead of new 3
             if legacyFourLaneMap:
-                endStatsData = self.computePlayerMetadata(matchMetadata, player, legacy=True)
+                endStatsData = self.computePlayerMetadata(matchMetadata, player, legacyFourLaneMap=True)
             else:
                 endStatsData = self.computePlayerMetadata(matchMetadata, player)
 
@@ -179,10 +247,10 @@ class MetadataServices:
             playerHero.updateMidbossStats(data['team'], midbossEvents)
 
             # Objective IDs changed after this patch day
-            if legacyFourLaneMap:
-                playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
-            else:
-                playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
+            # if legacyFourLaneMap:
+            #    playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
+            #else:
+            playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
 
             playerHero.save()
 
@@ -294,7 +362,7 @@ class MetadataServices:
             else:
                 playerDict['abilities'][item_data['name']].append(item_events['game_time_s'])
 
-            if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
+            if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
                 self.handleMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
                                                            item_data, playerEvents)
 
@@ -312,7 +380,12 @@ class MetadataServices:
                     )
                 else:
                     playerItemsDictionary[item_data['item_slot_type']].append(item_data['id'])
-            if playerDict['playerModel'].isUser and playerDict['playerModel'].isInactive() is False:
+            if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
+                self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                        item_data, playerEvents)
+
+            #testing only
+            if playerDict['playerModel'].steam_id3 == 44046862:
                 self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
                                                         item_data, playerEvents)
 
@@ -384,6 +457,7 @@ class MetadataServices:
                         'healing': healing
                         },
                     }
+
             return data
 
         return None

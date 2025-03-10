@@ -1,4 +1,5 @@
 from django.db import models
+from django.forms.models import model_to_dict
 
 def default_multis():
     return [0, 0, 0, 0, 0, 0]
@@ -84,16 +85,21 @@ class PlayerHeroModel(models.Model):
 
     def updateMidbossStats(self, team, midbossEvents):
         for event in midbossEvents:
-            if event.team == team:
+            print(team)
+            print(model_to_dict(event))
+            if str(event.team) == str(team):
                 self.rejuvinators = self.rejuvinators + 1 if self.rejuvinators else 1
-            if event.slayer == team:
+            if str(event.slayer) == str(team):
                 self.midbosses = self.midbosses + 1 if self.midbosses else 1
 
     def updateLegacyTeamObjectiveStats(self, team, objectiveEvents):
         oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
-                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0'}
+                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0',
+                         '0': '1',
+                         '1': '0'}
+
         for event in objectiveEvents:
-            if oppositeTeams[event.team] == team:
+            if oppositeTeams[str(event.team)] == team:
                 if 'Tier1' in event.target:
                     self.guardians = self.guardians + 1 if self.guardians else 1
                 elif 'Tier2' in event.target:
@@ -113,13 +119,14 @@ class PlayerHeroModel(models.Model):
 
         for event in objectiveEvents:
             if oppositeTeams[str(event.team)] == team:
-                if '1' or '3' or '4' in event.target:
+                target = int(event.target)
+                if target == 1 or target == 3 or target == 4:
                     self.guardians = self.guardians + 1 if self.guardians else 1
-                elif '5' or '7' or '8' in event.target:
+                if target == 5 or target == 7 or target == 8:
                     self.walkers = self.walkers + 1 if self.walkers else 1
-                elif '9' or '10' or '11' or '12' or '13' in event.target:
+                if target == 9 or target == 10 or target == 11 or target == 12 or target == 13:
                     self.baseGuardians = self.baseGuardians + 2 if self.baseGuardians else 2
-                elif '14' or '15' in event.target:
+                if target == 14 or target == 15:
                     self.shieldGenerators = self.shieldGenerators + 1 if self.shieldGenerators else 1
-                elif '0' in event.target:
+                if target == 0:
                     self.patrons = self.patrons + 1 if self.patrons else 1

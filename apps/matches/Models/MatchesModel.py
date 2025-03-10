@@ -13,9 +13,6 @@ class MatchesModel(models.Model):
     victor = models.CharField(max_length=50, null=True)
     legacyFourLaneMap = models.BooleanField(default=False)
 
-    def __str__(self):
-        return self.deadlock_id
-
     def calculateTeamStats(self):
         team_aggregate_stats = self.matchPlayerModels.values('team').annotate(
             kills=models.Sum('kills'),

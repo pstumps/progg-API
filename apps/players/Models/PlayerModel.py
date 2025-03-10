@@ -1,5 +1,6 @@
 import time
 from django.db import models
+from django.conf import settings
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from .PlayerHeroModel import PlayerHeroModel
@@ -19,13 +20,13 @@ def default_streaks():
 
 class PlayerModel(models.Model):
     player_id = models.AutoField(primary_key=True)
-    steam_id3 = models.BigIntegerField(null=True, db_index=True, unique=True) #TODO Change from null=True to False after testing
+    steam_id3 = models.BigIntegerField(db_index=True, unique=True) #TODO Change from null=True to False after testing
     name = models.CharField(max_length=100)
     icon = models.JSONField(null=True)
     region = models.CharField(max_length=2, null=True, blank=True)
     private = models.BooleanField(default=False)
     rank = models.IntegerField(default=0)
-    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     matches = models.ManyToManyField(MatchesModel, related_name='playerModel')
     wins = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)
@@ -65,8 +66,7 @@ class PlayerModel(models.Model):
         blank=True
     )
     updated = models.BigIntegerField(null=True)
-    isUser = models.BooleanField(default=True) # TODO: Change default to False after testing
-    inactive = models.BooleanField(default=False) # TODO: Change default to True after testing
+    inactive = models.BooleanField(default=True) # TODO: Change default to True after testing
 
     def __str__(self):
         return self.name
@@ -199,7 +199,7 @@ class PlayerModel(models.Model):
 
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
-        if self.isUser and self.isInactive() is False:
+        if self.user and self.isInactive() is False:
             playerRecords = PlayerRecords.objects.filter(player=self).first()
             if not playerRecords:
                 playerRecords = PlayerRecords.objects.create(player=self)

@@ -45,6 +45,7 @@ def user_match_details(request, dl_match_id):
             matchPlayer = match.matchPlayerModels.get(player=user.playermodel)
         except MatchPlayerModel.DoesNotExist:
             return Response({'details': 'User not in this match.'}, status=404)
+    dlAPIDataService = deadlockAPIDataService()
 
 
     matchServices = MatchServices()
@@ -53,8 +54,11 @@ def user_match_details(request, dl_match_id):
     detailsSerializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerEvents})
     print('done!')
 
+    metadata = dlAPIDataService.getMatchMetadata(dl_match_id)
+    metadataServices = MetadataServices()
+    graphData = metadataServices.getPlayerGraphs(metadata)
     print('Serializing match...')
-    scoreboardSerializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents})
+    scoreboardSerializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents, 'graphData': graphData})
     print('done!')
 
     return Response({'userMatchDetails': detailsSerializer.data, 'matchScoreboardData': scoreboardSerializer.data})

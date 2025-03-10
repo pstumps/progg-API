@@ -4,7 +4,7 @@ from . import views
 urlpatterns = [
     # Test stats for testing only
     # path('<int:steam_id3>', views.stats, name='stats'),
-    path('<int:steam_id3>', views.testStats, name='testStats'),
+    path('<int:steam_id3>', views.stats, name='stats'),
     path('<int:steam_id3>/heroes/', views.playerHeroes, name='playerHeroes'),
     path('<int:steam_id3>/match-history/', views.matchHistory, name='matchHistory'),
     path('<int:steam_id3>/top-player-heroes', views.topPlayerHeroes, name='topPlayerHeroes'),
@@ -12,5 +12,6 @@ urlpatterns = [
     path('<int:steam_id3>/steam-info', views.getSteamInfo, name='getSteamInfo'),
     path('<int:steam_id3>/update-steam-info', views.updatePlayerSteamWebAPI, name='updatePlayerSteamWebAPI'),
     path('<int:steam_id3>/deadlock-api-match-history', views.getDeadlockAPIMatchHistory, name='getDeadlockAPIMatchHistory'),
+    path('<int:steam_id3>/search-item/', views.searchHistoryItem, name='searchHistoryItem'),
     path('delete-all-data', views.deleteAllData, name='deleteAllData')
 ]

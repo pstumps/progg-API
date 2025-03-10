@@ -40,4 +40,4 @@ class RecentMatchStatsHeroSerializer(serializers.ModelSerializer):
         return obj.hero_deadlock_id
 
     def get_image(self, obj):
-        return obj.images['icon_hero_card']
+        return obj.images.get('icon_hero_card_webp')

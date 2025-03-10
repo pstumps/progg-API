@@ -3,18 +3,21 @@ from django.contrib.auth import login
 from social_django.utils import load_strategy, load_backend
 from social_core.actions import do_auth
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from django.db import transaction
 from apps.players.Models.PlayerModel import PlayerModel
+from user_mgmt.serializers import UserSerializer
+
+import time
 
 
 
 @api_view(['GET'])
 def userAuth(request):
     print(request)
-    print("Authenticated user:", request.user)
     if request.user.is_authenticated:
-        print('user id is ', request.user.id)
         return Response({
             'id': request.user.id,
             'username': request.user.username
@@ -27,12 +30,14 @@ def userAuth(request):
 
 @api_view(['GET'])
 def getUserInfo(request):
-    if request.user.is_authenticated:
-        return Response({
-            'name': request.user.playermodel.name,
-            'icon': request.user.playermodel.icon,
-            'steam_id3': request.user.playermodel.steam_id3,
-        }, status=200)
+    user = request.user
+    if user.is_authenticated:
+        if user.playermodel is None:
+            return Response({
+                'detail': 'User has no playermodel'
+            }, status=404)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=200)
     else:
         return Response({
             'detail': 'User is not authenticated'
@@ -56,6 +61,8 @@ def steam_callback(request):
 
         if not hasattr(user, 'playermodel') or user.playermodel is None:
             connect_steam_account(request, user)
+
+        user.playermodel.lastLogin = int(time.time())
 
         response = redirect("http://localhost:3000/")
         response.set_cookie(
@@ -86,6 +93,8 @@ def connect_steam_account(request, user):
 
     if player.user != user:
         player.user = user
+        player.active = False
+        player.lastLogin = int(time.time())
         player.save()
         print("Successfully connected account for player ", player.name)
 
@@ -94,3 +103,19 @@ def convertSteamID64ToSteamID3(steam_id64):
     steam_id3 = int(steam_id64) - steamid64ident
     return steam_id3
 
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def favorite_player(request, player_id):
+    user = request.user
+    player = get_object_or_404(PlayerModel, steam_id3=player_id)
+
+    if request.method == 'POST':
+        if player.steam_id3 not in user.favorites.values_list('id', flat=True):
+            user.favorites.add(player)
+        return Response({"message": "Added to favorites"}, status=201)
+
+    elif request.method == 'DELETE':
+        user.favorites.remove(player)
+        return Response({"message": "Removed from favorites"}, status=200)
+
+    return Response({"error": "Invalid request"}, status=400)

@@ -89,7 +89,7 @@ class proGGPlayersService:
                 continue
 
             matchMetadata = self.DLAPIDataService.getMatchMetadata(matchId)
-            if not matchMetadata.get('match_info'):
+            if not matchMetadata:
                 print(f'Failed to get metadata for match {matchId}')
                 continue
             metadataService.createNewMatchFromMetadata(matchMetadata)

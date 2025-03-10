@@ -39,8 +39,12 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
         return obj.match.length
 
     def get_team(self, obj):
-        teamDict = {'k_ECitadelLobbyTeam_Team0': 'The Amber Hand', 'k_ECitadelLobbyTeam_Team1': 'The Sapphire Flame'}
-        return teamDict[obj.team]
+        if '0' in obj.team:
+            return 'The Amber Hand'
+        if '1' in obj.team:
+            return 'The Sapphire Flame'
+
+        return obj.team
 
     def get_result(self, obj):
         if obj.match.victor == obj.team:
