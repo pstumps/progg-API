@@ -6,5 +6,7 @@ urlpatterns = [
     path("auth/steam/callback", views.steam_callback, name="steam_callback"),
     path('user-auth/', views.userAuth, name='user_auth'),
     path('user-info/', views.getUserInfo, name='user_info'),
-    path('favorites/<int:player_id>/', views.favorite_player, name='favorite_player'),
+    path('player-favorites/<int:player_id>/', views.favorites_player, name='favorite_player'),
+    path('match-favorites/<int:match_id>/', views.favorites_match, name='favorite_match'),
+    path('logoout/', views.logout_view, name='logout')
 ]

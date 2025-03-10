@@ -111,7 +111,6 @@ class MidbossEventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MidbossEvent
-        # fields = ['timestamp', 'type', 'team', 'details']
         fields = ['timestamp', 'type', 'team']
 
 

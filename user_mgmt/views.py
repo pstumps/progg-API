@@ -1,5 +1,5 @@
 from django.shortcuts import redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from social_django.utils import load_strategy, load_backend
 from social_core.actions import do_auth
 from rest_framework.response import Response
@@ -8,7 +8,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from apps.players.Models.PlayerModel import PlayerModel
+from apps.matches.Models.MatchesModel import MatchesModel
 from user_mgmt.serializers import UserSerializer
+from rest_framework import status
 
 import time
 
@@ -16,7 +18,6 @@ import time
 
 @api_view(['GET'])
 def userAuth(request):
-    print(request)
     if request.user.is_authenticated:
         return Response({
             'id': request.user.id,
@@ -105,7 +106,7 @@ def convertSteamID64ToSteamID3(steam_id64):
 
 @api_view(['POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def favorite_player(request, player_id):
+def favorites_player(request, player_id):
     user = request.user
     player = get_object_or_404(PlayerModel, steam_id3=player_id)
 
@@ -119,3 +120,26 @@ def favorite_player(request, player_id):
         return Response({"message": "Removed from favorites"}, status=200)
 
     return Response({"error": "Invalid request"}, status=400)
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def favorites_match(request, match_id):
+    user = request.user
+    match = get_object_or_404(MatchesModel, deadlock_id=match_id)
+
+    if request.method == 'POST':
+        if match.deadlock_id not in user.match_favorites.values_list('id', flat=True):
+            user.match_favorites.add(match)
+        return Response({"message": "Added to favorites"}, status=201)
+
+    elif request.method == 'DELETE':
+        user.match_favorites.remove(match)
+        return Response({"message": "Removed from favorites"}, status=200)
+
+    return Response({"error": "Invalid request"}, status=400)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    logout(request)
+    return Response(status=status.HTTP_204_NO_CONTENT)

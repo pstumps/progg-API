@@ -165,12 +165,11 @@ def getDeadlockAPIMatchHistory(request, steam_id3):
     return Response({"detail": history})
 
 @api_view(['GET'])
-def searchHistoryItem(request, steam_id3):
-    player = PlayerModel.objects.get(steam_id3=steam_id3)
-    playerMatches = player.matches.all()
-    print('player matches are: ')
-    print(playerMatches)
+def search_history_player_item(request, steam_id3):
+    try:
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        return Response(status=404)
     serializer = SearchHistoryPlayer(player)
-    print(serializer.data)
     return Response(status=200, data=serializer.data)
 

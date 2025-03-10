@@ -7,6 +7,7 @@ from apps.matches.services.MatchServices import MatchServices
 from apps.matches.services.MetadataServices import MetadataServices
 from .serializers.UserMatchDetailsSerializer import UserMatchDetailsSerializer
 from .serializers.scoreboard.MatchScoreboardSerializer import MatchScoreboardSerializer
+from .serializers.MatchHistoryItemSerializer import MatchHistoryItemSerializer
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 
 
@@ -89,3 +90,13 @@ def graphs(request, dl_match_id):
     graphs = metadataService.getPlayerGraphs(metadata)
 
     return Response(data=graphs, status=200)
+
+@api_view(['GET'])
+def search_history_match_item(request, dl_match_id):
+    try:
+        match = MatchesModel.objects.get(deadlock_id=dl_match_id)
+    except MatchesModel.DoesNotExist:
+        return Response(status=404)
+
+    serializer = MatchHistoryItemSerializer(match)
+    return Response(serializer.data)

@@ -8,5 +8,6 @@ urlpatterns = [
     path('<int:dl_match_id>/graphs/', views.graphs, name='graphs'),
     path('<int:dl_match_id>/timeline/', views.timelines, name='match_timeline'),
     path('<int:dl_match_id>/timeline/<int:user_id>', views.timelines, name='match_timeline'),
-    path('<int:dl_match_id>/user-details/', views.user_match_details, name='user_match_details')
+    path('<int:dl_match_id>/user-details/', views.user_match_details, name='user_match_details'),
+    path('<int:dl_match_id>/search-item/', views.search_history_match_item, name='searchHistoryMatchItem'),
 ]

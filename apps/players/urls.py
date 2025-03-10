@@ -12,6 +12,6 @@ urlpatterns = [
     path('<int:steam_id3>/steam-info', views.getSteamInfo, name='getSteamInfo'),
     path('<int:steam_id3>/update-steam-info', views.updatePlayerSteamWebAPI, name='updatePlayerSteamWebAPI'),
     path('<int:steam_id3>/deadlock-api-match-history', views.getDeadlockAPIMatchHistory, name='getDeadlockAPIMatchHistory'),
-    path('<int:steam_id3>/search-item/', views.searchHistoryItem, name='searchHistoryItem'),
+    path('<int:steam_id3>/search-item/', views.search_history_player_item, name='searchHistoryMatchItem'),
     path('delete-all-data', views.deleteAllData, name='deleteAllData')
 ]
