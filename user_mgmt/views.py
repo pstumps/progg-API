@@ -11,6 +11,8 @@ from apps.players.Models.PlayerModel import PlayerModel
 from apps.matches.Models.MatchesModel import MatchesModel
 from user_mgmt.serializers import UserSerializer
 from rest_framework import status
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
 
 import time
 
@@ -71,7 +73,7 @@ def steam_callback(request):
             value=request.session.session_key,
             httponly=True,
             samesite="None",
-            secure=False
+            secure=True
         )
         return response
 
@@ -111,7 +113,7 @@ def favorites_player(request, player_id):
     player = get_object_or_404(PlayerModel, steam_id3=player_id)
 
     if request.method == 'POST':
-        if player.steam_id3 not in user.favorites.values_list('id', flat=True):
+        if player.steam_id3 not in user.favorites.values_list('steam_id3', flat=True):
             user.favorites.add(player)
         return Response({"message": "Added to favorites"}, status=201)
 
@@ -122,13 +124,13 @@ def favorites_player(request, player_id):
     return Response({"error": "Invalid request"}, status=400)
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([IsAuthenticated])
 def favorites_match(request, match_id):
+    print('request', request)
     user = request.user
     match = get_object_or_404(MatchesModel, deadlock_id=match_id)
 
     if request.method == 'POST':
-        if match.deadlock_id not in user.match_favorites.values_list('id', flat=True):
+        if match.deadlock_id not in user.match_favorites.values_list('deadlock_id', flat=True):
             user.match_favorites.add(match)
         return Response({"message": "Added to favorites"}, status=201)
 
@@ -142,3 +144,11 @@ def favorites_match(request, match_id):
 def logout_view(request):
     request.session.flush()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET'])
+def get_csrf_token(request):
+    print('token request', request)
+    csrf_token = get_token(request)
+    print('csrf_token', csrf_token)
+    return Response({"csrfToken": csrf_token})
+

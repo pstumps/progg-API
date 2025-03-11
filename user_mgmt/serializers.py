@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
     icon = serializers.SerializerMethodField()
     steam_id3 = serializers.SerializerMethodField()
     player_favorites = serializers.SerializerMethodField()
@@ -9,7 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'firstName', 'lastName', 'email', 'phone_number', 'player_favorites', 'match_favorites', 'icon', 'steam_id3' ]
+        fields = ['name', 'email', 'player_favorites', 'match_favorites', 'icon', 'steam_id3']
+
+    def get_name(self, obj):
+        return obj.playermodel.name
 
     def get_icon(self, obj):
         return obj.playermodel.icon

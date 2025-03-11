@@ -8,5 +8,6 @@ urlpatterns = [
     path('user-info/', views.getUserInfo, name='user_info'),
     path('player-favorites/<int:player_id>/', views.favorites_player, name='favorite_player'),
     path('match-favorites/<int:match_id>/', views.favorites_match, name='favorite_match'),
+    path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),
     path('logout/', views.logout_view, name='logout')
 ]
