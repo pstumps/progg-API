@@ -18,7 +18,11 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
+from django.http import JsonResponse
+from django.middleware.csrf import get_token
 
+def csrf_token_view(request):
+    return JsonResponse({'csrfToken': get_token(request)})
 
 
 urlpatterns = [
@@ -28,6 +32,7 @@ urlpatterns = [
     path('matches/', include('apps.matches.urls')),
     path('user_mgmt/', include('user_mgmt.urls')),
     path('oauth/', include('social_django.urls', namespace='social')),
+    path("csrf/", csrf_token_view),
 ]
 
 if settings.DEBUG:

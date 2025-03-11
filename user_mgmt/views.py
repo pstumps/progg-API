@@ -139,7 +139,6 @@ def favorites_match(request, match_id):
     return Response({"error": "Invalid request"}, status=400)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def logout_view(request):
-    logout(request)
+    request.session.flush()
     return Response(status=status.HTTP_204_NO_CONTENT)
