@@ -98,7 +98,7 @@ class MetadataServices:
         self.DLAPIAnalytics = deadlockAPIAnalyticsService()
         self.DLAPIData = deadlockAPIDataService()
         self.DLAPIAssets = deadlockAPIAssetsService()
-        self.DLItemsDict = DLItemsDict
+        self.DLItemsDict = DLItemsDict # Can either be indexed by class name or item id. Make sure to initialize with right one
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
@@ -178,7 +178,8 @@ class MetadataServices:
             streaks[account_id] = 0
             lastKillTimes[account_id] = {
                 'prev_time': None,
-                'consecutive_count': 0
+                'consecutive_count': 0,
+                'timer': 12
             }
             multis[account_id] = [0] * 6
             streakCounts[account_id] = [0] * 7
@@ -318,21 +319,26 @@ class MetadataServices:
             if slayer_account_id not in lastKillTimes:
                 lastKillTimes[slayer_account_id] = {
                     'prev_time': None,
-                    'consecutive_count': 0
+                    'consecutive_count': 0,
+                    'timer': 12
                 }
 
             prev_time = lastKillTimes[slayer_account_id]['prev_time']
 
-            if prev_time is None or (death_event['game_time_s'] - prev_time > 5):
+            if prev_time is None or (death_event['game_time_s'] - prev_time > lastKillTimes[slayer_account_id]['timer']):
                 # More than 5s since last kill => reset
                 lastKillTimes[slayer_account_id]['consecutive_count'] = 1
+                lastKillTimes[slayer_account_id]['timer'] = 12
             else:
                 # Within 5s => increment the chain
                 lastKillTimes[slayer_account_id]['consecutive_count'] += 1
+                if lastKillTimes[slayer_account_id]['consecutive_count'] >= 4:
+                    lastKillTimes[slayer_account_id]['timer'] = 30
 
             current_count = lastKillTimes[slayer_account_id]['consecutive_count']
-            # If it's at least a "Double Kill" (2 or more)
+
             if current_count >= 2:
+                # ensure multis beyond 7 are grouped into final slot
                 multis[slayer_account_id][min(current_count, 7) - 2] += 1
 
             # Update 'prev_time' to the current kill's time
@@ -350,11 +356,11 @@ class MetadataServices:
                 )
 
     def processItemEvents(self, item_events, matchPlayerData, account_id, playerEvents):
-
+        print('itemevents Item ID:', item_events['item_id'])
         item_data = self.DLItemsDict.get(item_events['item_id'])
+        #for k, v in self.DLItemsDict.items()
         if not item_data:
             return
-
         playerDict = matchPlayerData[account_id]
         if item_data.get('type') == 'ability':
             if item_data['name'] not in playerDict['abilities']:
@@ -448,7 +454,6 @@ class MetadataServices:
                 objDmg.append({'timestamp': t, **{k: v['objDmg'] for k, v in d.items()}})
                 healing.append({'timestamp': t, **{k: v['healing'] for k, v in d.items()}})
 
-            print('Graphs created successfully!')
             data = {'teamKey': teamDict,
                     'graphs': {
                         'souls': souls,
@@ -461,6 +466,73 @@ class MetadataServices:
             return data
 
         return None
+
+    def getPlayerDamageGraphs(self, metadata):
+        import numpy as np
+
+        matchInfo = metadata.get('match_info')
+
+        if not matchInfo:
+            return
+
+        pSlotToHeroID = {}
+        heroData = {}
+        playerDamageDict = {}
+
+        for player in matchInfo['players']:
+
+            pSlotToHeroID[player['player_slot']] = player['hero_id']
+
+        dmgMatrix = matchInfo.get('damage_matrix')
+        dmgDealers = dmgMatrix.get("damage_dealers")
+        dmgSourceNames = dmgMatrix.get("source_details").get("source_name")
+        times = dmgMatrix.get("sample_time_s")
+
+        playerDamageDict['times'] = times
+
+        for dd in dmgDealers:
+            hero = pSlotToHeroID[dd.get('dealer_player_slot')]
+            heroData[hero] = {}
+            damage_sources = dd.get('damage_sources')
+            if not damage_sources:
+                continue
+
+            for source in damage_sources:
+                try:
+                    sourceName = dmgSourceNames[source.get('source_details_index')]
+                except IndexError:
+                    sourceName = 'Unknown'
+                damage_arrays = []
+                damage_to_players = source.get('damage_to_players')
+                if not damage_to_players:
+                    continue
+
+                for dtp in damage_to_players:
+                    if dtp.get('target_player_slot') == 0:
+                        continue
+                    damage = dtp.get('damage')
+                    if not damage or len(damage) == 0:
+                        continue
+                    damage_arrays.append(damage)
+
+                if not damage_arrays:
+                    continue
+
+
+                itemData = self.DLItemsDict.get(sourceName)
+                actual_name = itemData.get('name') if itemData else sourceName
+
+
+                max_length = max(len(a) for a in damage_arrays)
+                padded_arrays = [np.pad(a, (max_length - len(a), 0), constant_values=0) for a in damage_arrays]
+                damage_source_sum = np.sum(padded_arrays, axis=0)
+                # damage_source_sum_padded_with_none = [None if x == 0 else x for x in damage_source_sum]
+
+                heroData[hero][actual_name] = damage_source_sum
+
+            playerDamageDict['heroData'] = heroData
+        return playerDamageDict
+
 
     def checkForAbandonment(self, stats):
         if len(stats) - 2 < 0:
@@ -519,9 +591,9 @@ class MetadataServices:
                 'neutrals': (2, True),
                 'objectives': (3, True),
                 'crates': (4, False),
-                'assists': (7, False),
-                'denies': (5, False),
-                'other': (6, False)
+                'assists': (5, False),
+                'denies': (6, False),
+                'other': (7, False)
             }
 
         if playerSouls > 0:

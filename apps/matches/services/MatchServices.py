@@ -27,7 +27,8 @@ class MatchServices:
         matchMetadata = DataAPI.getMatchMetadata(dl_match_id)
         AssetsApi = deadlockAPIAssetsService()
         itemsDict = AssetsApi.getItemsDict()
-        match = MetadataServices(itemsDict).createNewMatchFromMetadata(matchMetadata)
+        matchServices = MetadataServices(DLItemsDict=itemsDict)
+        match = matchServices.createNewMatchFromMetadata(matchMetadata)
         return match
 
 

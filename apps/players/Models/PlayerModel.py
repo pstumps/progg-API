@@ -188,6 +188,7 @@ class PlayerModel(models.Model):
             multis_sum = []
         self.multis = multis_sum
 
+        # TODO: Fix how last streak index is calculated
         streaks_list = list(self.player_hero_stats.values_list('streaks', flat=True))
         streaks_array = [m for m in streaks_list if m]
         if streaks_array:

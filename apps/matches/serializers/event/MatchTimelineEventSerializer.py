@@ -52,58 +52,23 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
         return 'obj'
 
     def get_details(self, instance):
-        if instance.match.legacyFourLaneMap:
-            target = instance.target.split('_')
-            tier = target[2] if len(target) > 2 else None
-            lane = target[3] if len(target) > 3 else None
-            if lane:
-                if lane == 'Lane1':
-                    lane = 1
-                elif lane == 'Lane2':
-                    lane = 2
-                elif lane == 'Lane3':
-                    lane = 3
-                elif lane == 'Lane4':
-                    lane = 4
+        obj_id_dict = {
+            '1': {'target': 'Guardian', 'lane': 1, 'tier': 1},
+            '3': {'target': 'Guardian', 'lane': 2, 'tier': 1},
+            '4': {'target': 'Guardian', 'lane': 3, 'tier': 1},
+            '5': {'target': 'Walker', 'lane': 1},
+            '7': {'target': 'Walker', 'lane': 2},
+            '8': {'target': 'Walker', 'lane': 3},
+            '9': {'target': 'Guardian', 'lane': 1, 'tier': 3},
+            '10': {'target': 'Guardian', 'lane': 2, 'tier': 3},
+            '11': {'target': 'Guardian', 'lane': 3, 'tier': 3},
+            '12': {'target': 'Shrine'},
+            '14': {'target': 'Shrine'},
+            '15': {'target': 'Patron', 'tier': 1},
+            '0': {'target': 'Patron', 'tier': 2}
+        }
 
-            if tier:
-                if tier == 'Tier1':
-                    tier = 1
-                elif tier == 'Tier2':
-                    tier = 2
-
-            if 'k_eCitadelTeamObjective_Tier1' in instance.target:
-                return {'target': 'Guardian', 'lane': lane,  'tier': tier}
-            elif 'k_eCitadelTeamObjective_Tier2' in instance.target:
-                return {'target': 'Walker', 'lane': lane}
-            elif 'k_eCitadelTeamObjective_BarrackBoss' in instance.target:
-                return {'target': 'Guardian', 'lane': lane, 'tier': 3}
-            elif 'TitanShieldGenerator' in instance.target:
-                return {'target': 'Shrine'}
-            elif 'k_eCitadelTeamObjective_Titan' in instance.target:
-                return {'target': 'Patron', 'tier': 1}
-            elif 'k_eCitadelTeamObjective_Core' in instance.target:
-                return {'target': 'Patron', 'tier': 2}
-            else:
-                return {'target': instance.target}
-        else:
-            obj_id_dict = {
-                '1': {'target': 'Guardian', 'lane': 1, 'tier': 1},
-                '3': {'target': 'Guardian', 'lane': 2, 'tier': 1},
-                '4': {'target': 'Guardian', 'lane': 3, 'tier': 1},
-                '5': {'target': 'Walker', 'lane': 1},
-                '7': {'target': 'Walker', 'lane': 2},
-                '8': {'target': 'Walker', 'lane': 3},
-                '9': {'target': 'Guardian', 'lane': 1, 'tier': 3},
-                '10': {'target': 'Guardian', 'lane': 2, 'tier': 3},
-                '11': {'target': 'Guardian', 'lane': 3, 'tier': 3},
-                '12': {'target': 'Shrine'},
-                '14': {'target': 'Shrine'},
-                '15': {'target': 'Patron', 'tier': 1},
-                '0': {'target': 'Patron', 'tier': 2}
-            }
-
-            return obj_id_dict.get(instance.target)
+        return obj_id_dict.get(instance.target)
 
 class MidbossEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
@@ -146,3 +111,42 @@ class RejuvEventSerializer(serializers.ModelSerializer):
         else:
             return instance.team
 
+
+'''
+# ObjectiveEventSerializer -> get_details [deprecated]
+def get_details(self, instance):
+    if instance.match.legacyFourLaneMap:
+        target = instance.target.split('_')
+        tier = target[2] if len(target) > 2 else None
+        lane = target[3] if len(target) > 3 else None
+        if lane:
+            if lane == 'Lane1':
+                lane = 1
+            elif lane == 'Lane2':
+                lane = 2
+            elif lane == 'Lane3':
+                lane = 3
+            elif lane == 'Lane4':
+                lane = 4
+    
+        if tier:
+            if tier == 'Tier1':
+                tier = 1
+            elif tier == 'Tier2':
+                tier = 2
+    
+        if 'k_eCitadelTeamObjective_Tier1' in instance.target:
+            return {'target': 'Guardian', 'lane': lane, 'tier': tier}
+        elif 'k_eCitadelTeamObjective_Tier2' in instance.target:
+            return {'target': 'Walker', 'lane': lane}
+        elif 'k_eCitadelTeamObjective_BarrackBoss' in instance.target:
+            return {'target': 'Guardian', 'lane': lane, 'tier': 3}
+        elif 'TitanShieldGenerator' in instance.target:
+            return {'target': 'Shrine'}
+        elif 'k_eCitadelTeamObjective_Titan' in instance.target:
+            return {'target': 'Patron', 'tier': 1}
+        elif 'k_eCitadelTeamObjective_Core' in instance.target:
+            return {'target': 'Patron', 'tier': 2}
+        else:
+            return {'target': instance.target}
+'''

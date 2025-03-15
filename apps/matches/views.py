@@ -9,6 +9,7 @@ from .serializers.UserMatchDetailsSerializer import UserMatchDetailsSerializer
 from .serializers.scoreboard.MatchScoreboardSerializer import MatchScoreboardSerializer
 from .serializers.MatchHistoryItemSerializer import MatchHistoryItemSerializer
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 
 @api_view(['GET'])
@@ -25,10 +26,16 @@ def match_details(request, dl_match_id):
     metadata = dlAPIDataService.getMatchMetadata(dl_match_id)
     matchEvents = matchServices.getMatchTimeline(match)
 
-    metadataServices = MetadataServices()
-    graphData = metadataServices.getPlayerGraphs(metadata)
+    print('Constructing graphs...')
+    AssetsApi = deadlockAPIAssetsService()
+    itemsDict = AssetsApi.getItemsDictIndexedByClassname()
+    metadataService = MetadataServices(itemsDict)
+    graphData = metadataService.getPlayerGraphs(metadata)
+    damageGraphData = metadataService.getPlayerDamageGraphs(metadata)
+    print('done!')
+
     print('Serializing match...')
-    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents, 'graphData': graphData})
+    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents, 'graphData': graphData, 'damageGraphData': damageGraphData})
     print('done!')
     return Response(serializer.data)
 
@@ -90,6 +97,16 @@ def graphs(request, dl_match_id):
     graphs = metadataService.getPlayerGraphs(metadata)
 
     return Response(data=graphs, status=200)
+
+
+@api_view(['GET'])
+def damageGraphs(request, dl_match_id):
+    AssetsApi = deadlockAPIAssetsService()
+    itemsDict = AssetsApi.getItemsDictIndexedByClassname()
+    metadataService = MetadataServices(itemsDict)
+    dmgGraphs = metadataService.getPlayerDamageGraphs(dl_match_id)
+
+    return Response(data=dmgGraphs, status=200)
 
 @api_view(['GET'])
 def search_history_match_item(request, dl_match_id):
