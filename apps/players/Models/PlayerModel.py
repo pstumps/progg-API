@@ -200,18 +200,20 @@ class PlayerModel(models.Model):
 
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
-        if self.user and self.isInactive() is False:
-            playerRecords = PlayerRecords.objects.filter(player=self).first()
-            if not playerRecords:
-                playerRecords = PlayerRecords.objects.create(player=self)
+        #if self.user and self.isInactive() is False:
+        playerRecords = PlayerRecords.objects.filter(player=self).first()
+        if not playerRecords:
+            playerRecords = PlayerRecords.objects.create(player=self)
 
-            playerRecords.updateRecord('kills', heroId, kills)
-            playerRecords.updateRecord('assists', heroId, assists)
-            playerRecords.updateRecord('souls', heroId, souls)
-            playerRecords.updateRecord('heroDamage', heroId, heroDamage)
-            playerRecords.updateRecord('objDamage', heroId, objDamage)
-            playerRecords.updateRecord('healing', heroId, healing)
-            playerRecords.updateRecord('lastHits', heroId, lastHits)
+        playerRecords.updateRecord('kills', heroId, kills)
+        playerRecords.updateRecord('assists', heroId, assists)
+        playerRecords.updateRecord('souls', heroId, souls)
+        playerRecords.updateRecord('heroDamage', heroId, heroDamage)
+        playerRecords.updateRecord('objDamage', heroId, objDamage)
+        playerRecords.updateRecord('healing', heroId, healing)
+        playerRecords.updateRecord('lastHits', heroId, lastHits)
+
+        print('Player records updated for player:', self.name)
 
     def getOrCreatePlayerHero(self, heroId):
         # Update player hero model

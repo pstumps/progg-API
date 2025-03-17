@@ -45,9 +45,9 @@ class deadlockAPIAssetsService:
         return response.json()
 
     def getItemsDict(self):
-        with open(str(BASE_DIR) + '\\proggbackend\\ItemData_IDIndexed.json') as f:
+        with open(str(BASE_DIR) + '\\proggbackend\\ItemData.json') as f:
             response = json.load(f)
-        return response
+        return {item['id']: item for item in response}
 
 
     def getItemsDictIndexedByClassname(self):

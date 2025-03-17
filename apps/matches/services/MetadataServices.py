@@ -274,6 +274,7 @@ class MetadataServices:
 
         if matchPlayersToCreate:
             self.getMedals(matchPlayersToCreate)
+            self.rankMatchPlayers(match, matchPlayersToCreate)
 
             MatchPlayerModel.objects.bulk_update(matchPlayersToCreate, ['medals'])
 
@@ -356,7 +357,6 @@ class MetadataServices:
                 )
 
     def processItemEvents(self, item_events, matchPlayerData, account_id, playerEvents):
-        print('itemevents Item ID:', item_events['item_id'])
         item_data = self.DLItemsDict.get(item_events['item_id'])
         #for k, v in self.DLItemsDict.items()
         if not item_data:
@@ -492,7 +492,7 @@ class MetadataServices:
 
         for dd in dmgDealers:
             hero = pSlotToHeroID[dd.get('dealer_player_slot')]
-            heroData[hero] = {}
+            playerDamageDict[hero] = {}
             damage_sources = dd.get('damage_sources')
             if not damage_sources:
                 continue
@@ -528,9 +528,8 @@ class MetadataServices:
                 damage_source_sum = np.sum(padded_arrays, axis=0)
                 # damage_source_sum_padded_with_none = [None if x == 0 else x for x in damage_source_sum]
 
-                heroData[hero][actual_name] = damage_source_sum
+                playerDamageDict[hero][actual_name] = damage_source_sum
 
-            playerDamageDict['heroData'] = heroData
         return playerDamageDict
 
 
@@ -546,6 +545,62 @@ class MetadataServices:
                 # Player must be doing nothing
                 return stats[i]['time_stamp_s']
         return None
+
+    def rankMatchPlayers(self, match, matchPlayersToCreate):
+        def ordinal(n):
+            if 10 <= n % 100 <= 20:
+                suffix = 'th'
+            else:
+                suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+            return f"{n}{suffix}"
+
+        def getPlayerScore(matchPlayer):
+            killsWeight = 2.0
+            deathsWeight = -2.0
+            assistsWeight = 1.5
+            soulsWeight = 2.5
+            heroDamageWeight = 1
+            objDamageWeight = 1
+            healingWeight = 1
+            lastHitsWeight = 0.5
+            deniesWeight = 0.5
+            accuracyWeight = 0.25
+
+            return (matchPlayer.kills * killsWeight +
+                    matchPlayer.deaths * deathsWeight +
+                    matchPlayer.assists * assistsWeight +
+                    matchPlayer.souls * soulsWeight +
+                    matchPlayer.heroDamage * heroDamageWeight +
+                    matchPlayer.objDamage * objDamageWeight +
+                    matchPlayer.healing * healingWeight +
+                    matchPlayer.lastHits * lastHitsWeight +
+                    matchPlayer.denies * deniesWeight +
+                    matchPlayer.accuracy * accuracyWeight)
+
+        for mp in matchPlayersToCreate:
+            mp.score = getPlayerScore(mp)
+
+        matchPlayersToCreate.sort(key=lambda x: x.score, reverse=True)
+
+        losingTeamPlayers = [mp for mp in matchPlayersToCreate if mp.team != match.victor ]
+
+        if losingTeamPlayers:
+            svp = max(losingTeamPlayers, key=lambda x: x.score)
+        else:
+            svp = None
+
+        for rank, mp in enumerate(matchPlayersToCreate, start=1):
+            mp.medals = mp.medals or []
+
+            if rank == 1:
+                mp.medals.insert(0, 'MVP')
+            elif svp is not None and mp.steam_id3 == svp.steam_id3:
+                mp.medals.insert(0, 'SVP')
+            else:
+                mp.medals.insert(0, ordinal(rank))
+
+            mp.save()
+
 
     def computePlayerMetadata(self, matchMetadata, playerMetadata, legacyFourLaneMap=False):
         match_info = matchMetadata

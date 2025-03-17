@@ -24,7 +24,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                   'abilityOrder', 'medals', 'soulsBreakdown', 'party', 'multis', 'streaks']
 
     def get_name(self, obj):
-        '''
+
         if obj.player:
             if obj.player.name == '':
                 obj.player.updatePlayerFromSteamWebAPI()
@@ -32,6 +32,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
             return obj.player.name
         '''
         return None
+        '''
 
     def get_hero(self, obj):
         hero = HeroesModel.objects.get(hero_deadlock_id=obj.hero_deadlock_id)

@@ -85,8 +85,6 @@ class PlayerHeroModel(models.Model):
 
     def updateMidbossStats(self, team, midbossEvents):
         for event in midbossEvents:
-            print(team)
-            print(model_to_dict(event))
             if str(event.team) == str(team):
                 self.rejuvinators = self.rejuvinators + 1 if self.rejuvinators else 1
             if str(event.slayer) == str(team):
