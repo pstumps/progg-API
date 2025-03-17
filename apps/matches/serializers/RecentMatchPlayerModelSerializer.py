@@ -95,25 +95,7 @@ class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
         return matchStats[enemyTeam].get('souls', 0)
 
     def get_build(self, obj):
-        build = {'weapon': 0, 'vitality': 0, 'spirit': 0, }
-        percentArray = []
-        dlItemsDict = deadlockAPIAssetsService().getItemsDict()
-
-        for type, items in obj.items.items():
-            if type != 'flex':
-                build[type] = len(items)
-            else:
-                for fItem in items:
-                    itemData = dlItemsDict.get(fItem)
-                    if itemData:
-                        build[itemData.get('item_slot_type')] += 1
-
-        for count in build.values():
-            filled = min(count, 8)
-            percent = round(filled / 8 * 100, 2)
-            percentArray.append(percent)
-
-        return percentArray
+        return obj.items['percentages']
 
     def get_avgRank(self, obj):
         if obj.match.averageRank:

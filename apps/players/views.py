@@ -5,6 +5,7 @@ from rest_framework.throttling import UserRateThrottle
 
 from .services import proGGPlayersService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
+from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
 from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
@@ -57,7 +58,6 @@ def stats(request, steam_id3):
                         data={"detail": "Player does not exist or has no match history."},
                         status=400
                     )
-
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
@@ -89,7 +89,6 @@ def testStats(request, steam_id3):
                 player.updatePlayerStats()
                 player.updated = int(time.time())
                 player.save()
-
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
@@ -104,7 +103,6 @@ def playerHeroes(request, steam_id3):
         )
 
     playerHeroes = player.player_hero_stats.all()
-
     pheroSerializer = PlayerHeroModelSerializer(playerHeroes, many=True)
 
     return Response(data=pheroSerializer.data, status=200)

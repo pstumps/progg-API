@@ -200,8 +200,9 @@ class PlayerModel(models.Model):
 
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
-        #if self.user and self.isInactive() is False:
-        playerRecords = PlayerRecords.objects.filter(player=self).first()
+        playerRecords = None
+        if self.user:
+            playerRecords = PlayerRecords.objects.filter(player=self).first()
         if not playerRecords:
             playerRecords = PlayerRecords.objects.create(player=self)
 

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.players.Models.PlayerRecords import PlayerRecords
 from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.heroes.Models.HeroesModel import HeroesModel
 from apps.heroes.serializers import RecentMatchStatsHeroSerializer
@@ -128,7 +129,18 @@ class UserMatchDetailsSerializer(serializers.ModelSerializer):
 
     def get_records(self, obj):
         arr = []
-        records = obj.player.playerrecords_set.get().records
+        try:
+            records = obj.player.playerrecords_set.get().records
+        except PlayerRecords.DoesNotExist:
+            obj.player.updatePlayerRecords(obj.hero_deadlock_id,
+                                           obj.kills,
+                                           obj.deaths,
+                                           obj.assists,
+                                           obj.heroDamage,
+                                           obj.objDamage,
+                                           obj.healing,
+                                           obj.lastHits,
+                                           )
 
         for name, value in records.items():
             if name == 'kills' and value == list([obj.hero_deadlock_id, obj.kills]):

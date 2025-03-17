@@ -24,7 +24,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                   'abilityOrder', 'medals', 'soulsBreakdown', 'party', 'multis', 'streaks']
 
     def get_name(self, obj):
-
+        '''
         if obj.player:
             if obj.player.name == '':
                 obj.player.updatePlayerFromSteamWebAPI()
@@ -32,7 +32,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
             return obj.player.name
         '''
         return None
-        '''
+
 
     def get_hero(self, obj):
         hero = HeroesModel.objects.get(hero_deadlock_id=obj.hero_deadlock_id)
@@ -45,26 +45,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         return obj.lane
 
     def get_build(self, obj):
-        build = {'weapon': 0, 'vitality': 0, 'spirit': 0,}
-        percentArray = []
-
-        dlItemsDict = deadlockAPIAssetsService().getItemsDict()
-
-        for type, items in obj.items.items():
-            if type != 'flex':
-                build[type] = len(items)
-            else:
-                for fItem in items:
-                    itemData = dlItemsDict.get(fItem)
-                    if itemData:
-                        build[itemData.get('item_slot_type')] += 1
-
-        for count in build.values():
-            filled = min(count, 8)
-            percent = round(filled / 8 * 100, 2)
-            percentArray.append(percent)
-
-        return percentArray
+        return obj.items['percentages']
 
     def get_buildItems(self, obj):
         buildItemsDict = {'orange': [], 'purple': [], 'green': [], 'flex': []}
@@ -76,17 +57,6 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
             elif type == 'vitality':
                 buildItemsDict['green'] = [i for i in items]
             elif type == 'flex':
-                '''
-                for flexItem in items:
-                    if flexItem['type'] == 'weapon':
-                        flexItem['type'] = 'orange'
-                    elif flexItem['type'] == 'spirit':
-                        flexItem['type'] = 'purple'
-                    elif flexItem['type'] == 'vitality':
-                        flexItem['type'] = 'green'
-
-                    buildItemsDict['flex'].append({'type': flexItem['type'], 'target': flexItem['target']})
-                '''
                 for flexItem in items:
                     buildItemsDict['flex'].append(flexItem)
         return buildItemsDict

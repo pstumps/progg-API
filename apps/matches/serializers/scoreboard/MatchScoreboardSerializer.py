@@ -24,7 +24,6 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
         return datetime.fromtimestamp(obj.date, timezone.utc)
 
     def get_result(self, obj):
-
         if '0' in str(obj.victor):
             team = 'Amber Hand'
         elif '1' in str(obj.victor):

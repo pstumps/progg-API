@@ -195,8 +195,7 @@ class MetadataServices:
                     matchPlayerData[account_id] = self.createMatchPlayerData(player, playerToTrack, match, matchMetadata)
 
             if player.get('items'):
-                for item_events in player.get('items'):
-                    self.processItemEvents(item_events, matchPlayerData, account_id, playerEvents)
+                self.processItemEvents(player.get('items'), matchPlayerData, account_id, playerEvents)
 
             # map was 4 lanes instead of new 3
             if legacyFourLaneMap:
@@ -356,44 +355,76 @@ class MetadataServices:
                     )
                 )
 
-    def processItemEvents(self, item_events, matchPlayerData, account_id, playerEvents):
-        item_data = self.DLItemsDict.get(item_events['item_id'])
-        #for k, v in self.DLItemsDict.items()
-        if not item_data:
-            return
+    def processItemEvents(self, itemEvents, matchPlayerData, account_id, playerEvents):
         playerDict = matchPlayerData[account_id]
-        if item_data.get('type') == 'ability':
-            if item_data['name'] not in playerDict['abilities']:
-                playerDict['abilities'][item_data['name']] = []
-            else:
-                playerDict['abilities'][item_data['name']].append(item_events['game_time_s'])
+        for item_events in itemEvents:
+            item_data = self.DLItemsDict.get(str(item_events['item_id']))
+            if not item_data:
+                print(f'item data not found for {item_events["item_id"]}')
+                continue
 
-            if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
-                self.handleMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
-                                                           item_data, playerEvents)
-
-        elif item_data.get('type') == 'upgrade':
-            playerItemsDictionary = playerDict['items']
-            if item_events['sold_time_s'] == 0 and item_events['upgrade_id'] == 0:
-                # Item was a part of final build
-                if item_data['item_slot_type'] not in playerItemsDictionary:
-                    playerItemsDictionary[item_data['item_slot_type']] = []
-                if len(playerItemsDictionary[item_data['item_slot_type']]) >= 4:
-                    if not playerItemsDictionary.get('flex'):
-                        playerItemsDictionary['flex'] = []
-                    playerItemsDictionary['flex'].append(
-                        item_data['id']
-                    )
+            if item_data.get('type') == 'ability':
+                if item_data['name'] not in playerDict['abilities']:
+                    playerDict['abilities'][item_data['name']] = []
                 else:
-                    playerItemsDictionary[item_data['item_slot_type']].append(item_data['id'])
-            if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
-                self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
-                                                        item_data, playerEvents)
+                    playerDict['abilities'][item_data['name']].append(item_events['game_time_s'])
 
-            #testing only
-            if playerDict['playerModel'].steam_id3 == 44046862:
-                self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
-                                                        item_data, playerEvents)
+                if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
+                    self.handleMatchPlayerTimelineAbilityEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                               item_data, playerEvents)
+
+            elif item_data.get('type') == 'upgrade':
+                playerItemsDictionary = playerDict['items']
+                if item_events['sold_time_s'] == 0 and item_events['upgrade_id'] == 0:
+                    # Item was a part of final build
+                    if item_data['item_slot_type'] not in playerItemsDictionary:
+                        playerItemsDictionary[item_data['item_slot_type']] = []
+                    if len(playerItemsDictionary[item_data['item_slot_type']]) >= 4:
+                        if not playerItemsDictionary.get('flex'):
+                            playerItemsDictionary['flex'] = []
+                        playerItemsDictionary['flex'].append(
+                            item_data['id']
+                        )
+                    else:
+                        playerItemsDictionary[item_data['item_slot_type']].append(item_data['id'])
+
+                if playerDict['playerModel'].user and playerDict['playerModel'].isInactive() is False:
+                    self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                            item_data, playerEvents)
+
+                #testing only
+                if playerDict['playerModel'].steam_id3 == 44046862:
+                    self.handleMatchPlayerTimelineItemEvent(playerDict['playerModel'], playerDict['match'], item_events,
+                                                            item_data, playerEvents)
+
+        # Get build percentages
+        build = {'weapon': 0, 'vitality': 0, 'spirit': 0, }
+        percentArray = []
+
+        for type, items in playerDict['items'].items():
+            if type != 'flex':
+                for item in items:
+                    itemData = self.DLItemsDict.get(str(item))
+                    if itemData:
+                        tier = itemData.get('item_tier', 1)
+                        build[type] += tier
+            else:
+                for fItem in items:
+                    itemData = self.DLItemsDict.get(str(fItem))
+                    if itemData:
+                        tier = itemData.get('item_tier', 1)
+                        itemType = itemData.get('item_slot_type')
+                        if tier and itemType in build:
+                            build[itemType] += tier
+
+        for t in build.keys():
+            filled = min(build[t], 32) / 32 * 100
+            percent = round(filled, 2)
+            percentArray.append(percent)
+
+        playerDict['items']['percentages'] = percentArray
+
+
 
     def processObjectivesAndMidbossEvents(self, match, matchMetadata):
         objectiveEvents = []

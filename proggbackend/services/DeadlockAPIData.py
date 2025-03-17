@@ -25,7 +25,7 @@ class deadlockAPIDataService:
             'match_id': dl_match_id,
             'api_key': api_key if api_key else self.dl_api_key
         }
-        '''
+
         #For Testing only
         with open(str(BASE_DIR) + '\\proggbackend\\Response_newmetadata.json') as f:
             response = json.load(f)
@@ -44,6 +44,7 @@ class deadlockAPIDataService:
             return None
 
         return data
+        '''
 
 
     def getMatchMetadataTest(self, dl_match_id, api_key=None):

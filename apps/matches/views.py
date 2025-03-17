@@ -49,7 +49,9 @@ def match_details(request, dl_match_id):
     print('done!')
 
     print('Serializing match...')
-    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents, 'graphData': graphData, 'damageGraphData': damageGraphData})
+    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents,
+                                                           'graphData': graphData,
+                                                           'damageGraphData': damageGraphData})
     print('done!')
 
     response_data = {'matchScoreboardData': serializer.data}
@@ -143,8 +145,3 @@ def search_history_match_item(request, dl_match_id):
     serializer = MatchHistoryItemSerializer(match)
     return Response(serializer.data)
 
-@api_view(['GET'])
-def getItemsDict(request):
-    AssetsApi = deadlockAPIAssetsService()
-    itemsDict = AssetsApi.getItemsDict()
-    return Response(itemsDict)
