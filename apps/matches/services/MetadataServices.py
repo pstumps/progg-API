@@ -425,7 +425,6 @@ class MetadataServices:
         playerDict['items']['percentages'] = percentArray
 
 
-
     def processObjectivesAndMidbossEvents(self, match, matchMetadata):
         objectiveEvents = []
         midbossEvents = []
