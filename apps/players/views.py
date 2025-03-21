@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.throttling import UserRateThrottle
 
+from .serializers.PlayerRecordsSerializer import PlayerRecordsSerializer
 from .services import proGGPlayersService
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
@@ -13,6 +14,7 @@ from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerial
 from .serializers.SearchHistoryPlayerSerializer import SearchHistoryPlayer
 from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerializer
 from .Models.PlayerModel import PlayerModel
+from .Models.PlayerRecords import PlayerRecords
 
 
 @api_view(['GET'])
@@ -40,7 +42,6 @@ def stats(request, steam_id3):
         player = PlayerModel.objects.get(steam_id3=steam_id3)
         player.updatePlayerFromSteamWebAPI()
         player.updatePlayerStats()
-        player.updated = int(time.time())
         player.save()
         # return Response(status=201, data={"detail": "New Player"})
     else:
@@ -51,8 +52,6 @@ def stats(request, steam_id3):
                 if playersService.updateMatchHistory(steam_id3):
                     player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()
-                    player.updated = int(time.time())
-                    player.save()
                 else:
                     return Response(
                         data={"detail": "Player does not exist or has no match history."},
@@ -87,8 +86,7 @@ def testStats(request, steam_id3):
             if (int(time.time()) - (player.updated or 0)) > (60 * 15):
                 print('Updating player...')
                 player.updatePlayerStats()
-                player.updated = int(time.time())
-                player.save()
+
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 
@@ -170,4 +168,30 @@ def search_history_player_item(request, steam_id3):
         return Response(status=404)
     serializer = SearchHistoryPlayer(player)
     return Response(status=200, data=serializer.data)
+
+@api_view(['GET'])
+def playerRecords(request, steam_id3):
+    try:
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        return Response(status=404)
+    try:
+        player_records = player.playerrecords_set.get()
+    except PlayerRecords.DoesNotExist:
+        return Response(status=404)
+
+    print(player_records)
+
+    serializer = PlayerRecordsSerializer(player_records)
+    return Response(status=200, data=serializer.data)
+
+@api_view(['GET'])
+def calculateRank(request, steam_id3):
+    try:
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        return Response(status=404)
+
+    player.calculateRank()
+    return Response(status=200, data=player.rank)
 

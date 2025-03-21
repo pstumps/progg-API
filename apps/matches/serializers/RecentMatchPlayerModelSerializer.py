@@ -95,7 +95,10 @@ class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
         return matchStats[enemyTeam].get('souls', 0)
 
     def get_build(self, obj):
-        return obj.items['percentages']
+        percentages = obj.items.get('percentages')
+        if percentages:
+            return percentages
+        return [0, 0, 0]
 
     def get_avgRank(self, obj):
         if obj.match.averageRank:

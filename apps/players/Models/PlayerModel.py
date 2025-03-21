@@ -8,6 +8,27 @@ from .PlayerRecords import PlayerRecords
 from ...heroes.Models.HeroesModel import HeroesModel
 from ...matches.Models.MatchesModel import MatchesModel
 
+def calculate_average_rank(ranks):
+    def rank_to_numeric(r):
+        if r == 0:
+            return 0
+        m = r // 10
+        s = r % 10
+        return 6*m+s
+
+    valid_ranks = [0] + [6 * m + s for m in range(1, 12) for s in range(1, 7)]
+    numeric_ranks = [rank_to_numeric(r) for r in ranks if rank_to_numeric(r) in valid_ranks]
+    avg = sum(numeric_ranks) / len(numeric_ranks) if numeric_ranks else 0
+    closest = min(valid_ranks, key=lambda x: abs(x - avg))
+
+    if closest == 0:
+        return 0
+    else:
+        main = closest // 6
+        sub = closest % 6
+        return int(f'{main}{sub}')
+
+
 def current_timestamp():
     return int(time.time())
 
@@ -25,7 +46,7 @@ class PlayerModel(models.Model):
     icon = models.JSONField(null=True)
     region = models.CharField(max_length=2, null=True, blank=True)
     private = models.BooleanField(default=False)
-    rank = models.IntegerField(default=0)
+    rank = models.IntegerField(null=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     matches = models.ManyToManyField(MatchesModel, related_name='playerModel')
     wins = models.IntegerField(default=0)
@@ -39,13 +60,13 @@ class PlayerModel(models.Model):
     heroDamage = models.BigIntegerField(default=0)
     objDamage = models.BigIntegerField(default=0)
     healing = models.BigIntegerField(default=0)
-    guardians = models.IntegerField(null=True)
-    walkers = models.IntegerField(null=True)
-    baseGuardians = models.IntegerField(null=True)
-    shieldGenerators = models.IntegerField(null=True)
-    patrons = models.IntegerField(null=True)
-    midbosses = models.IntegerField(null=True)
-    rejuvinators = models.IntegerField(null=True)
+    guardians = models.IntegerField(default=0)
+    walkers = models.IntegerField(default=0)
+    baseGuardians = models.IntegerField(default=0)
+    shieldGenerators = models.IntegerField(default=0)
+    patrons = models.IntegerField(default=0)
+    midbosses = models.IntegerField(default=0)
+    rejuvinators = models.IntegerField(default=0)
     laneCreeps = models.IntegerField(default=0)
     neutralCreeps = models.IntegerField(default=0)
     lastHits = models.IntegerField(default=0)
@@ -66,10 +87,30 @@ class PlayerModel(models.Model):
         blank=True
     )
     updated = models.BigIntegerField(null=True)
-    inactive = models.BooleanField(default=True) # TODO: Change default to True after testing
+    inactive = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
+
+    def calculateRank(self):
+        last_ten_matches = self.matches.order_by('-date')[:10]
+        if len(last_ten_matches) == 0:
+            self.rank = None
+
+        if len(last_ten_matches) == 1:
+            single_match = last_ten_matches[0]
+            if single_match.averageRank:
+                if single_match.averageRank.get('match_average_badge'):
+                    self.rank = int(single_match.averageRank.get('match_average_badge'))
+
+        averageRanks = []
+        for match in last_ten_matches:
+            if match.averageRank:
+                if match.averageRank.get('match_average_badge'):
+                    averageRanks.append(int(match.averageRank.get('match_average_badge')))
+
+        self.rank = calculate_average_rank(averageRanks)
+
 
     def isInactive(self):
         if self.lastLogin:
@@ -196,13 +237,13 @@ class PlayerModel(models.Model):
         else:
             streaks_sum = []
         self.streaks = streaks_sum
+        self.updated = int(time.time())
+        self.calculateRank()
         self.save()
 
 
     def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
-        playerRecords = None
-        if self.user:
-            playerRecords = PlayerRecords.objects.filter(player=self).first()
+        playerRecords = PlayerRecords.objects.filter(player=self).first()
         if not playerRecords:
             playerRecords = PlayerRecords.objects.create(player=self)
 
@@ -213,8 +254,6 @@ class PlayerModel(models.Model):
         playerRecords.updateRecord('objDamage', heroId, objDamage)
         playerRecords.updateRecord('healing', heroId, healing)
         playerRecords.updateRecord('lastHits', heroId, lastHits)
-
-        print('Player records updated for player:', self.name)
 
     def getOrCreatePlayerHero(self, heroId):
         # Update player hero model

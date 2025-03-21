@@ -15,7 +15,7 @@ def calculateAverageBadgeFromMetadata(metadata):
     def parse_badge(badge_int):
         """Parse the stored integer into (main_rank, sub_rank)."""
         if badge_int is None:
-            return None, None  # Or handle however you like
+            return None, None
 
         if badge_int == 0:
             return 0, 0
@@ -49,10 +49,6 @@ def calculateAverageBadgeFromMetadata(metadata):
         return (main_rank, sub_rank)
 
     def main_sub_to_badge(mr, sr):
-        """
-        Convert (main_rank, sub_rank) to a single integer badge:
-        e.g. (5,6) -> 56, (10,6) -> 106, (11,6) -> 116, (0,0) -> 0.
-        """
         if mr == 0:
             return 0
         return int(f"{mr}{sr}")
@@ -179,7 +175,7 @@ class MetadataServices:
             lastKillTimes[account_id] = {
                 'prev_time': None,
                 'consecutive_count': 0,
-                'timer': 12
+                'timer': 15
             }
             multis[account_id] = [0] * 6
             streakCounts[account_id] = [0] * 7
@@ -320,7 +316,7 @@ class MetadataServices:
                 lastKillTimes[slayer_account_id] = {
                     'prev_time': None,
                     'consecutive_count': 0,
-                    'timer': 12
+                    'timer': 15
                 }
 
             prev_time = lastKillTimes[slayer_account_id]['prev_time']
@@ -328,7 +324,7 @@ class MetadataServices:
             if prev_time is None or (death_event['game_time_s'] - prev_time > lastKillTimes[slayer_account_id]['timer']):
                 # More than 5s since last kill => reset
                 lastKillTimes[slayer_account_id]['consecutive_count'] = 1
-                lastKillTimes[slayer_account_id]['timer'] = 12
+                lastKillTimes[slayer_account_id]['timer'] = 15
             else:
                 # Within 5s => increment the chain
                 lastKillTimes[slayer_account_id]['consecutive_count'] += 1
@@ -356,11 +352,22 @@ class MetadataServices:
                 )
 
     def processItemEvents(self, itemEvents, matchPlayerData, account_id, playerEvents):
+        def handleItemData(item_id):
+            idata = self.DLItemsDict.get(str(item_id))
+            if not idata:
+                print(f'item data not found for {item_id}')
+                try:
+                    idata = self.DLAPIAssets.getItemById(item_id)
+                    return idata
+                except Exception as e:
+                    print(f'Error getting item data: {e}')
+                    return None
+            return idata
+
         playerDict = matchPlayerData[account_id]
         for item_events in itemEvents:
-            item_data = self.DLItemsDict.get(str(item_events['item_id']))
+            item_data = handleItemData(item_events['item_id'])
             if not item_data:
-                print(f'item data not found for {item_events["item_id"]}')
                 continue
 
             if item_data.get('type') == 'ability':
@@ -400,26 +407,21 @@ class MetadataServices:
         # Get build percentages
         build = {'weapon': 0, 'vitality': 0, 'spirit': 0, }
         percentArray = []
-
         for type, items in playerDict['items'].items():
             if type != 'flex':
-                for item in items:
-                    itemData = self.DLItemsDict.get(str(item))
-                    if itemData:
-                        tier = itemData.get('item_tier', 1)
-                        build[type] += tier
+                build[type] += len(items)
             else:
                 for fItem in items:
-                    itemData = self.DLItemsDict.get(str(fItem))
+                    itemData = handleItemData(fItem)
                     if itemData:
-                        tier = itemData.get('item_tier', 1)
-                        itemType = itemData.get('item_slot_type')
-                        if tier and itemType in build:
-                            build[itemType] += tier
+                        item_slot_type = itemData.get('item_slot_type')
+                        build[itemData.get('item_slot_type')] += 1
+                    else:
+                        continue
 
-        for t in build.keys():
-            filled = min(build[t], 32) / 32 * 100
-            percent = round(filled, 2)
+        for count in build.values():
+            filled = min(count, 8)
+            percent = round(filled / 8 * 100, 2)
             percentArray.append(percent)
 
         playerDict['items']['percentages'] = percentArray
@@ -506,7 +508,6 @@ class MetadataServices:
             return
 
         pSlotToHeroID = {}
-        heroData = {}
         playerDamageDict = {}
 
         for player in matchInfo['players']:

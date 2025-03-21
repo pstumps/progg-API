@@ -4,6 +4,7 @@ from apps.matches.Models.MatchPlayerModel import MatchPlayerModel
 from apps.matches.Models.MatchPlayerTimeline import MatchPlayerTimelineEvent
 from apps.players.Models.PlayerModel import PlayerModel
 from apps.players.Models.PlayerHeroModel import PlayerHeroModel
+from apps.players.Models.PlayerRecords import PlayerRecords
 from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossEvent
 from apps.matches.serializers.event.MatchTimelineEventSerializer import PvPEventSerializer, ObjectiveEventSerializer, MidbossEventSerializer, RejuvEventSerializer
 from apps.matches.serializers.event.MatchPlayerTimelineEventSerializer import AbilityEventSerializer, BuyEventSerializer, SellEventSerializer
@@ -131,6 +132,7 @@ class MatchServices:
         MatchPlayerTimelineEvent.objects.all().delete()
         PlayerModel.objects.all().delete()
         PlayerHeroModel.objects.all().delete()
+        PlayerRecords.objects.all().delete()
         PvPEvent.objects.all().delete()
         ObjectiveEvent.objects.all().delete()
         MidbossEvent.objects.all().delete()

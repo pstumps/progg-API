@@ -28,11 +28,15 @@ class deadlockAPIAssetsService:
         return response.json()
 
     def getItemById(self, item_id, langauge=None, client_version=None):
-        #url = self.base_url + '/v2/items/' + str(item_id)
-        #response = requests.get(url)
+        url = self.base_url + '/v2/items/' + str(item_id)
+        response = requests.get(url)
+        return response.json()
+        '''
         with open(BASE_DIR + 'proggbackend\\ItemData.json') as f:
             response = json.load(f)
         return response
+        '''
+
 
     def getAbilityAssets(self):
         url = self.base_url + '/v1/abilities'

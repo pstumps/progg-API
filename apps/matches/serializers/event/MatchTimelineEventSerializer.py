@@ -52,21 +52,41 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
         return 'obj'
 
     def get_details(self, instance):
-        obj_id_dict = {
-            '1': {'target': 'Guardian', 'lane': 1, 'tier': 1},
-            '3': {'target': 'Guardian', 'lane': 2, 'tier': 1},
-            '4': {'target': 'Guardian', 'lane': 3, 'tier': 1},
-            '5': {'target': 'Walker', 'lane': 1},
-            '7': {'target': 'Walker', 'lane': 2},
-            '8': {'target': 'Walker', 'lane': 3},
-            '9': {'target': 'Guardian', 'lane': 1, 'tier': 3},
-            '10': {'target': 'Guardian', 'lane': 2, 'tier': 3},
-            '11': {'target': 'Guardian', 'lane': 3, 'tier': 3},
-            '12': {'target': 'Shrine'},
-            '14': {'target': 'Shrine'},
-            '15': {'target': 'Patron', 'tier': 1},
-            '0': {'target': 'Patron', 'tier': 2}
-        }
+        if instance.match.legacyFourLaneMap:
+            obj_id_dict = {
+                '1': {'target': 'Guardian', 'lane': 1, 'tier': 1},
+                '2': {'target': 'Guardian', 'lane': 2, 'tier': 1},
+                '3': {'target': 'Guardian', 'lane': 3, 'tier': 1},
+                '4': {'target': 'Guardian', 'lane': 4, 'tier': 1},
+                '5': {'target': 'Walker', 'lane': 1},
+                '7': {'target': 'Walker', 'lane': 2},
+                '8': {'target': 'Walker', 'lane': 3},
+                '9': {'target': 'Walker', 'lane': 4},
+                '10': {'target': 'Guardian', 'lane': 1, 'tier': 3},
+                '11': {'target': 'Guardian', 'lane': 2, 'tier': 3},
+                '12': {'target': 'Guardian', 'lane': 3, 'tier': 3},
+                '13': {'target': 'Guardian', 'lane': 4, 'tier': 3},
+                '14': {'target': 'Shrine'},
+                '15': {'target': 'Shrine'},
+                '0': {'target': 'Patron', 'tier': 2}
+            }
+        else:
+            obj_id_dict = {
+                '1': {'target': 'Guardian', 'lane': 1, 'tier': 1},
+                '2': {'target': 'Guardian', 'lane': 2, 'tier': 1},
+                '3': {'target': 'Guardian', 'lane': 2, 'tier': 1},
+                '4': {'target': 'Guardian', 'lane': 3, 'tier': 1},
+                '5': {'target': 'Walker', 'lane': 1},
+                '7': {'target': 'Walker', 'lane': 2},
+                '8': {'target': 'Walker', 'lane': 3},
+                '9': {'target': 'Guardian', 'lane': 1, 'tier': 3},
+                '10': {'target': 'Guardian', 'lane': 2, 'tier': 3},
+                '11': {'target': 'Guardian', 'lane': 3, 'tier': 3},
+                '12': {'target': 'Shrine'},
+                '14': {'target': 'Shrine'},
+                '15': {'target': 'Patron', 'tier': 1},
+                '0': {'target': 'Patron', 'tier': 2}
+            }
 
         return obj_id_dict.get(instance.target)
 

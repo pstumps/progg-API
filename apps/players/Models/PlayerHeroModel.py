@@ -12,6 +12,7 @@ class PlayerHeroModel(models.Model):
     steam_id3 = models.BigIntegerField(null=True)
     player = models.ForeignKey('players.PlayerModel', related_name='player_hero_stats', on_delete=models.SET_NULL, null=True) #TODO Change from null=True to False after testing
     hero = models.ForeignKey('heroes.HeroesModel', related_name='player_hero_stats', on_delete=models.CASCADE)
+    rank = models.IntegerField(null=True)
     wins = models.IntegerField(default=0)
     matches = models.IntegerField(default=0)
     kills = models.IntegerField(default=0)

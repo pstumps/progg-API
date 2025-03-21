@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Sum, Count, Q
 from rest_framework import serializers
 from ..Models.PlayerModel import PlayerModel
 from ...heroes.Models.HeroesModel import HeroesModel
@@ -32,7 +32,7 @@ class MatchHistoryDataSerializer(serializers.ModelSerializer):
         heroes = {}
 
         aggregated = matchPlayerModels.aggregate(
-            wins=Sum('win'),
+            wins=Count('win', filter=Q(win=True)),
             kills=Sum('kills'),
             deaths=Sum('deaths'),
             assists=Sum('assists'),

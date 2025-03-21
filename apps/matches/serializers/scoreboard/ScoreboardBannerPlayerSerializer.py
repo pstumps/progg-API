@@ -24,7 +24,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
                   'abilityOrder', 'medals', 'soulsBreakdown', 'party', 'multis', 'streaks']
 
     def get_name(self, obj):
-        '''
+
         if obj.player:
             if obj.player.name == '':
                 obj.player.updatePlayerFromSteamWebAPI()
@@ -32,6 +32,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
             return obj.player.name
         '''
         return None
+        '''
 
 
     def get_hero(self, obj):
@@ -45,7 +46,10 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
         return obj.lane
 
     def get_build(self, obj):
-        return obj.items['percentages']
+        percentages = obj.items.get('percentages')
+        if percentages:
+            return percentages
+        return [0, 0, 0]
 
     def get_buildItems(self, obj):
         buildItemsDict = {'orange': [], 'purple': [], 'green': [], 'flex': []}
