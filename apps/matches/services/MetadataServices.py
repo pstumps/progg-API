@@ -415,7 +415,6 @@ class MetadataServices:
                 for fItem in items:
                     itemData = handleItemData(fItem)
                     if itemData:
-                        item_slot_type = itemData.get('item_slot_type')
                         build[itemData.get('item_slot_type')] += 1
                     else:
                         continue
@@ -426,6 +425,8 @@ class MetadataServices:
             percentArray.append(percent)
 
         playerDict['items']['percentages'] = percentArray
+
+        return matchPlayerData
 
 
     def processObjectivesAndMidbossEvents(self, match, matchMetadata):
