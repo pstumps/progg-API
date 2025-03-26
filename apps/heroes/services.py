@@ -103,7 +103,7 @@ class proGGAPIHeroesService:
                         description=dlAPIhero['description'],
                         abilities=dlAPIhero['items'],
                         beta=dlAPIhero['in_development'],
-                        images= {
+                        images={
                           "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
                           "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
                           "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
@@ -147,7 +147,7 @@ class proGGAPIHeroesService:
                 hero.deaths = stats['total_deaths']
                 hero.assists = stats['total_assists']
                 hero.matches = stats['matches']
-                hero.pickrate = round((stats['matches'] / total_matches) * 100, 2) if total_matches > 0 else 0
+                hero.pickrate = round((stats['matches'] / total_matches) * 12, 2) if total_matches > 0 else 0
 
                 if newHero:
                     self.calculateTierForEachHero()

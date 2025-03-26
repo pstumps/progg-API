@@ -1,4 +1,304 @@
 {
+  "ability_magician_animalhexarea": {
+    "id": 2142213586,
+    "class_name": "ability_magician_animalhexarea",
+    "name": "Rabbit Hex",
+    "start_trained": false,
+    "image": "https://assets.deadlock-api.com/images/abilities/magician/magician_animalcurse.png",
+    "image_webp": "https://assets.deadlock-api.com/images/abilities/magician/magician_animalcurse.webp",
+    "hero": 60,
+    "heroes": [
+      60
+    ],
+    "update_time": 0,
+    "properties": {
+      "AbilityCastDelay": {
+        "value": ".15",
+        "can_set_token_override": true,
+        "css_class": "cast",
+        "disable_value": "0",
+        "label": "Cast Delay",
+        "postfix": "s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_cast.png"
+      },
+      "AbilityCastRange": {
+        "value": "30m",
+        "can_set_token_override": true,
+        "css_class": "range",
+        "display_units": "EDisplayUnit_Meters",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "AbilityCastRange_scale_function",
+          "specific_stat_scale_type": "ETechRange"
+        },
+        "label": "Cast Range",
+        "postfix": "m"
+      },
+      "AbilityChannelTime": {
+        "value": "0",
+        "can_set_token_override": true,
+        "css_class": "cast",
+        "disable_value": "0",
+        "scale_function": {
+          "class_name": "scale_function_multi_stats",
+          "subclass_name": "scale_duration",
+          "scaling_stats": [
+            "EChannelDuration",
+            "ETechDuration"
+          ]
+        },
+        "label": "Channel Duration",
+        "postfix": "s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_cast.png"
+      },
+      "AbilityCharges": {
+        "value": "0",
+        "can_set_token_override": true,
+        "css_class": "cast",
+        "disable_value": "0",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "AbilityCharges_scale_function",
+          "specific_stat_scale_type": "EMaxChargesIncrease"
+        },
+        "label": "Charges",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_cast.png"
+      },
+      "AbilityCooldown": {
+        "value": "35",
+        "can_set_token_override": true,
+        "css_class": "cooldown",
+        "disable_value": "0",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "AbilityCooldown_scale_function",
+          "specific_stat_scale_type": "ETechCooldown"
+        },
+        "label": "Cooldown",
+        "postfix": "s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_cooldown_large.png"
+      },
+      "AbilityCooldownBetweenCharge": {
+        "value": "0",
+        "can_set_token_override": true,
+        "css_class": "charge_cooldown",
+        "disable_value": "0",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "AbilityCooldownBetweenCharge_scale_function",
+          "specific_stat_scale_type": "ETechCooldownBetweenChargeUses"
+        },
+        "label": "Charge Delay",
+        "postfix": "s"
+      },
+      "AbilityDuration": {
+        "value": "0",
+        "can_set_token_override": true,
+        "css_class": "duration",
+        "disable_value": "0",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "AbilityDuration_scale_function",
+          "specific_stat_scale_type": "ETechDuration"
+        },
+        "label": "Duration",
+        "postfix": "s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_duration.png"
+      },
+      "AbilityPostCastDuration": {
+        "value": "0",
+        "disable_value": "0"
+      },
+      "AbilityResourceCost": {
+        "value": "0",
+        "can_set_token_override": true,
+        "css_class": "cast",
+        "disable_value": "0",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_cast.png"
+      },
+      "AbilityUnitTargetLimit": {
+        "value": "1",
+        "can_set_token_override": true
+      },
+      "AirDampingDuration": {
+        "value": "1"
+      },
+      "ChannelMoveSpeed": {
+        "value": "99999",
+        "can_set_token_override": true,
+        "css_class": "move_speed",
+        "display_units": "EDisplayUnit_MetersPerSecond",
+        "postfix": "m/s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_move_speed_large.png"
+      },
+      "Damage": {
+        "value": "80",
+        "css_class": "tech_damage",
+        "label": "Damage",
+        "icon": "https://assets.deadlock-api.com/icons/icon_damage_mystic.svg"
+      },
+      "DamageAmpPercentage": {
+        "value": "25",
+        "css_class": "damage",
+        "display_units": "EDisplayUnit_Normal",
+        "scale_function": {
+          "class_name": "scale_function_tech_damage",
+          "subclass_name": "animalcurse_damage_amp_sf",
+          "stat_scale": 0.1
+        },
+        "label": "Damage Amp",
+        "postfix": "%",
+        "icon": "https://assets.deadlock-api.com/images/damage.png"
+      },
+      "DetonationDelay": {
+        "value": "0.7"
+      },
+      "HexDuration": {
+        "value": "2",
+        "scale_function": {
+          "class_name": "scale_function_tech_duration",
+          "subclass_name": "hex_duration_sf"
+        },
+        "label": "Hex Duration",
+        "postfix": "s"
+      },
+      "HexMoveSpeedLimit": {
+        "value": "6m",
+        "provided_property_type": "MODIFIER_VALUE_MOVE_SPEED_LIMIT",
+        "css_class": "move_speed",
+        "usage_flags": [
+          "ConditionallyApplied"
+        ],
+        "label": "Movement Speed Limit",
+        "postfix": "m/s",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_move_speed_large.png"
+      },
+      "MoveSpeedBonusPct": {
+        "value": "15",
+        "provided_property_type": "MODIFIER_VALUE_MOVEMENT_SPEED_MAX_PERCENT",
+        "css_class": "move_speed",
+        "label": "Move Speed bonus",
+        "postfix": "%",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_move_speed_large.png"
+      },
+      "Radius": {
+        "value": "6m",
+        "css_class": "distance",
+        "scale_function": {
+          "class_name": "scale_function_single_stat",
+          "subclass_name": "animalcurse_t3_radius_sf",
+          "specific_stat_scale_type": "ETechRange"
+        },
+        "label": "Radius",
+        "postfix": "m",
+        "icon": "https://assets.deadlock-api.com/images/upgrades/property_range.png"
+      },
+      "SelfBumpImpulse": {
+        "value": "500"
+      },
+      "TechPower": {
+        "value": "0",
+        "can_set_token_override": true,
+        "provided_property_type": "MODIFIER_VALUE_TECH_POWER",
+        "disable_value": "0",
+        "prefix": "{s:sign}",
+        "label": "Spirit Power"
+      },
+      "WeaponPower": {
+        "value": "0",
+        "can_set_token_override": true,
+        "provided_property_type": "MODIFIER_VALUE_WEAPON_POWER",
+        "disable_value": "0",
+        "prefix": "{s:sign}",
+        "label": "Weapon Damage",
+        "postfix": "%"
+      }
+    },
+    "weapon_info": {
+      "bullet_speed_curve": {
+        "spline": [],
+        "domain_maxs": [
+          0,
+          0
+        ],
+        "domain_mins": [
+          0,
+          0
+        ]
+      }
+    },
+    "type": "ability",
+    "behaviours": [
+      "CITADEL_ABILITY_BEHAVIOR_ALWAYS_PREVIEW_RADIUS",
+      "CITADEL_ABILITY_BEHAVIOR_DEPLOY_OBJECT",
+      "CITADEL_ABILITY_BEHAVIOR_DISPLAYS_DAMAGE_IMPACT",
+      "CITADEL_ABILITY_BEHAVIOR_PROJECTILE_PASS_THROUGH_WORLD",
+      "CITADEL_ABILITY_BEHAVIOR_CAN_SET_QUICK_CAST"
+    ],
+    "description": {
+      "desc": "Hex a target area, dealing <Panel class=\"AbilityPropertyIcon prop_tech_damage\"> <span class=\"highlight_spirit\">Damage</span> and transforming all enemies into a <span class=\"highlight\">Rabbit</span> for a limited duration.<br><br> Rabbits are small and <Panel class=\"AbilityPropertyIcon prop_move_speed\"> <span class=\"highlight\">move faster</span>, but take increased <Panel class=\"AbilityPropertyIcon prop_damage\"><span class=\"highlight\">Damage</span> and are <Panel class=\"AbilityPropertyIcon prop_cast\"><span class=\"highlight\">unable to perform most actions</span>.<br><span class=\"diminish\">Hex does not interrupt abilities.</span>"
+    },
+    "tooltip_details": {
+      "info_sections": [
+        {
+          "loc_string": "Hex a target area, dealing <Panel class=\"AbilityPropertyIcon prop_tech_damage\"> <span class=\"highlight_spirit\">Damage</span> and transforming all enemies into a <span class=\"highlight\">Rabbit</span> for a limited duration.<br><br> Rabbits are small and <Panel class=\"AbilityPropertyIcon prop_move_speed\"> <span class=\"highlight\">move faster</span>, but take increased <Panel class=\"AbilityPropertyIcon prop_damage\"><span class=\"highlight\">Damage</span> and are <Panel class=\"AbilityPropertyIcon prop_cast\"><span class=\"highlight\">unable to perform most actions</span>.<br><span class=\"diminish\">Hex does not interrupt abilities.</span>",
+          "property_upgrade_required": "",
+          "properties_block": [
+            {
+              "properties": [
+                {
+                  "important_property": "Damage"
+                },
+                {
+                  "important_property": "HexDuration",
+                  "status_effect_value": ""
+                },
+                {
+                  "important_property": "DamageAmpPercentage"
+                }
+              ]
+            }
+          ],
+          "basic_properties": [
+            "MoveSpeedBonusPct",
+            "Radius"
+          ]
+        }
+      ]
+    },
+    "upgrades": [
+      {
+        "property_upgrades": [
+          {
+            "name": "AbilityCooldown",
+            "bonus": "-10"
+          }
+        ]
+      },
+      {
+        "property_upgrades": [
+          {
+            "name": "HexDuration",
+            "bonus": "1"
+          }
+        ]
+      },
+      {
+        "property_upgrades": [
+          {
+            "name": "Radius",
+            "bonus": "3m"
+          }
+        ]
+      }
+    ],
+    "ability_type": "signature",
+    "boss_damage_scale": 0.5,
+    "videos": {
+      "webm": "https://assets.deadlock-api.com/videos/hero_abilities/magician_animal_curse.webm",
+      "mp4": "https://assets.deadlock-api.com/videos/hero_abilities/magician_animal_curse_h264.mp4"
+    }
+  },
   "tokamak_heat_sinks": {
     "id": 6698938,
     "class_name": "tokamak_heat_sinks",

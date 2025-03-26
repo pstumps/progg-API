@@ -217,8 +217,7 @@ class MetadataServices:
                         })
         all_deaths.sort(key=lambda x: x['game_time_s'])
         self.processDeathDetails(all_deaths, player_details, streaks, lastKillTimes, multis, streakCounts,
-                                 longestStreaks,
-                                 match, pvpEvents)
+                                 longestStreaks, match, pvpEvents)
 
         # Process objectives and midboss events
         objectiveEvents, midbossEvents = self.processObjectivesAndMidbossEvents(match, matchMetadata)
@@ -251,14 +250,16 @@ class MetadataServices:
             playerHero.save()
 
 
-            player.updatePlayerRecords(data['hero_deadlock_id'],
-                                       data['kills'],
-                                       data['assists'],
-                                       data['souls'],
-                                       data['heroDamage'],
-                                       data['objDamage'],
-                                       data['healing'],
-                                       data['lastHits'])
+            player.updatePlayerRecords(
+                                        match.deadlock_id,
+                                        data['hero_deadlock_id'],
+                                        data['kills'],
+                                        data['assists'],
+                                        data['souls'],
+                                        data['heroDamage'],
+                                        data['objDamage'],
+                                        data['healing'],
+                                        data['lastHits'])
 
             player.addMatch(match)
 

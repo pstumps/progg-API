@@ -242,18 +242,18 @@ class PlayerModel(models.Model):
         self.save()
 
 
-    def updatePlayerRecords(self, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
+    def updatePlayerRecords(self, matchId, heroId, kills, assists, souls, heroDamage, objDamage, healing, lastHits):
         playerRecords = PlayerRecords.objects.filter(player=self).first()
         if not playerRecords:
             playerRecords = PlayerRecords.objects.create(player=self)
 
-        playerRecords.updateRecord('kills', heroId, kills)
-        playerRecords.updateRecord('assists', heroId, assists)
-        playerRecords.updateRecord('souls', heroId, souls)
-        playerRecords.updateRecord('heroDamage', heroId, heroDamage)
-        playerRecords.updateRecord('objDamage', heroId, objDamage)
-        playerRecords.updateRecord('healing', heroId, healing)
-        playerRecords.updateRecord('lastHits', heroId, lastHits)
+        playerRecords.updateRecord('kills', heroId, kills, matchId)
+        playerRecords.updateRecord('assists', heroId, assists, matchId)
+        playerRecords.updateRecord('souls', heroId, souls, matchId)
+        playerRecords.updateRecord('heroDamage', heroId, heroDamage, matchId)
+        playerRecords.updateRecord('objDamage', heroId, objDamage, matchId)
+        playerRecords.updateRecord('healing', heroId, healing, matchId)
+        playerRecords.updateRecord('lastHits', heroId, lastHits, matchId)
 
     def getOrCreatePlayerHero(self, heroId):
         # Update player hero model
