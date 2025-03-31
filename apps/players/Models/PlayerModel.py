@@ -125,27 +125,37 @@ class PlayerModel(models.Model):
 
     def calculatePlayerHeroTiers(self):
         playerHeroes = self.player_hero_stats.all()
+        hero_scores = []
         for hero in playerHeroes:
             score = self.calculateScore(hero)
-            hero.tier = score
+            hero_scores.append((hero, score))
+
+        hero_scores.sort(key=lambda x:x[1], reverse=True)
+        rank = 1
+        for i, (hero, score) in enumerate(hero_scores):
+            hero.tier = rank
             hero.save()
+            rank += 1
 
     def calculateScore(self, hero):
-        winrate = hero.wins / (hero.matches-hero.wins) * 100
-        kda = (hero.kills + hero.assists) / hero.deaths
+        winrate = (hero.wins / (hero.matches-hero.wins)) * 100 if hero.matches-hero.wins > 0 else 100
+        kda = (hero.kills + (hero.assists*0.25)) / hero.deaths if hero.deaths > 0 else (hero.kills + (hero.assists*0.25))
+        pickRate = hero.matches / self.matches.count() * 100 if self.matches.count() > 0 else 0
 
-        winrate_weight = 0.6
+        winrate_weight = 0.85
+        pickRate_weight = 0.4
         kda_weight = 0.45
-        soulsPerMin_weight = 0.5
-        heroDamage_weight = 0.1
-        objDamage_weight = 0.1
-        healing_weight = 0.075
+        soulsPerMin_weight = 0.45
+        heroDamage_weight = 0.01
+        objDamage_weight = 0.005
+        healing_weight = 0.005
         matches_weight = 0.35
-        accuracy_weight = 0.15
+        accuracy_weight = 0.005
 
         score = ((winrate * winrate_weight) +
                  (kda * kda_weight) +
                  (hero.soulsPerMin * soulsPerMin_weight) +
+                 (pickRate * pickRate_weight if pickRate < 40 else 40 * pickRate_weight) + # Cap pick rate at 40% for score calculation
                  ((hero.heroDamage/hero.matches) * heroDamage_weight) +
                  (hero.matches * matches_weight) +
                  ((hero.objDamage/hero.matches) * objDamage_weight) +
@@ -239,6 +249,7 @@ class PlayerModel(models.Model):
         self.streaks = streaks_sum
         self.updated = int(time.time())
         self.calculateRank()
+        self.calculatePlayerHeroTiers()
         self.save()
 
 

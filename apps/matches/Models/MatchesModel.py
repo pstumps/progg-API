@@ -8,10 +8,10 @@ class MatchesModel(models.Model):
     averageRank = models.JSONField(null=True)
     gameMode = models.CharField(max_length=50, null=True)
     matchMode = models.CharField(max_length=50, null=True)
-    length = models.IntegerField(default=0)
+    length = models.IntegerField(default=0, null=True)
     teamStats = models.JSONField(null=True)
     victor = models.CharField(max_length=50, null=True)
-    legacyFourLaneMap = models.BooleanField(default=False)
+    legacyFourLaneMap = models.BooleanField(default=False, null=True)
 
     def calculateTeamStats(self):
         team_aggregate_stats = self.matchPlayerModels.values('team').annotate(

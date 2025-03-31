@@ -1,4 +1,5 @@
 import datetime, requests, os, environ, json
+from apps.matches.Models.MatchesModel import MatchesModel
 from django.conf import settings
 
 BASE_DIR = settings.BASE_DIR
@@ -27,6 +28,7 @@ class deadlockAPIDataService:
         }
 
         #For Testing only
+        '''
         with open(str(BASE_DIR) + '\\proggbackend\\Response_newmetadata.json') as f:
             response = json.load(f)
         return response
@@ -44,8 +46,6 @@ class deadlockAPIDataService:
             return None
 
         return data
-        '''
-
 
 
     def getMatchMetadataTest(self, dl_match_id, api_key=None):

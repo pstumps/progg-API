@@ -90,7 +90,12 @@ class proGGPlayersService:
 
             matchMetadata = self.DLAPIDataService.getMatchMetadata(matchId)
             if not matchMetadata:
-                print(f'Failed to get metadata for match {matchId}')
+                print(f'Failed to get metadata for match {matchId}. Creating null match record.')
+                nullMatch = MatchesModel.objects.create(
+                    deadlock_id=matchId,
+                    date=int(time.time())  # Current timestamp
+                )
+                matchesToAdd.append(nullMatch)
                 continue
             metadataService.createNewMatchFromMetadata(matchMetadata)
 
@@ -118,19 +123,3 @@ class proGGPlayersService:
         matchService = MatchServices()
         matchService.deleteAllMatchesAndPlayersModels()
 
-    def fillInMissingMatchPlayerMetadata(self, matchPlayer):
-        matchMetadata = self.DLAPIDataService.getMatchMetadata(dl_match_id=matchPlayer.match.deadlock_id)
-        if matchMetadata:
-            for player in matchMetadata['match_info']['players']:
-                if player['account_id'] == matchPlayer.player.steam_id3:
-                    lastStat = player['stats'][-1]
-                    if lastStat['time_stamp_s'] == matchPlayer.match.length:
-                        matchPlayer.accuracy = round(
-                            lastStat['shots_hit'] / (lastStat['shots_missed'] + lastStat['shots_hit']), 2)
-                        matchPlayer.heroDamage = lastStat['player_damage']
-                        matchPlayer.objDamage = lastStat['neutral_damage']
-                        matchPlayer.healing = lastStat['player_healing']
-                    break
-
-        matchPlayer.save()
-        return matchPlayer
