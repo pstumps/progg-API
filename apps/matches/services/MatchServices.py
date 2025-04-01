@@ -32,6 +32,15 @@ class MatchServices:
         match = matchServices.createNewMatchFromMetadata(matchMetadata)
         return match
 
+    def createTestMatch(self, dl_match_id):
+        DataAPI = deadlockAPIDataService()
+        matchMetadata = DataAPI.getMatchMetadataTest(dl_match_id)
+        AssetsApi = deadlockAPIAssetsService()
+        itemsDict = AssetsApi.getItemsDict()
+        matchServices = MetadataServices(DLItemsDict=itemsDict)
+        match = matchServices.createNewMatchFromMetadata(matchMetadata)
+        return match
+
 
     def getMatchTimeline(self, match, matchPlayer=None):
         all_heroes = HeroesModel.objects.all()

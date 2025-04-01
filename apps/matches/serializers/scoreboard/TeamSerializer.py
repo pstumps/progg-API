@@ -10,12 +10,13 @@ class TeamSerializer(serializers.ModelSerializer):
     totalHeroDmg = serializers.SerializerMethodField()
     totalObjDmg = serializers.SerializerMethodField()
     totalHealing = serializers.SerializerMethodField()
+    totalSouls = serializers.SerializerMethodField()
     averageRank = serializers.SerializerMethodField()
     players = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchesModel
-        fields = ['name', 'totalKills', 'totalHeroDmg', 'totalObjDmg', 'totalHealing', 'averageRank', 'players']
+        fields = ['name', 'totalKills', 'totalHeroDmg', 'totalObjDmg', 'totalHealing', 'totalSouls', 'averageRank', 'players']
 
     def get_name(self, obj):
         team = self.context.get('team')
@@ -49,6 +50,11 @@ class TeamSerializer(serializers.ModelSerializer):
     def get_totalHealing(self, obj):
         team_players = self.get_team_players(obj)
         agg = team_players.aggregate(total=Sum('healing'))
+        return agg['total'] or 0
+
+    def get_totalSouls(self, obj):
+        team_players = self.get_team_players(obj)
+        agg = team_players.aggregate(total=Sum('souls'))
         return agg['total'] or 0
 
     def get_averageRank(self, obj):

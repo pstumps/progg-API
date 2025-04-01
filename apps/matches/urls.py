@@ -1,8 +1,16 @@
 from django.urls import path
 from . import views
 
+from pathlib import Path
+import os, environ
+BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
 urlpatterns = [
-    path('<int:dl_match_id>/', views.match_details, name='match_detail'),
+    path('<int:dl_match_id>/',
+         views.match_details_test if env('USE_TEST_ENDPOINTS') == 'True' else views.match_details,
+         name='match_detail'),
     path('<int:dl_match_id>/<int:user_id>', views.match_details, name='user_match_details'),
     #path('<int:dl_match_id>/create/', views.create_match_from_metadata, name='create_match_from_metadata'),
     path('<int:dl_match_id>/graphs/', views.graphs, name='graphs'),

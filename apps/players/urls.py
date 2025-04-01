@@ -1,10 +1,17 @@
 from django.urls import path
 from . import views
 
+from pathlib import Path
+import os, environ
+BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
 urlpatterns = [
     # Test stats for testing only
-    path('<int:steam_id3>', views.stats, name='stats'),
-    # path('<int:steam_id3>', views.testStats, name='stats'),
+    path('<int:steam_id3>',
+         views.testStats if env('USE_TEST_ENDPOINTS') == 'True' else views.stats,
+         name='stats'),
     path('<int:steam_id3>/heroes/', views.playerHeroes, name='playerHeroes'),
     path('<int:steam_id3>/match-history/', views.matchHistory, name='matchHistory'),
     path('<int:steam_id3>/top-player-heroes', views.topPlayerHeroes, name='topPlayerHeroes'),

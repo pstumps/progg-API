@@ -93,7 +93,7 @@ class proGGPlayersService:
                 print(f'Failed to get metadata for match {matchId}. Creating null match record.')
                 nullMatch = MatchesModel.objects.create(
                     deadlock_id=matchId,
-                    date=int(time.time())  # Current timestamp
+                    date=int(time.time())
                 )
                 matchesToAdd.append(nullMatch)
                 continue

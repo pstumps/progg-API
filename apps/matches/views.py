@@ -67,6 +67,60 @@ def match_details(request, dl_match_id):
     return Response(response_data)
 
 @api_view(['GET'])
+def match_details_test(request, dl_match_id):
+    matchServices = MatchServices()
+    try:
+        match = MatchesModel.objects.prefetch_related('matchPlayerModels', 'matchPlayerTimelineEvents').get(deadlock_id=dl_match_id)
+
+    except MatchesModel.DoesNotExist:
+        match = matchServices.createTestMatch(dl_match_id)
+        if not match:
+            return Response({'details': 'Match does not exist.'}, status=404)
+
+    matchPlayer = None
+    playerEvents = None
+    user = request.user
+    if user.is_authenticated and hasattr(user, 'playermodel'):
+        try:
+            matchPlayer = match.matchPlayerModels.get(player=user.playermodel)
+            playerEvents, matchEvents = matchServices.getMatchTimeline(match, matchPlayer)
+        except MatchPlayerModel.DoesNotExist:
+            print('User not in match')
+            matchEvents = matchServices.getMatchTimeline(match)
+    else:
+        matchEvents = matchServices.getMatchTimeline(match)
+
+
+    dlAPIDataService = deadlockAPIDataService()
+    metadata = dlAPIDataService.getMatchMetadataTest(dl_match_id)
+
+    print('Constructing graphs...')
+    AssetsApi = deadlockAPIAssetsService()
+    itemsDict = AssetsApi.getItemsDictIndexedByClassname()
+    metadataService = MetadataServices(itemsDict)
+    graphData = metadataService.getPlayerGraphs(metadata)
+    damageGraphData = metadataService.getPlayerDamageGraphs(metadata)
+    print('done!')
+
+    print('Serializing match...')
+    serializer = MatchScoreboardSerializer(match, context={'matchEvents': matchEvents,
+                                                           'graphData': graphData,
+                                                           'damageGraphData': damageGraphData})
+    print('done!')
+
+    response_data = {'matchScoreboardData': serializer.data}
+
+    if matchPlayer and playerEvents:
+        print('Serializing user...')
+        detailsSerializer = UserMatchDetailsSerializer(matchPlayer, context={'playerTimeline': playerEvents})
+        print('done!')
+        response_data['userMatchDetails'] = detailsSerializer.data
+    else:
+        response_data['userMatchDetails'] = None
+
+    return Response(response_data)
+
+@api_view(['GET'])
 def user_match_details(request, dl_match_id):
     try:
         match = MatchesModel.objects.prefetch_related('matchPlayerModels').get(deadlock_id=dl_match_id)
