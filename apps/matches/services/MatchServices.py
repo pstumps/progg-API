@@ -134,6 +134,79 @@ class MatchServices:
 
         return serializedEvents
 
+    def getPlayersInMatchFromMatchMetadata(self, matchMetadata):
+        players = []
+        match_info = matchMetadata.get('match_info')
+        if not match_info:
+            return players
+        for player in match_info.get('players'):
+            players.append(player.get('account_id'))
+        return players
+
+    def crawlMatches(self, initial_match_id):
+        visited = set()
+        total_processed = self.crawlMatchesAndPlayers(initial_match_id, visited)
+        return total_processed
+
+    def crawlMatchesAndPlayers(self, deadlock_id, visited=None):
+        from apps.players.services import PlayersServices
+        if not deadlock_id:
+            return 0
+
+        if visited is None:
+            visited = set()
+        if deadlock_id in visited:
+            return 0
+
+        visited.add(deadlock_id)
+
+        already_processed = MatchesModel.objects.filter(deadlock_id=deadlock_id, processed=True).exists()
+        if already_processed:
+            print(f'Match {deadlock_id} already processed, skipping.')
+            return 0
+
+        # Retrieve metadata
+        dataService = deadlockAPIDataService()
+        matchMetadata = dataService.getMatchMetadata(dl_match_id=deadlock_id)
+        if not matchMetadata:
+            print(f"No metadata for match {deadlock_id}, skipping.")
+            return 0
+
+        playersInMatch = self.getPlayersInMatchFromMatchMetadata(matchMetadata)
+
+        playerService = PlayersServices()
+        new_matches = []
+        for playerId in playersInMatch:
+            player = PlayerModel.objects.filter(steam_id3=playerId).first()
+            if player is None:
+                matchesProcessed = playerService.updateMatchHistoryForCrawl(playerId, newPlayer=True)
+            else:
+                matchesProcessed = playerService.updateMatchHistoryForCrawl(playerId)
+
+            if matchesProcessed and isinstance(matchesProcessed, list):
+                new_matches.extend(matchesProcessed)
+
+
+        processed_count = 1
+
+        print(f"Processed match {deadlock_id}. New matches discovered: {len(new_matches)}")
+
+        MatchesModel.objects.filter(deadlock_id=deadlock_id).update(processed=True)
+
+        # Recursively process each newly discovered match
+        for m in new_matches:
+            if not m or not getattr(m, 'deadlock_id', None):
+                continue
+            next_id = m.deadlock_id
+            if next_id not in visited:
+                processed_count += self.crawlMatchesAndPlayers(next_id, visited)
+
+
+        print(f"Done exhausting matches discovered from {deadlock_id}. "
+              f"Total processed in this chain: {processed_count}")
+
+        return processed_count
+
 
     def deleteAllMatchesAndPlayersModels(self):
         MatchesModel.objects.all().delete()

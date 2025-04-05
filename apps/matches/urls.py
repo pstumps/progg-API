@@ -19,4 +19,5 @@ urlpatterns = [
     path('<int:dl_match_id>/timeline/<int:user_id>', views.timelines, name='match_timeline'),
     path('<int:dl_match_id>/user-details/', views.user_match_details, name='user_match_details'),
     path('<int:dl_match_id>/search-item/', views.search_history_match_item, name='searchHistoryMatchItem'),
+    path('<int:dl_match_id>/crawl/', views.crawl_matches, name='crawlMatches'),
 ]

@@ -120,6 +120,7 @@ class MetadataServices:
                 matchMode=matchMetadata.get('match_mode'),
                 length=matchMetadata.get('duration_s'),
                 victor=matchMetadata.get('winning_team'),
+                metadata_available=True,
             )
 
             legacyFourLaneMap = False

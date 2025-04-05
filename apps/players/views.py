@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.throttling import UserRateThrottle
 
 from .serializers.PlayerRecordsSerializer import PlayerRecordsSerializer
-from .services import proGGPlayersService
+from .services import PlayersServices
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
@@ -20,7 +20,7 @@ from .Models.PlayerRecords import PlayerRecords
 @api_view(['GET'])
 #@throttle_classes([StatsRateThrottle])
 def stats(request, steam_id3):
-    playersService = proGGPlayersService()
+    playersService = PlayersServices()
     newPlayer = False
     try:
         print(f'Looking for player: {steam_id3}')
@@ -63,7 +63,7 @@ def stats(request, steam_id3):
 @api_view(['GET'])
 #@throttle_classes([StatsRateThrottle])
 def testStats(request, steam_id3):
-    playersService = proGGPlayersService()
+    playersService = PlayersServices()
     newPlayer = False
     try:
         print(f'Looking for player: {steam_id3}')
@@ -122,7 +122,7 @@ def matchHistory(request, steam_id3):
 
 @api_view(['GET'])
 def topPlayerHeroes(request, steam_id3):
-    playersService = proGGPlayersService()
+    playersService = PlayersServices()
     topHeroes = playersService.calculatePlayerHeroTiersForPlayerAndGetTopPlayerHeroes(steam_id3)
     serializer = PlayerHeroModelSerializer(topHeroes, many=True)
     return Response(status=200, data=serializer.data)
@@ -150,7 +150,7 @@ def updatePlayerSteamWebAPI(request, steam_id3):
 
 @api_view(['GET'])
 def deleteAllData(request):
-    playersService = proGGPlayersService()
+    playersService = PlayersServices()
     playersService.deleteAllData()
     return Response({"detail": "All data deleted."})
 

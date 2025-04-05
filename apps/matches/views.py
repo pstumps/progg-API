@@ -199,3 +199,9 @@ def search_history_match_item(request, dl_match_id):
     serializer = MatchHistoryItemSerializer(match)
     return Response(serializer.data)
 
+
+@api_view(['GET'])
+def crawl_matches(request, dl_match_id):
+    matchServices = MatchServices()
+    count = matchServices.crawlMatches(dl_match_id)
+    return Response({'details': str(count) + ' matches crawled.'})

@@ -48,7 +48,6 @@ class deadlockAPIDataService:
         return data
 
 
-
     def getMatchMetadataTest(self, dl_match_id, api_key=None):
         print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
         with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:

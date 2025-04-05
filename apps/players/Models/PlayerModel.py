@@ -40,8 +40,8 @@ def default_streaks():
 
 
 class PlayerModel(models.Model):
-    player_id = models.AutoField(primary_key=True)
-    steam_id3 = models.BigIntegerField(db_index=True, unique=True) #TODO Change from null=True to False after testing
+    player_id = models.IntegerField(null=True)
+    steam_id3 = models.BigIntegerField(primary_key=True, db_index=True, unique=True) #TODO Change from null=True to False after testing
     name = models.CharField(max_length=100)
     icon = models.JSONField(null=True)
     region = models.CharField(max_length=2, null=True, blank=True)
@@ -88,6 +88,16 @@ class PlayerModel(models.Model):
     )
     updated = models.BigIntegerField(null=True)
     inactive = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.player_id:
+            max_id_value = PlayerModel.objects.all().aggregate(
+                player_id=models.Max('player_id')
+            )['player_id'] or 0
+
+            self.player_id = max_id_value  + 1
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
