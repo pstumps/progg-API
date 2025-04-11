@@ -648,7 +648,7 @@ class MetadataServices:
             accuracy = round(end_stats['shots_hit'] / totalShots, 4)
 
         heroCritPercent = 0
-        if end_stats.get('hero_bullets_hit'):
+        if end_stats.get('hero_bullets_hit') and end_stats.get('hero_bullets_hit_crit'):
             heroCritPercent = round(end_stats['hero_bullets_hit_crit'] / end_stats['hero_bullets_hit'], 4)
 
         def getGold(goldSources, index, includeOrbs=True):

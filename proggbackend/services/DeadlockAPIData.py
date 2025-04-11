@@ -14,7 +14,7 @@ class deadlockAPIDataService:
 
     def getActiveMatches(self):
         print('Getting active matches from data.deadlock-api...')
-        url = self.base_url + '/v1/active-matches'
+        url = self.base_url + '/v1/matches/active'
         response = requests.get(url)
         return response.json()
 

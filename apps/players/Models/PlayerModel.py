@@ -177,6 +177,7 @@ class PlayerModel(models.Model):
     def updatePlayerFromSteamWebAPI(self):
         steamWebAPI = SteamWebAPIService()
         playerData = steamWebAPI.getPlayerSummaries(steam_id3=self.steam_id3).get('response').get('players')
+        print('PlayerData:', playerData)
         if playerData[0]:
             self.name = playerData[0].get('personaname')
             self.icon = playerData[0].get('avatarfull')
