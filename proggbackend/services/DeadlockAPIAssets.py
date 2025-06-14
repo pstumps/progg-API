@@ -5,6 +5,7 @@ import json
 
 BASE_DIR = settings.BASE_DIR
 
+
 class deadlockAPIAssetsService:
     def __init__(self):
         self.base_url = 'https://assets.deadlock-api.com'
@@ -37,7 +38,6 @@ class deadlockAPIAssetsService:
         return response
         '''
 
-
     def getAbilityAssets(self):
         url = self.base_url + '/v1/abilities'
         response = requests.get(url)
@@ -53,7 +53,6 @@ class deadlockAPIAssetsService:
             response = json.load(f)
         return response
         # return {item['id']: item for item in response}
-
 
     def getItemsDictIndexedByClassname(self):
         with open(str(BASE_DIR) + '\\proggbackend\\ItemData_ClassNameIndexed.json') as f:

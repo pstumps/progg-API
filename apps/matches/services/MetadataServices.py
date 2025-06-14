@@ -89,6 +89,8 @@ def calculateAverageBadgeFromMetadata(metadata):
     return None
 
 
+
+
 class MetadataServices:
     def __init__(self, DLItemsDict=None):
         self.DLAPIAnalytics = deadlockAPIAnalyticsService()
@@ -360,6 +362,9 @@ class MetadataServices:
                 print(f'item data not found for {item_id}')
                 try:
                     idata = self.DLAPIAssets.getItemById(item_id)
+                    print(f'Item data fetched for {item_id}. Adding to ItemData_IDIndexed.json')
+                    self.updateItemDataJson(item_id, idata)
+                    self.updateItemDataClassNameJson(item_id, idata)
                     return idata
                 except Exception as e:
                     print(f'Error getting item data: {e}')
@@ -852,3 +857,55 @@ class MetadataServices:
             )
         matchPlayersToCreate.append(mp)
         return matchPlayersToCreate
+
+    def updateItemDataJson(self, item_id, item_data):
+        import json
+        import os
+
+        json_path = os.path.join(os.path.dirname(__file__), '../../../proggbackend/ItemData_IDIndexed.json')
+
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as file:
+                items_dict = json.load(file)
+        else:
+            raise FileNotFoundError(f"File {json_path} does not exist.")
+
+        items_dict[str(item_id)] = item_data
+        self.DLItemsDict[str(item_id)] = item_data
+
+        with open(json_path, 'w') as file:
+            json.dump(items_dict, file, indent=2)
+
+        print(f"Added item {item_id} to ItemData_IDIndexed.json")
+
+    def updateItemDataClassNameJson(self, item_id, item_data):
+        import json
+        import os
+
+        json_path = os.path.join(os.path.dirname(__file__), '../../../proggbackend/ItemData_ClassNameIndexed.json')
+
+        try:
+            # Read existing JSON data
+            if os.path.exists(json_path):
+                with open(json_path, 'r') as file:
+                    items_dict = json.load(file)
+            else:
+                raise FileNotFoundError(f"File {json_path} does not exist.")
+
+
+            name = item_data.get('class_name')
+            if not name:
+                print(f"Warning: Item {item_id} doesn't have a class_name field")
+                return
+
+            # Add new item data
+            items_dict[name] = item_data
+
+            # Write back to file
+            with open(json_path, 'w') as file:
+                json.dump(items_dict, file, indent=2)
+
+            print(f"Added item {item_id} with name '{name}' to ItemData_ClassNameIndexed.json")
+        except Exception as e:
+            print(f"Error updating ItemData_ClassNameIndexed.json: {e}")
+

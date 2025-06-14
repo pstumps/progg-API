@@ -20,6 +20,6 @@ urlpatterns = [
     path('<int:dl_match_id>/user-details/', views.user_match_details, name='user_match_details'),
     path('<int:dl_match_id>/search-item/', views.search_history_match_item, name='searchHistoryMatchItem'),
     path('<int:dl_match_id>/crawl/', views.crawl_matches, name='crawlMatches'),
-    path('<int:dl_match_id>/stop-crawl/', views.stop_crawl, name='stopCrawl'),
-    path('<int:dl_match_id>/crawl-status/', views.crawl_status, name='crawlStatus'),
+    path('stop-crawl/', views.stop_crawl, name='stopCrawl'),
+    path('crawl-status/', views.crawl_status, name='crawlStatus'),
 ]
