@@ -202,6 +202,37 @@ def search_history_match_item(request, dl_match_id):
 
 @api_view(['GET'])
 def crawl_matches(request, dl_match_id):
+    from django.core.cache import cache
+
+    cache.set('crawl_stop_signal', False)
+    cache.set('matches_crawled', 0)
+
     matchServices = MatchServices()
     count = matchServices.crawlMatches(dl_match_id)
+
+    cache.delete('crawl_stop_signal')
+    cache.delete('matches_crawled')
+
     return Response({'details': str(count) + ' matches crawled.'})
+
+@api_view(['GET'])
+def stop_crawl(request):
+    from django.core.cache import cache
+
+    cache.set('crawl_stop_signal', True)
+    matches_counted = cache.get('matches_crawled', 0)
+
+    return Response({'details': f'Crawl stopping. {matches_counted} matches processed so far.'})
+
+@api_view(['GET'])
+def crawl_status(request):
+    from django.core.cache import cache
+
+    is_stopping = cache.get('crawl_stop_signal', False)
+    matches_counted = cache.get('matches_crawled', 0)
+    status = 'stopping' if is_stopping else 'running'
+
+    return Response({
+        'status': status,
+        'matches_processed': matches_counted
+    })

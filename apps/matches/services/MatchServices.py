@@ -149,8 +149,14 @@ class MatchServices:
         return total_processed
 
     def crawlMatchesAndPlayers(self, deadlock_id, visited=None):
+        from django.core.cache import cache
         from apps.players.services import PlayersServices
+
         if not deadlock_id:
+            return 0
+
+        if cache.get('crawl_stop_signal', False):
+            print("Crawl stopped by user.")
             return 0
 
         if visited is None:
@@ -189,12 +195,19 @@ class MatchServices:
 
         processed_count = 1
 
+        current_count = cache.get('matches_crawled', 0)
+        cache.set('matches_crawled', current_count + 1)
+
         print(f"Processed match {deadlock_id}. New matches discovered: {len(new_matches)}")
 
         MatchesModel.objects.filter(deadlock_id=deadlock_id).update(processed=True)
 
         # Recursively process each newly discovered match
         for m in new_matches:
+            if cache.get('crawl_stop_signal', False):
+                print("Crawl stopped manually.")
+                break
+
             if not m or not getattr(m, 'deadlock_id', None):
                 continue
             next_id = m.deadlock_id

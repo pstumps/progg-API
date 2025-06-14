@@ -75,7 +75,7 @@ def testStats(request, steam_id3):
 
     # Testing only
     if newPlayer:
-        #TODO: Use celery to update player match history
+        # TODO: Use celery to update player match history
         player = PlayerModel.objects.get(steam_id3=steam_id3)
         player.updated = int(time.time())
         player.save()
