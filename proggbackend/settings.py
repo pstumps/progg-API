@@ -25,8 +25,6 @@ IS_HEROKU_APP = "DYNO" in os.environ and "CI" not in os.environ
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-django_on_heroku.settings(locals())
-
 # SECURITY WARNING: keep the secret key used in production secret!
 if IS_HEROKU_APP:
     SECRET_KEY=os.environ.get('SECRET_KEY')
@@ -254,3 +252,5 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     }
 }
+
+django_on_heroku.settings(locals())
