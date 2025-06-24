@@ -1,10 +1,7 @@
-from pathlib import Path
-import os, environ, requests
+import requests
+from django.conf import settings
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-API_KEY = env('STEAM_WEB_API_KEY')
+API_KEY = settings.SOCIAL_AUTH_STEAM_API_KEY
 
 class SteamWebAPIService:
     def __init__(self):

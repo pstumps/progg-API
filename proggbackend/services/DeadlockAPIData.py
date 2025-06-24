@@ -1,11 +1,7 @@
-import datetime, requests, os, environ, json
-from apps.matches.Models.MatchesModel import MatchesModel
+import datetime, requests, json
 from django.conf import settings
 
-BASE_DIR = settings.BASE_DIR
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-DL_API_KEY = env('DL_API_KEY')
+DL_API_KEY = settings.DL_API_KEY
 
 class deadlockAPIDataService:
     def __init__(self):

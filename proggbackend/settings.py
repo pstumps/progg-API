@@ -12,11 +12,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-import os, environ, dj_database_url
+import os, environ, dj_database_url, django_on_heroku
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+IS_HEROKU_APP = "DYNO" in os.environ and "CI" not in os.environ
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -24,13 +25,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+django_on_heroku.settings(locals())
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+if IS_HEROKU_APP:
+    SECRET_KEY=os.environ.get('SECRET_KEY')
+else:
+    SECRET_KEY=env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if IS_HEROKU_APP:
+    DEBUG=os.environ.get("ENVIRONMENT") == "development"
+else:
+    DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+if IS_HEROKU_APP:
+    ALLOWED_HOST=env('ALLOWED_HOST')
+    SECURE_SSL_REDIRECT=True
+else:
+    ALLOWED_HOSTS = [".localhost", "127.0.0.1", "[::1]", "0.0.0.0", "[::]"]
 
 # Application definition
 
@@ -55,6 +68,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -109,10 +123,22 @@ DATABASES = {
     }
 }
 '''
-DATABASES = {}
-DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-
-
+if IS_HEROKU_APP:
+    DATABASES= {
+        'default': dj_database_url.config(
+            env= 'DATABASE_URL',
+            conn_max_age=600,
+            ssl_require=True,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -136,21 +162,26 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.steam.SteamOpenId',
     'django.contrib.auth.backends.ModelBackend',
 )
+if IS_HEROKU_APP:
+    SOCIAL_AUTH_STEAM_API_KEY = os.environ.get('STEAM_WEB_API_KEY')
+    DL_API_KEY=os.environ.get('DL_API_KEY')
+else:
+    SOCIAL_AUTH_STEAM_API_KEY = env('STEAM_WEB_API_KEY')
+    DL_API_KEY=env('DL_API_KEY')
 
-SOCIAL_AUTH_STEAM_API_KEY = env('STEAM_WEB_API_KEY')
 
 REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'apps.players.throttles.StatsRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'stats': '100/minute',
+        'stats': '60/minute',
     },
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
@@ -184,8 +215,6 @@ AUTH_USER_MODEL = 'user_mgmt.User'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -195,31 +224,33 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = False
 
 CSRF_USE_SESSIONS = True
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    os.environ.get('CORS_ALLOWED_ORIGIN_1', default='http://localhost:3000'),
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8080/",
-    "http://localhost:8080/",
+    os.environ.get('CSRF_TRUSTED_ORIGIN_1', default='http://localhost:3000'),
 ]
-
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-LOGIN_REDIRECT_URL = 'http://localhost:3000/matchdetails/29095078'
+LOGIN_REDIRECT_URL = os.environ.get('LOGIN_REDIRECT_URL', default='http://localhost:3000')
+NEXTJS_FRONTEND_URL = os.environ.get('NEXTJS_FRONTEND_URL', default='http://localhost:3000')
 
-NEXTJS_FRONTEND_URL = 'http://localhost:3000'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = 'static/'
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    }
+}
