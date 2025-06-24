@@ -153,6 +153,8 @@ class PlayersServices:
 
         matchesToAdd = []
         matchPlayersToAdd = []
+        matchesToProcess = []
+        retrievedMetadata = []
 
         for i, match in enumerate(matchHistory, start=1):
             print(f'Processing match {i} of {len(matchHistory)}')
@@ -179,19 +181,20 @@ class PlayersServices:
                         if matchPlayer not in playerMatchPlayers:
                             matchPlayersToAdd.append(matchPlayer)
                 continue
+            matchesToProcess.append(matchId)
 
-            matchMetadata = self.DLAPIDataService.getMatchMetadata(matchId)
-            if not matchMetadata:
-                print(f'Failed to get metadata for match {matchId}. Creating null match record.')
-                nullMatch = MatchesModel.objects.create(
-                    deadlock_id=matchId,
-                    metadata_available=False
-                )
-                matchesToAdd.append(nullMatch)
-                continue
+        #matchMetadata = self.DLAPIDataService.getMatchMetadata(matchId)
+        batch_size = 1000
+        for i in range(0, len(matchesToProcess), batch_size):
+            batch = matchesToProcess[i:i + batch_size]
+            print(f"Processing batch {i // batch_size + 1} with {len(batch)} matches")
 
-            match = metadataService.createNewMatchFromMetadata(matchMetadata)
-            matchesDiscovered.append(match)
+            batch_ids_str = ','.join(str(id) for id in batch)
+            batch_metadata = self.DLAPIDataService.getMatchMetadataBatch(batch_ids_str)
+
+            for metadata in batch_metadata:
+                match = metadataService.createNewMatchFromMetadata(metadata)
+                matchesDiscovered.append(match)
 
         if matchesToAdd or matchPlayersToAdd:
             player.matches.add(*matchesToAdd)

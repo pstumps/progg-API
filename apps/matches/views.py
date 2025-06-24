@@ -210,8 +210,8 @@ def crawl_matches(request, dl_match_id):
     matchServices = MatchServices()
     count = matchServices.crawlMatches(dl_match_id)
 
-    cache.delete('crawl_stop_signal')
-    cache.delete('matches_crawled')
+    #cache.delete('crawl_stop_signal')
+    #cache.delete('matches_crawled')
 
     return Response({'details': str(count) + ' matches crawled.'})
 

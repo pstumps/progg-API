@@ -19,7 +19,7 @@ class deadlockAPIDataService:
         return response.json()
 
     def getMatchMetadata(self, dl_match_id, api_key=None):
-        print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
+        # print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
         url = self.base_url + '/v1/matches/' + str(dl_match_id) + '/metadata'
 
         params = {
@@ -47,9 +47,37 @@ class deadlockAPIDataService:
 
         return data
 
+    def getMatchMetadataBatch(self, dl_match_ids, api_key=None):
+        url = self.base_url + '/v1/matches/metadata/'
+
+        params = {
+            'match_ids': dl_match_ids,
+            'include_info': 'true',
+            'include_objectives': 'true',
+            'include_mid_boss': 'true',
+            'include_player_info': 'true',
+            'include_player_items': 'true',
+            'include_player_stats': 'true',
+            'include_player_death_details': 'true',
+            'api_key': api_key if api_key else self.dl_api_key
+        }
+
+        params = {key: value for key, value in params.items() if value is not None}
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            print(f'Request error: {e}')
+            return None
+        except ValueError as e:
+            print(f'json error: {e}')
+            return None
+
+        return data
 
     def getMatchMetadataTest(self, dl_match_id, api_key=None):
-        print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
+        # print(f'Getting match metadata for match {dl_match_id} from data.deadlock-api...')
         with open(str(BASE_DIR) + '\\proggbackend\\response_1737591693017.json') as f:
             response = json.load(f)
         return response

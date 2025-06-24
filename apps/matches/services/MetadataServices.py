@@ -89,7 +89,7 @@ def calculateAverageBadgeFromMetadata(metadata):
     return None
 
 
-
+BAD_STEAMID3 = 0
 
 class MetadataServices:
     def __init__(self, DLItemsDict=None):
@@ -97,6 +97,15 @@ class MetadataServices:
         self.DLAPIData = deadlockAPIDataService()
         self.DLAPIAssets = deadlockAPIAssetsService()
         self.DLItemsDict = DLItemsDict # Can either be indexed by class name or item id. Make sure to initialize with right one
+
+    def checkIsBotGame(self, match, matchMetadata):
+        all_account_ids = [p['account_id'] for p in matchMetadata['players']]
+
+        botCount = sum(1 for acct_id in all_account_ids if acct_id == BAD_STEAMID3)
+        if botCount > 3:
+            print(f'Warning: Match {match.deadlock_id} has {botCount} bots. Skipping match creation.')
+            return True
+        return False
 
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata):
@@ -130,11 +139,18 @@ class MetadataServices:
                 match.legacyFourLaneMap = True
                 legacyFourLaneMap = True
 
+            isBotGame = self.checkIsBotGame(match, matchMetadata)
+
+            if isBotGame:
+                match.botGame = True
+                match.save()
+                return match
+
             self.parseMatchEventsFromMetadata(match, matchMetadata, legacyFourLaneMap)
 
             match.calculateTeamStats()
             match.save()
-            print('Match created successfully!')
+            print(f'Match {dl_match_id} created successfully!')
 
             return match
         else:
@@ -143,7 +159,6 @@ class MetadataServices:
 
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata, legacyFourLaneMap=False):
-        print('Parsing match metadata...')
         matchPlayerData = {}
         pvpEvents = []
         playerStatsGraphs = []
@@ -155,13 +170,27 @@ class MetadataServices:
         longestStreaks = {}
         player_details = {}
 
-        all_account_ids = [p['account_id'] for p in matchMetadata['players']]
-        existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
-        players_to_create = []
-        for acct_id in all_account_ids:
-            if acct_id not in existing_players:
-                players_to_create.append(PlayerModel(steam_id3=acct_id))
-        PlayerModel.objects.bulk_create(players_to_create)
+        all_account_ids = [p['account_id'] for p in matchMetadata['players'] if p['account_id']]
+        # existing_players = PlayerModel.objects.in_bulk(all_account_ids, field_name='steam_id3')
+        #players_to_create = []
+        #for acct_id in all_account_ids:
+        #    if acct_id not in existing_players:
+        #        players_to_create.append(PlayerModel(steam_id3=acct_id))
+        #PlayerModel.objects.bulk_create(players_to_create)
+
+
+        distinct = set(all_account_ids)
+
+        if BAD_STEAMID3 in distinct:
+            PlayerModel.objects.get_or_create(steam_id3=BAD_STEAMID3)
+
+        existing = set(PlayerModel.objects.filter(steam_id3__in=distinct).values_list('steam_id3', flat=True))
+        new_ids = distinct - existing
+        new_ids.discard(BAD_STEAMID3)  # Remove zero if it exists. not a valid account ID
+        PlayerModel.objects.bulk_create(
+            [PlayerModel(steam_id3=acct_id) for acct_id in new_ids if acct_id]  # Ensure no empty or zero IDs
+        )
+
         all_players = {p.steam_id3: p for p in PlayerModel.objects.filter(steam_id3__in=all_account_ids)}
 
         for player in matchMetadata['players']:
@@ -170,7 +199,7 @@ class MetadataServices:
                 abandonTime = self.checkForAbandonment(stats=player.get('stats'))
 
             account_id = player['account_id']
-            playerToTrack = all_players[account_id]
+            playerToTrack = all_players.get(account_id)
             player_slot = player['player_slot']
             hero_id = player['hero_id']
 

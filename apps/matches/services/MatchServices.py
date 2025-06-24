@@ -195,8 +195,9 @@ class MatchServices:
 
         processed_count = 1
 
-        current_count = cache.get('matches_crawled', 0)
-        cache.set('matches_crawled', current_count + 1)
+        #current_count = cache.get('matches_crawled', 0)
+        #cache.set('matches_crawled', current_count + 1)
+        cache.incr('matches_crawled')
 
         print(f"Processed match {deadlock_id}. New matches discovered: {len(new_matches)}")
 

@@ -14,6 +14,7 @@ class MatchesModel(models.Model):
     teamStats = models.JSONField(null=True)
     victor = models.CharField(max_length=50, null=True)
     legacyFourLaneMap = models.BooleanField(default=False, null=True)
+    botGame = models.BooleanField(default=False, null=True)
 
     def save(self, *args, **kwargs):
         if not self.match_id:
