@@ -32,7 +32,6 @@ def stats(request, steam_id3):
 
     # Testing only
     if newPlayer:
-        #TODO: Use celery to update player match history
         updated = playersService.updateMatchHistory(steam_id3, newPlayer)
         if not updated:
             return Response(
@@ -57,36 +56,6 @@ def stats(request, steam_id3):
                         data={"detail": "Player does not exist or has no match history."},
                         status=400
                     )
-    serializer = PlayerModelSerializer(player)
-    return Response(status=200, data=serializer.data)
-
-@api_view(['GET'])
-#@throttle_classes([StatsRateThrottle])
-def testStats(request, steam_id3):
-    playersService = PlayersServices()
-    newPlayer = False
-    try:
-        print(f'Looking for player: {steam_id3}')
-        player = PlayerModel.objects.get(steam_id3=steam_id3)
-    except PlayerModel.DoesNotExist:
-        # This is a new player. Create a player instance for them, and get their entire match history.
-        print(f'Player does not exist. Creating new player for {steam_id3}')
-        newPlayer = True
-
-    # Testing only
-    if newPlayer:
-        # TODO: Use celery to update player match history
-        player = PlayerModel.objects.get(steam_id3=steam_id3)
-        player.updated = int(time.time())
-        player.save()
-        # return Response(status=201, data={"detail": "New Player"})
-    else:
-        if player:
-            print('Player exists.')
-            if (int(time.time()) - (player.updated or 0)) > (60 * 15):
-                print('Updating player...')
-                player.updatePlayerStats()
-
     serializer = PlayerModelSerializer(player)
     return Response(status=200, data=serializer.data)
 

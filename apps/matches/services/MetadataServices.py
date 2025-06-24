@@ -13,7 +13,6 @@ from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 
 def calculateAverageBadgeFromMetadata(metadata):
     def parse_badge(badge_int):
-        """Parse the stored integer into (main_rank, sub_rank)."""
         if badge_int is None:
             return None, None
 
