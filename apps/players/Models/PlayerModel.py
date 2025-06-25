@@ -1,4 +1,4 @@
-import time
+import time, logging
 from django.db import models
 from django.conf import settings
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
@@ -7,6 +7,8 @@ from .PlayerHeroModel import PlayerHeroModel
 from .PlayerRecords import PlayerRecords
 from ...heroes.Models.HeroesModel import HeroesModel
 from ...matches.Models.MatchesModel import MatchesModel
+
+logger = logging.getLogger(__name__)
 
 def calculate_average_rank(ranks):
     def rank_to_numeric(r):
@@ -177,7 +179,9 @@ class PlayerModel(models.Model):
     def updatePlayerFromSteamWebAPI(self):
         steamWebAPI = SteamWebAPIService()
         playerData = steamWebAPI.getPlayerSummaries(steam_id3=self.steam_id3).get('response').get('players')
-        print('PlayerData:', playerData)
+        if not playerData:
+            logger.warning(f"No player data found for Steam ID {self.steam_id3} or failed to update player from Steam Web API.")
+            return False
         if playerData[0]:
             self.name = playerData[0].get('personaname')
             self.icon = playerData[0].get('avatarfull')
@@ -188,7 +192,7 @@ class PlayerModel(models.Model):
             for games in gameData:
                 if games['appid'] == 1422450:
                     self.timePlayed = games.get('playtime_forever') / 60
-        self.save()
+        return True
 
     def updatePlayerStats(self):
 

@@ -49,6 +49,7 @@ def stats(request, steam_id3):
                 if playersService.updateMatchHistory(steam_id3):
                     player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()
+                    player.save()
                 else:
                     return Response(
                         data={"detail": "Player does not exist or has no match history."},

@@ -27,8 +27,7 @@ class ScoreboardBannerPlayerSerializer(serializers.ModelSerializer):
 
         if obj.player:
             if obj.player.name == '':
-                obj.player.updatePlayerFromSteamWebAPI()
-                return obj.player.name
+                return 'Unknown Player'
             return obj.player.name
         '''
         return None
