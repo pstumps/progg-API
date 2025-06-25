@@ -121,12 +121,14 @@ class MetadataServices:
 
         if not batch:
             matchMetadata = matchMetadata.get('match_info')
+        else:
+            self.batch = True
 
         if matchMetadata:
             dl_match_id = matchMetadata.get('match_id')
 
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
-            if batch:
+            if self.batch:
                 startTime = convert_to_unix_timestamp(matchMetadata.get('start_time'))
             else:
                 startTime = matchMetadata.get('start_time')
