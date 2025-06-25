@@ -253,4 +253,39 @@ STORAGES = {
     }
 }
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    # Fallback for anything not configured via `loggers`.
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            # Prevent double logging due to the root logger.
+            "propagate": False,
+        },
+        "django.request": {
+            # Suppress the WARNINGS from any HTTP 4xx responses (in particular for 404s caused by
+            # web crawlers), but still show any ERRORs from HTTP 5xx responses/exceptions.
+            "level": "ERROR",
+        },
+    },
+}
+
 django_on_heroku.settings(locals(), staticfiles=False)
