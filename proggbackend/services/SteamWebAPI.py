@@ -17,21 +17,18 @@ class SteamWebAPIService:
 
     def getPlayerSummaries(self, steam_id3):
         try:
+            steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
             response = requests.get(
-                f"{self.base_url}/ISteamUser/GetPlayerSummaries/v0002/?key={self.api_key}&steamids={steam_id3}")
+                f'{self.ISteamUserBaseURL}/GetPlayerSummaries/v0002/?key={self.apiKey}&steamids={steamid64}&format=json'
+            )
 
             response.raise_for_status()
 
             return response.json()
         except requests.exceptions.JSONDecodeError as e:
-            # Log the error with the raw response for debugging
             logger.error(f"Steam API returned invalid JSON: {str(e)}")
-            logger.debug(f"Raw response content: {response.text}")
-
-            # Return a valid empty response structure that matches expected format
             return {"response": {"players": []}}
         except requests.exceptions.RequestException as e:
-            # Handle network errors, timeouts, or bad status codes
             logger.error(f"Steam API request failed: {str(e)}")
             return {"response": {"players": []}}
 
