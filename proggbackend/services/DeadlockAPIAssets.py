@@ -1,7 +1,8 @@
 import requests
+import json
+import os
 from django.conf import settings
 
-import json
 
 BASE_DIR = settings.BASE_DIR
 
@@ -33,7 +34,7 @@ class deadlockAPIAssetsService:
         response = requests.get(url)
         return response.json()
         '''
-        with open(BASE_DIR + 'proggbackend\\ItemData.json') as f:
+        with open(os.path.join(BASE_DIR, 'proggbackend', 'ItemData.json')) as f:
             response = json.load(f)
         return response
         '''
@@ -49,12 +50,12 @@ class deadlockAPIAssetsService:
         return response.json()
 
     def getItemsDict(self):
-        with open(str(BASE_DIR) + '\\proggbackend\\ItemData_IDIndexed.json') as f:
+        with open(os.path.join(BASE_DIR, 'proggbackend', 'ItemData_IDIndexed.json')) as f:
             response = json.load(f)
         return response
         # return {item['id']: item for item in response}
 
     def getItemsDictIndexedByClassname(self):
-        with open(str(BASE_DIR) + '\\proggbackend\\ItemData_ClassNameIndexed.json') as f:
+        with open(os.path.join(BASE_DIR, 'proggbackend', 'ItemData_ClassNameIndexed.json')) as f:
             response = json.load(f)
         return response
