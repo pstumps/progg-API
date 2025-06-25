@@ -17,7 +17,6 @@ from .Models.PlayerRecords import PlayerRecords
 
 
 @api_view(['GET'])
-@throttle_classes([DEFAULT_THROTTLE_RATES])
 def stats(request, steam_id3):
     playersService = PlayersServices()
     newPlayer = False
