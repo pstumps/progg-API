@@ -11,7 +11,7 @@ django-environ==0.12.0
 django-filter==25.1
 django-on-heroku==1.1.2
 djangorestframework==3.16.0
-gunicorn==23.1.0
+gunicorn==23.0.0
 idna==3.10
 importlib_metadata==8.7.0
 Markdown==3.8.2
