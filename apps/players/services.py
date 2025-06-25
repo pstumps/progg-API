@@ -101,8 +101,13 @@ class PlayersServices:
             batch_ids_str = ','.join(str(id) for id in batch)
             batch_metadata = self.DLAPIDataService.getMatchMetadataBatch(batch_ids_str)
 
+
             for metadata in batch_metadata:
                 match = metadataService.createNewMatchFromMetadata(metadata)
+                if match:
+                    print(f'New match created: {match.deadlock_id}')
+                else:
+                    print('Failed to create match')
                 matchesDiscovered.append(match)
 
         if matchesToAdd or matchPlayersToAdd:

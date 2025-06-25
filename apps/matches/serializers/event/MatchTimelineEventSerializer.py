@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.matches.Models.MatchTimeline import MatchTimelineEvent, PvPEvent, ObjectiveEvent, MidbossEvent
+import re
 
 
 class MatchTimelineEventSerializer(serializers.ModelSerializer):
@@ -87,6 +88,36 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
                 '15': {'target': 'Patron', 'tier': 1},
                 '0': {'target': 'Patron', 'tier': 2}
             }
+        if instance.target not in obj_id_dict:
+            target_string = instance.target
+            result = {}
+            tier_pattern = re.match(r'Tier(\d)Lane(\d+)', target_string)
+            if tier_pattern:
+                tier = int(tier_pattern.group(1))
+                lane = int(tier_pattern.group(2))
+                result['target'] = 'Guardian' if tier == 1 else 'Walker'
+                result['lane'] = lane
+                result['tier'] = tier
+                return result
+
+            # Check for BarrackBossLaneX pattern
+            barrack_pattern = re.match(r'BarrackBossLane(\d+)', target_string)
+            if barrack_pattern:
+                lane = int(barrack_pattern.group(1))
+                result['target'] = 'Guardian'
+                result['lane'] = lane
+                return result
+
+            # Check remaining specific targets
+            if target_string == 'Titan':
+                result['target'] = 'Titan'
+                result['tier'] = 1
+            elif target_string == 'TitanShieldGenerator':
+                result['target'] = 'Shrine'
+            elif target_string == 'Core':
+                result['target'] = 'Patron'
+                result['tier'] = 2
+
 
         return obj_id_dict.get(instance.target)
 

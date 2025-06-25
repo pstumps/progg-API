@@ -95,7 +95,9 @@ class PlayerHeroModel(models.Model):
         oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
                          'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0',
                          '0': '1',
-                         '1': '0'}
+                         '1': '0',
+                         'Team0': 'Team1',
+                         'Team1': 'Team0'}
 
         for event in objectiveEvents:
             if oppositeTeams[str(event.team)] == team:
@@ -107,14 +109,18 @@ class PlayerHeroModel(models.Model):
                     self.baseGuardians = self.baseGuardians + 2 if self.baseGuardians else 2
                 elif 'TitanShieldGenerator' in event.target:
                     self.shieldGenerators = self.shieldGenerators + 1 if self.shieldGenerators else 1
-                elif 'k_eCitadelTeamObjective_Titan' in event.target:
+                elif 'Titan' in event.target:
                     self.titans = self.titans + 1 if self.titans else 1
-                elif 'k_eCitadelTeamObjective_Core' in event.target:
+                elif 'Core' in event.target:
                     self.patrons = self.patrons + 1 if self.patrons else 1
 
     def updateTeamObjectiveStats(self, team, objectiveEvents):
-        oppositeTeams = {'0': '1',
-                         '1': '0'}
+        oppositeTeams = {'k_ECitadelLobbyTeam_Team0': 'k_ECitadelLobbyTeam_Team1',
+                         'k_ECitadelLobbyTeam_Team1': 'k_ECitadelLobbyTeam_Team0',
+                         '0': '1',
+                         '1': '0',
+                         'Team0': 'Team1',
+                         'Team1': 'Team0'}
 
         for event in objectiveEvents:
             if oppositeTeams[str(event.team)] == team:

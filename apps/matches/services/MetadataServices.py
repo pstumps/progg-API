@@ -9,6 +9,15 @@ from apps.matches.Models.MatchTimeline import PvPEvent, ObjectiveEvent, MidbossE
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from proggbackend.services.DeadlockAPIData import deadlockAPIDataService
 from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
+from datetime import datetime
+
+
+def convert_to_unix_timestamp(date_str):
+    dt_obj = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+
+    unix_timestamp = int(dt_obj.timestamp())
+
+    return unix_timestamp
 
 
 def calculateAverageBadgeFromMetadata(metadata):
@@ -107,24 +116,20 @@ class MetadataServices:
         return False
 
     @transaction.atomic
-    def createNewMatchFromMetadata(self, matchMetadata):
+    def createNewMatchFromMetadata(self, matchMetadata, batch=False):
 
-        matchMetadata = matchMetadata.get('match_info')
+        if batch:
+            matchMetadata = matchMetadata.get('match_info')
+
         if matchMetadata:
+            print(matchMetadata)
             dl_match_id = matchMetadata.get('match_id')
 
-            try:
-                existingMatch = MatchesModel.objects.get(deadlock_id=dl_match_id)
-            except MatchesModel.DoesNotExist:
-                existingMatch = None
-
-            if existingMatch:
-                return existingMatch
-
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
+            startTime = convert_to_unix_timestamp(matchMetadata.get('start_time'))
             match = MatchesModel.objects.create(
                 deadlock_id=dl_match_id,
-                date=matchMetadata.get('start_time') if matchMetadata.get('start_time') else None,
+                date=startTime if startTime else None,
                 averageRank=averageBadges if averageBadges else None,
                 gameMode=matchMetadata.get('game_mode'),
                 matchMode=matchMetadata.get('match_mode'),
@@ -134,7 +139,7 @@ class MetadataServices:
             )
 
             legacyFourLaneMap = False
-            if int(matchMetadata.get('start_time')) < 1740549073:
+            if startTime < 1740549073:
                 match.legacyFourLaneMap = True
                 legacyFourLaneMap = True
 
@@ -158,6 +163,7 @@ class MetadataServices:
 
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata, legacyFourLaneMap=False):
+        print(f'Parsing match events for match {match.deadlock_id}...')
         matchPlayerData = {}
         pvpEvents = []
         playerStatsGraphs = []
@@ -470,7 +476,7 @@ class MetadataServices:
         if matchMetadata.get('objectives'):
             for obj in matchMetadata['objectives']:
                 objectiveEvents.append(ObjectiveEvent(match=match,
-                                                      target=obj['team_objective_id'],
+                                                      target=obj['team_objective'],
                                                       timestamp=obj['destroyed_time_s'],
                                                       team=obj['team']))
         if matchMetadata.get('mid_boss'):
