@@ -21,9 +21,7 @@ class SteamWebAPIService:
             response = requests.get(
                 f'{self.ISteamUserBaseURL}/GetPlayerSummaries/v0002/?key={self.apiKey}&steamids={steamid64}&format=json'
             )
-
             response.raise_for_status()
-
             return response.json()
         except requests.exceptions.JSONDecodeError as e:
             logger.error(f"Steam API returned invalid JSON: {str(e)}")
@@ -43,15 +41,30 @@ class SteamWebAPIService:
 
     def getPlayerName(self, steam_id3):
         print('Getting player name from Steam web API...')
-        steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
-        url = f'{self.ISteamUserBaseURL}/GetPlayerSummaries/v0002/?key={self.apiKey}&steamids={steamid64}&format=json'
-        response = requests.get(url)
-        return response.json()['response']['players'][0]['personaname']
+        try:
+            steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
+            url = f'{self.ISteamUserBaseURL}/GetPlayerSummaries/v0002/?key={self.apiKey}&steamids={steamid64}&format=json'
+            response = requests.get(url)
+            return response.json()['response']['players'][0]['personaname']
+        except requests.exceptions.JSONDecodeError as e:
+            logger.error(f"Steam API returned invalid JSON: {str(e)}")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Steam API request failed: {str(e)}")
+            return None
 
     def getOwnedGames(self, steam_id3):
         print('Getting player games from Steam web API...')
-        steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
-        url = f'{self.IPlayerServiceBaseURL}/GetOwnedGames/v0001/?key={self.apiKey}&steamid={steamid64}&format=json'
-        #url = url + '&input_json={appids_filter: [1422450]}'
-        response = requests.get(url)
-        return response.json()
+        try:
+            steamid64 = self.convertSteamID3ToSteamID64(steam_id3)
+            url = f'{self.IPlayerServiceBaseURL}/GetOwnedGames/v0001/?key={self.apiKey}&steamid={steamid64}&format=json'
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.JSONDecodeError as e:
+            logger.error(f"Steam API returned invalid JSON: {str(e)}")
+            return {"response": {'games': []}}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Steam API request failed: {str(e)}")
+            return {"response": {'games': []}}
+
