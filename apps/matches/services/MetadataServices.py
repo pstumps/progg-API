@@ -105,6 +105,7 @@ class MetadataServices:
         self.DLAPIData = deadlockAPIDataService()
         self.DLAPIAssets = deadlockAPIAssetsService()
         self.DLItemsDict = DLItemsDict # Can either be indexed by class name or item id. Make sure to initialize with right one
+        self.batch = False
 
     def checkIsBotGame(self, match, matchMetadata):
         all_account_ids = [p['account_id'] for p in matchMetadata['players']]
@@ -118,15 +119,17 @@ class MetadataServices:
     @transaction.atomic
     def createNewMatchFromMetadata(self, matchMetadata, batch=False):
 
-        if batch:
+        if not batch:
             matchMetadata = matchMetadata.get('match_info')
 
         if matchMetadata:
-            print(matchMetadata)
             dl_match_id = matchMetadata.get('match_id')
 
             averageBadges = calculateAverageBadgeFromMetadata(matchMetadata)
-            startTime = convert_to_unix_timestamp(matchMetadata.get('start_time'))
+            if batch:
+                startTime = convert_to_unix_timestamp(matchMetadata.get('start_time'))
+            else:
+                startTime = matchMetadata.get('start_time')
             match = MatchesModel.objects.create(
                 deadlock_id=dl_match_id,
                 date=startTime if startTime else None,
@@ -282,7 +285,10 @@ class MetadataServices:
             # if legacyFourLaneMap:
             #    playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
             #else:
-            playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
+            if self.batch:
+                playerHero.updateLegacyTeamObjectiveStats(data['team'], objectiveEvents)
+            else:
+                playerHero.updateTeamObjectiveStats(data['team'], objectiveEvents)
 
             playerHero.save()
 
@@ -475,10 +481,16 @@ class MetadataServices:
 
         if matchMetadata.get('objectives'):
             for obj in matchMetadata['objectives']:
-                objectiveEvents.append(ObjectiveEvent(match=match,
-                                                      target=obj['team_objective'],
-                                                      timestamp=obj['destroyed_time_s'],
-                                                      team=obj['team']))
+                if self.batch:
+                    objectiveEvents.append(ObjectiveEvent(match=match,
+                                                          target=obj['team_objective'],
+                                                          timestamp=obj['destroyed_time_s'],
+                                                          team=obj['team']))
+                else:
+                    objectiveEvents.append(ObjectiveEvent(match=match,
+                                                          target=obj['team_objective_id'],
+                                                          timestamp=obj['destroyed_time_s'],
+                                                          team=obj['team']))
         if matchMetadata.get('mid_boss'):
             for midboss in matchMetadata['mid_boss']:
                 midbossEvents.append(MidbossEvent(match=match,

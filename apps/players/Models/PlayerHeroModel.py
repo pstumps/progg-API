@@ -124,7 +124,8 @@ class PlayerHeroModel(models.Model):
 
         for event in objectiveEvents:
             if oppositeTeams[str(event.team)] == team:
-                target = int(event.target)
+                # target = int(event.target)
+                target = event.target
                 if target == 1 or target == 3 or target == 4:
                     self.guardians = self.guardians + 1 if self.guardians else 1
                 if target == 5 or target == 7 or target == 8:

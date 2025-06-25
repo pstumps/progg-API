@@ -103,7 +103,7 @@ class PlayersServices:
 
 
             for metadata in batch_metadata:
-                match = metadataService.createNewMatchFromMetadata(metadata)
+                match = metadataService.createNewMatchFromMetadata(metadata, batch=True)
                 if match:
                     print(f'New match created: {match.deadlock_id}')
                 else:
