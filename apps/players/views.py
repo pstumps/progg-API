@@ -1,7 +1,6 @@
 import time
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, throttle_classes
-from rest_framework.throttling import UserRateThrottle
 
 from .serializers.PlayerRecordsSerializer import PlayerRecordsSerializer
 from .services import PlayersServices
@@ -18,7 +17,7 @@ from .Models.PlayerRecords import PlayerRecords
 
 
 @api_view(['GET'])
-#@throttle_classes([StatsRateThrottle])
+@throttle_classes([DEFAULT_THROTTLE_RATES])
 def stats(request, steam_id3):
     playersService = PlayersServices()
     newPlayer = False
@@ -115,7 +114,6 @@ def updatePlayerSteamWebAPI(request, steam_id3):
     player.updatePlayerFromSteamWebAPI()
     player.save()
     return Response(status=200, data={"detail": "Player updated."})
-
 
 @api_view(['GET'])
 def deleteAllData(request):

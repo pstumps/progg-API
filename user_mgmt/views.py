@@ -11,8 +11,6 @@ from apps.players.Models.PlayerModel import PlayerModel
 from apps.matches.Models.MatchesModel import MatchesModel
 from user_mgmt.serializers import UserSerializer
 from rest_framework import status
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.middleware.csrf import get_token
 
 import time
 
@@ -124,6 +122,7 @@ def favorites_player(request, player_id):
     return Response({"error": "Invalid request"}, status=400)
 
 @api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def favorites_match(request, match_id):
     print('request', request)
     user = request.user
@@ -145,10 +144,4 @@ def logout_view(request):
     request.session.flush()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-@api_view(['GET'])
-def get_csrf_token(request):
-    print('token request', request)
-    csrf_token = get_token(request)
-    print('csrf_token', csrf_token)
-    return Response({"csrfToken": csrf_token})
 
