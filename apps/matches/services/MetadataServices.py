@@ -168,7 +168,7 @@ class MetadataServices:
 
     @transaction.atomic
     def parseMatchEventsFromMetadata(self, match, matchMetadata, legacyFourLaneMap=False):
-        print(f'Parsing match events for match {match.deadlock_id}...')
+        #print(f'Parsing match events for match {match.deadlock_id}...')
         matchPlayerData = {}
         pvpEvents = []
         playerStatsGraphs = []

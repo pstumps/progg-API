@@ -26,7 +26,7 @@ class PlayersServices:
         return player.getTopPlayerHeroes()
 
 
-    def updateMatchHistory(self, steam_id3, newPlayer=False):
+    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True):
         # Internal API Only
         if newPlayer:
             player = PlayerModel.objects.create(steam_id3=steam_id3)
@@ -92,8 +92,11 @@ class PlayersServices:
                 continue
             matchesToProcess.append(matchId)
 
+        if first100Matches:
+            matchesToProcess = matchesToProcess[:100]
+
         #match = metadataService.createNewMatchFromMetadata(matchMetadata)
-        batch_size = 1000
+        batch_size = 100
         for i in range(0, len(matchesToProcess), batch_size):
             batch = matchesToProcess[i:i + batch_size]
             print(f"Processing batch {i // batch_size + 1} with {len(batch)} matches")
@@ -104,10 +107,6 @@ class PlayersServices:
 
             for metadata in batch_metadata:
                 match = metadataService.createNewMatchFromMetadata(metadata, batch=True)
-                if match:
-                    print(f'New match created: {match.deadlock_id}')
-                else:
-                    print('Failed to create match')
                 matchesDiscovered.append(match)
 
         if matchesToAdd or matchPlayersToAdd:
