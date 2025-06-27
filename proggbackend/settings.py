@@ -238,6 +238,8 @@ CORS_ALLOWED_ORIGINS = [
     os.environ.get('CORS_ALLOWED_ORIGIN_1', default='http://localhost:3000'),
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 CSRF_TRUSTED_ORIGINS = [
     os.environ.get('CSRF_TRUSTED_ORIGIN_1', default='http://localhost:3000'),
 ]
