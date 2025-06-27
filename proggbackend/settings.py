@@ -43,11 +43,6 @@ if IS_HEROKU_APP:
 else:
     ALLOWED_HOSTS = [".localhost", "127.0.0.1", "[::1]", "0.0.0.0", "[::]"]
 
-if IS_HEROKU_APP:
-    BASE_IMAGE_URL = os.environ.get('BASE_IMAGE_URL')
-else:
-    BASE_IMAGE_URL = 'http://127.0.0.1:8080'
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -254,8 +249,18 @@ WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
 AWS_QUERYSTRING_AUTH = False
+
+if IS_HEROKU_APP:
+    BASE_IMAGE_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+else:
+    BASE_IMAGE_URL = 'http://127.0.0.1:8080/images'
+
+if IS_HEROKU_APP:
+    BASE_API_URL = os.environ.get('BASE_API_URL')
+else:
+    BASE_API_URL = 'http://127.0.0.1:8080'
 
 STORAGES = {
     "default": {

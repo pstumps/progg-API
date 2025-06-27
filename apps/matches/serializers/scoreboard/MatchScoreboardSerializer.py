@@ -60,7 +60,7 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
 
             if rank is not None:
                 if rank == 0:
-                    return {'name': 'Obscurus', 'image': f'${BASE_IMAGE_URL}/images/ranks/0/base/small.webp'}
+                    return {'name': 'Obscurus', 'image': f'${BASE_IMAGE_URL}/ranks/0/base/small.webp'}
                 rank_str = str(rank)
                 if len(rank_str) == 2:
                     first_part = rank_str[0]
@@ -76,7 +76,7 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
 
             if first_part is not None and second_part is not None:
                 return {'name': rankDict[int(first_part)] + ' ' + second_part,
-                        'image': f'{BASE_IMAGE_URL}/images/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
+                        'image': f'{BASE_IMAGE_URL}/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
             return None
 
     def get_teams(self, obj):

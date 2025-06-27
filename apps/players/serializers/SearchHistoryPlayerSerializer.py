@@ -33,7 +33,7 @@ class SearchHistoryPlayer(serializers.ModelSerializer):
             }
 
             if averageRank == 0:
-                return {'name': 'Obscurus', 'image': f'{BASE_IMAGE_URL}/images/ranks/0/base/small.webp'}
+                return {'name': 'Obscurus', 'image': f'{BASE_IMAGE_URL}/ranks/0/base/small.webp'}
 
             rank_str = str(averageRank)
             main_rank = int(rank_str[:-1])
@@ -41,7 +41,7 @@ class SearchHistoryPlayer(serializers.ModelSerializer):
 
             if 1 <= main_rank <= 11 and 1 <= sub_rank <= 6:
                 return {'name': str(rankDict[int(main_rank)]) + ' ' + str(sub_rank),
-                        'image': f'{BASE_IMAGE_URL}/images/ranks/' + str(main_rank) + '/' + str(sub_rank) + '/' 'small.webp'}
+                        'image': f'{BASE_IMAGE_URL}/ranks/' + str(main_rank) + '/' + str(sub_rank) + '/' 'small.webp'}
             return None
 
         return None
