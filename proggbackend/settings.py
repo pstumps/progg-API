@@ -27,26 +27,26 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 if IS_HEROKU_APP:
-    SECRET_KEY=os.environ.get('SECRET_KEY')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 else:
-    SECRET_KEY=env('SECRET_KEY')
+    SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if IS_HEROKU_APP:
-    DEBUG=os.environ.get("ENVIRONMENT") == "development"
+    DEBUG = os.environ.get("ENVIRONMENT") == "development"
 else:
     DEBUG = True
 
 if IS_HEROKU_APP:
-    ALLOWED_HOST=os.environ.get('ALLOWED_HOST')
-    SECURE_SSL_REDIRECT=True
+    ALLOWED_HOST = os.environ.get('ALLOWED_HOST')
+    SECURE_SSL_REDIRECT = True
 else:
     ALLOWED_HOSTS = [".localhost", "127.0.0.1", "[::1]", "0.0.0.0", "[::]"]
 
 if IS_HEROKU_APP:
-    BASE_IMAGE_URL=os.environ.get('BASE_IMAGE_URL')
+    BASE_IMAGE_URL = os.environ.get('BASE_IMAGE_URL')
 else:
-    BASE_IMAGE_URL='http://127.0.0.1:8080'
+    BASE_IMAGE_URL = 'http://127.0.0.1:8080'
 
 # Application definition
 
@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'social_django',
     'corsheaders',
-
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -103,7 +103,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'proggbackend.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -127,9 +126,9 @@ DATABASES = {
 }
 '''
 if IS_HEROKU_APP:
-    DATABASES= {
+    DATABASES = {
         'default': dj_database_url.config(
-            env= 'DATABASE_URL',
+            env='DATABASE_URL',
             conn_max_age=600,
             ssl_require=True,
             conn_health_checks=True,
@@ -167,11 +166,10 @@ AUTHENTICATION_BACKENDS = (
 )
 if IS_HEROKU_APP:
     SOCIAL_AUTH_STEAM_API_KEY = os.environ.get('STEAM_WEB_API_KEY')
-    DL_API_KEY=os.environ.get('DL_API_KEY')
+    DL_API_KEY = os.environ.get('DL_API_KEY')
 else:
     SOCIAL_AUTH_STEAM_API_KEY = env('STEAM_WEB_API_KEY')
-    DL_API_KEY=env('DL_API_KEY')
-
+    DL_API_KEY = env('DL_API_KEY')
 
 REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
@@ -197,10 +195,9 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    #'user_mgmt.pipeline.social_auth_redirect',
-    #'user_mgmt.views.steam_callback',
+    # 'user_mgmt.pipeline.social_auth_redirect',
+    # 'user_mgmt.views.steam_callback',
 )
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -250,14 +247,35 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_REDIRECT_URL = os.environ.get('LOGIN_REDIRECT_URL', default='http://localhost:3000')
 NEXTJS_FRONTEND_URL = os.environ.get('NEXTJS_FRONTEND_URL', default='http://localhost:3000')
 
-
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = 'static/'
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_QUERYSTRING_AUTH = False
+
 STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-    }
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "region_name": AWS_S3_REGION_NAME,
+        }
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "region_name": AWS_S3_REGION_NAME,
+        },
+    },
 }
 
 LOGGING = {
