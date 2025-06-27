@@ -27,7 +27,7 @@ class PlayersServices:
         return player.getTopPlayerHeroes()
 
 
-    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True):
+    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True, fullHistory=False):
         # Internal API Only
         if newPlayer:
             player = PlayerModel.objects.create(steam_id3=steam_id3)
@@ -39,7 +39,10 @@ class PlayersServices:
                 print(f'Player {steam_id3} not found.')
                 return False
 
-            lastUpdateTime = player.updated if player.updated else int((datetime.now() - timedelta(days=30)).timestamp())
+            if not fullHistory:
+                lastUpdateTime = player.updated if player.updated else int((datetime.now() - timedelta(days=30)).timestamp())
+            else:
+                lastUpdateTime = 0
             matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(
                 account_id=steam_id3,
                 has_metadata=True,

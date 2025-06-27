@@ -12,13 +12,13 @@ class MatchTimelineEventSerializer(serializers.ModelSerializer):
 class PvPEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     details = serializers.SerializerMethodField()
-    team = serializers.SerializerMethodField()
+    teamName = serializers.SerializerMethodField()
 
     class Meta:
         model = PvPEvent
-        fields = ['team', 'type', 'timestamp', 'details']
+        fields = ['teamName', 'type', 'timestamp', 'details']
 
-    def get_team(self, instance):
+    def get_teamName(self, instance):
         team = str(instance.team)
         if team == '0' or team == 'Team0':
             return 'Amber'
@@ -37,13 +37,14 @@ class PvPEventSerializer(serializers.ModelSerializer):
 class ObjectiveEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     details = serializers.SerializerMethodField()
-    team = serializers.SerializerMethodField()
+    teamName = serializers.SerializerMethodField()
+
     class Meta:
         model = ObjectiveEvent
-        fields = ['type', 'timestamp', 'team', 'details']
+        fields = ['teamName', 'type', 'timestamp', 'details']
 
-    def get_team(self, instance):
-        team = str(instance.team)
+    def get_teamName(self, instance):
+        team = str(instance.team).strip()
         if team == '0' or team == 'Team0':
             return 'Amber'
         elif team == '1' or team == 'Team1':
@@ -125,17 +126,17 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
 
 class MidbossEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
-    team = serializers.SerializerMethodField()
+    teamName = serializers.SerializerMethodField()
 
     class Meta:
         model = MidbossEvent
-        fields = ['timestamp', 'type', 'team']
+        fields = ['timestamp', 'type', 'teamName']
 
 
     def get_type(self, instance):
         return 'midboss'
 
-    def get_team(self, instance):
+    def get_teamName(self, instance):
         team = str(instance.slayer)
         if team == '0' or team == 'Team0':
             return 'Amber'
@@ -147,17 +148,17 @@ class MidbossEventSerializer(serializers.ModelSerializer):
 
 class RejuvEventSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
-    team = serializers.SerializerMethodField()
+    teamName = serializers.SerializerMethodField()
 
     class Meta:
         model = MidbossEvent
         # fields = ['timestamp', 'type', 'team', 'details']
-        fields = ['timestamp', 'type', 'team']
+        fields = ['timestamp', 'type', 'teamName']
 
     def get_type(self, instance):
         return 'rejuv'
 
-    def get_team(self, instance):
+    def get_teamName(self, instance):
         team = str(instance.team)
         if team == '0' or team == 'Team0':
             return 'Amber'
@@ -165,43 +166,3 @@ class RejuvEventSerializer(serializers.ModelSerializer):
             return 'Sapphire'
         else:
             return team
-
-
-'''
-# ObjectiveEventSerializer -> get_details [deprecated]
-def get_details(self, instance):
-    if instance.match.legacyFourLaneMap:
-        target = instance.target.split('_')
-        tier = target[2] if len(target) > 2 else None
-        lane = target[3] if len(target) > 3 else None
-        if lane:
-            if lane == 'Lane1':
-                lane = 1
-            elif lane == 'Lane2':
-                lane = 2
-            elif lane == 'Lane3':
-                lane = 3
-            elif lane == 'Lane4':
-                lane = 4
-    
-        if tier:
-            if tier == 'Tier1':
-                tier = 1
-            elif tier == 'Tier2':
-                tier = 2
-    
-        if 'k_eCitadelTeamObjective_Tier1' in instance.target:
-            return {'target': 'Guardian', 'lane': lane, 'tier': tier}
-        elif 'k_eCitadelTeamObjective_Tier2' in instance.target:
-            return {'target': 'Walker', 'lane': lane}
-        elif 'k_eCitadelTeamObjective_BarrackBoss' in instance.target:
-            return {'target': 'Guardian', 'lane': lane, 'tier': 3}
-        elif 'TitanShieldGenerator' in instance.target:
-            return {'target': 'Shrine'}
-        elif 'k_eCitadelTeamObjective_Titan' in instance.target:
-            return {'target': 'Patron', 'tier': 1}
-        elif 'k_eCitadelTeamObjective_Core' in instance.target:
-            return {'target': 'Patron', 'tier': 2}
-        else:
-            return {'target': instance.target}
-'''
