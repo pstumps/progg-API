@@ -6,6 +6,9 @@ from .serializers import HeroSerializer
 
 import numpy as np
 
+from django.conf import settings
+BASE_IMAGE_URL=settings.BASE_IMAGE_URL
+
 HeroesDict = {
     1: 'Infernus',
     2: 'Seven',
@@ -104,16 +107,16 @@ class proGGAPIHeroesService:
                         abilities=dlAPIhero['items'],
                         beta=dlAPIhero['in_development'],
                         images={
-                          "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
-                          "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
-                          "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
-                          "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
-                          "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
-                          "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
-                          "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
-                          "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
-                          "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
-                          "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
+                          "icon_hero_card": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_card.png",
+                          "icon_hero_card_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_card.webp",
+                          "icon_image_small": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_sm.png",
+                          "icon_image_small_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_sm.webp",
+                          "minimap_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_mm.png",
+                          "minimap_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_mm.webp",
+                          "selection_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}.png",
+                          "selection_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}.webp",
+                          "top_bar_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_hud.png",
+                          "top_bar_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_hud.webp"
                         }
                     )
                     hero.save()
@@ -128,16 +131,16 @@ class proGGAPIHeroesService:
                 hero.abilities = dlAPIhero['items']
                 hero.beta = dlAPIhero['in_development']
                 hero.images = {
-                      "icon_hero_card": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.png",
-                      "icon_hero_card_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_card.webp",
-                      "icon_image_small": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.png",
-                      "icon_image_small_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_sm.webp",
-                      "minimap_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.png",
-                      "minimap_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_mm.webp",
-                      "selection_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.png",
-                      "selection_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}.webp",
-                      "top_bar_image": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.png",
-                      "top_bar_image_webp": f"http://127.0.0.1:8080/images/heroes/{underscoreName}_hud.webp"
+                      "icon_hero_card": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_card.png",
+                      "icon_hero_card_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_card.webp",
+                      "icon_image_small": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_sm.png",
+                      "icon_image_small_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_sm.webp",
+                      "minimap_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_mm.png",
+                      "minimap_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_mm.webp",
+                      "selection_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}.png",
+                      "selection_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}.webp",
+                      "top_bar_image": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_hud.png",
+                      "top_bar_image_webp": f"{BASE_IMAGE_URL}/images/heroes/{underscoreName}_hud.webp"
                 }
 
 

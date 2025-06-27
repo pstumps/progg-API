@@ -14,7 +14,8 @@ from rest_framework import status
 
 import time
 
-
+from django.conf import settings
+BASE_IMAGE_URL=settings.BASE_IMAGE_URL
 
 @api_view(['GET'])
 def userAuth(request):
@@ -47,14 +48,14 @@ def getUserInfo(request):
 
 def steam_login(request):
     strategy = load_strategy(request)
-    backend = load_backend(strategy=strategy, name='steam', redirect_uri='http://127.0.0.1:8080/user_mgmt/auth/steam/callback')
+    backend = load_backend(strategy=strategy, name='steam', redirect_uri=f'{BASE_IMAGE_URL}/user_mgmt/auth/steam/callback')
     return do_auth(backend, redirect_name='next')
 
 
 def steam_callback(request):
     print("Steam callback")
     strategy = load_strategy(request)
-    backend = load_backend(strategy=strategy, name='steam', redirect_uri='http://127.0.0.1:8080/user_mgmt/auth/steam/callback')
+    backend = load_backend(strategy=strategy, name='steam', redirect_uri=f'{BASE_IMAGE_URL}/user_mgmt/auth/steam/callback')
     user = backend.complete(user=None)
 
     if user and hasattr(user, 'is_authenticated') and user.is_authenticated:

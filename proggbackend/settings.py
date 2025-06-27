@@ -38,10 +38,15 @@ else:
     DEBUG = True
 
 if IS_HEROKU_APP:
-    ALLOWED_HOST=env('ALLOWED_HOST')
+    ALLOWED_HOST=os.environ.get('ALLOWED_HOST')
     SECURE_SSL_REDIRECT=True
 else:
     ALLOWED_HOSTS = [".localhost", "127.0.0.1", "[::1]", "0.0.0.0", "[::]"]
+
+if IS_HEROKU_APP:
+    BASE_IMAGE_URL=os.environ.get('BASE_IMAGE_URL')
+else:
+    BASE_IMAGE_URL='http://127.0.0.1:8080'
 
 # Application definition
 

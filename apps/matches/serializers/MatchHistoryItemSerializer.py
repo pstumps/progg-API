@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.matches.Models.MatchesModel import MatchesModel
-
+from django.conf import settings
+BASE_IMAGE_URL=settings.BASE_IMAGE_URL
 
 class MatchHistoryItemSerializer(serializers.ModelSerializer):
     AH_team = serializers.SerializerMethodField()
@@ -23,14 +24,14 @@ class MatchHistoryItemSerializer(serializers.ModelSerializer):
         averageRank = instance.averageRank.get('match_average_badge')
         if averageRank:
             if averageRank == 0:
-                return 'http://127.0.0.1/images/ranks/0/base/small.webp'
+                return f'{BASE_IMAGE_URL}/images/ranks/0/base/small.webp'
 
             rank_str = str(averageRank)
             main_rank = int(rank_str[:-1])
             sub_rank = int(rank_str[-1])
 
             if 1 <= main_rank <= 11 and 1 <= sub_rank <= 6:
-                return 'http://127.0.0.1:8080/images/ranks/' + str(main_rank) + '/' + str(sub_rank) + '/' 'small.webp'
+                return f'{BASE_IMAGE_URL}/images/ranks/' + str(main_rank) + '/' + str(sub_rank) + '/' 'small.webp'
             return None
 
         return None

@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from rest_framework import serializers
 from apps.matches.Models.MatchesModel import MatchesModel
 from apps.matches.serializers.scoreboard.TeamSerializer import TeamSerializer
+from django.conf import settings
+BASE_IMAGE_URL=settings.BASE_IMAGE_URL
 
 class MatchScoreboardSerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
@@ -58,7 +60,7 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
 
             if rank is not None:
                 if rank == 0:
-                    return {'name': 'Obscurus', 'image': 'http://127.0.0.1/images/ranks/0/base/small.webp'}
+                    return {'name': 'Obscurus', 'image': f'${BASE_IMAGE_URL}/images/ranks/0/base/small.webp'}
                 rank_str = str(rank)
                 if len(rank_str) == 2:
                     first_part = rank_str[0]
@@ -74,7 +76,7 @@ class MatchScoreboardSerializer(serializers.ModelSerializer):
 
             if first_part is not None and second_part is not None:
                 return {'name': rankDict[int(first_part)] + ' ' + second_part,
-                        'image': 'http://127.0.0.1:8080/images/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
+                        'image': f'{BASE_IMAGE_URL}/images/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
             return None
 
     def get_teams(self, obj):
