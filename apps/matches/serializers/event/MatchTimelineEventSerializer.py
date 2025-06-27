@@ -19,12 +19,13 @@ class PvPEventSerializer(serializers.ModelSerializer):
         fields = ['team', 'type', 'timestamp', 'details']
 
     def get_team(self, instance):
-        if '0' in instance.team:
+        team = str(instance.team)
+        if team == '0' or team == 'Team0':
             return 'Amber'
-        elif '1' in instance.team:
+        elif team == '1' or team == 'Team1':
             return 'Sapphire'
         else:
-            return instance.team
+            return team
 
     def get_type(self, instance):
         return 'pvp'
@@ -42,12 +43,13 @@ class ObjectiveEventSerializer(serializers.ModelSerializer):
         fields = ['type', 'timestamp', 'team', 'details']
 
     def get_team(self, instance):
-        if '0' in instance.team:
+        team = str(instance.team)
+        if team == '0' or team == 'Team0':
             return 'Amber'
-        elif '1' in instance.team:
+        elif team == '1' or team == 'Team1':
             return 'Sapphire'
         else:
-            return instance.team
+            return team
 
     def get_type(self, instance):
         return 'obj'
@@ -134,12 +136,13 @@ class MidbossEventSerializer(serializers.ModelSerializer):
         return 'midboss'
 
     def get_team(self, instance):
-        if '0' in instance.slayer:
+        team = str(instance.slayer)
+        if team == '0' or team == 'Team0':
             return 'Amber'
-        elif '1' in instance.slayer:
+        elif team == '1' or team == 'Team1':
             return 'Sapphire'
         else:
-            return instance.slayer
+            return team
 
 
 class RejuvEventSerializer(serializers.ModelSerializer):
@@ -155,12 +158,13 @@ class RejuvEventSerializer(serializers.ModelSerializer):
         return 'rejuv'
 
     def get_team(self, instance):
-        if '0' in instance.team:
+        team = str(instance.team)
+        if team == '0' or team == 'Team0':
             return 'Amber'
-        elif '1' in instance.team:
+        elif team == '1' or team == 'Team1':
             return 'Sapphire'
         else:
-            return instance.team
+            return team
 
 
 '''

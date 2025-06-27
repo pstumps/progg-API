@@ -294,7 +294,6 @@ class MetadataServices:
 
             playerHero.save()
 
-
             player.updatePlayerRecords(
                                         match.deadlock_id,
                                         data['hero_deadlock_id'],

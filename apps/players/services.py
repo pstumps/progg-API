@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
@@ -38,7 +39,7 @@ class PlayersServices:
                 print(f'Player {steam_id3} not found.')
                 return False
 
-            lastUpdateTime = None if not player.updated else player.updated
+            lastUpdateTime = player.updated if player.updated else int((datetime.now() - timedelta(days=30)).timestamp())
             matchHistory = self.DLAPIAnalyticsService.getPlayerMatchHistory(
                 account_id=steam_id3,
                 has_metadata=True,
@@ -104,10 +105,10 @@ class PlayersServices:
             batch_ids_str = ','.join(str(id) for id in batch)
             batch_metadata = self.DLAPIDataService.getMatchMetadataBatch(batch_ids_str)
 
-
-            for metadata in batch_metadata:
-                match = metadataService.createNewMatchFromMetadata(metadata, batch=True)
-                matchesDiscovered.append(match)
+            if batch_metadata:
+                for metadata in batch_metadata:
+                    match = metadataService.createNewMatchFromMetadata(metadata, batch=True)
+                    matchesDiscovered.append(match)
 
         if matchesToAdd or matchPlayersToAdd:
             player.matches.add(*matchesToAdd)

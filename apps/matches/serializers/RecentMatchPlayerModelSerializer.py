@@ -4,7 +4,8 @@ from rest_framework import serializers
 from ..Models.MatchPlayerModel import MatchPlayerModel
 from ...heroes.serializers import RecentMatchStatsHeroSerializer
 from ...heroes.Models.HeroesModel import HeroesModel
-from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
+from django.conf import settings
+BASE_IMAGE_URL=settings.BASE_IMAGE_URL
 
 
 class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
@@ -120,7 +121,7 @@ class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
 
             if rank is not None:
                 if rank == 0:
-                    return {'name': 'Obscurus', 'image': 'http://127.0.0.1/images/ranks/0/base/small.webp'}
+                    return {'name': 'Obscurus', 'image': f'{BASE_IMAGE_URL}/ranks/0/base/small.webp'}
                 rank_str = str(rank)
                 if len(rank_str) == 2:
                     first_part = rank_str[0]
@@ -136,7 +137,7 @@ class RecentMatchPlayerModelSerializer(serializers.ModelSerializer):
 
             if first_part is not None and second_part is not None:
                 return {'name': rankDict[int(first_part)] + ' ' + second_part,
-                        'image': 'http://127.0.0.1:8080/images/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
+                        'image': f'{BASE_IMAGE_URL}/ranks/' + first_part + '/' + second_part + '/' 'small.webp'}
             return None
 
     def get_medals(self, obj):
