@@ -17,6 +17,7 @@ urlpatterns = [
     path('<int:steam_id3>/steam-info', views.getSteamInfo, name='getSteamInfo'),
     path('<int:steam_id3>/update-steam-info', views.updatePlayerSteamWebAPI, name='updatePlayerSteamWebAPI'),
     path('<int:steam_id3>/deadlock-api-match-history', views.getDeadlockAPIMatchHistory, name='getDeadlockAPIMatchHistory'),
+    path('<int:steam_id3>/heatmap', views.matchHistoryHeatmap, name='matchHistoryHeatmap'),
     path('<int:steam_id3>/search-item/', views.search_history_player_item, name='searchHistoryMatchItem'),
     path('<int:steam_id3>/calculate-rank', views.calculateRank, name='calculateRank'),
     path('<int:steam_id3>/records', views.playerRecords, name='playerRecords'),

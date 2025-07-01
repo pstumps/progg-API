@@ -20,7 +20,9 @@ class MatchServices:
         self.teamDict = {'k_ECitadelLobbyTeam_Team0': 'Amber',
                          'k_ECitadelLobbyTeam_Team1': 'Sapphire',
                          '0': 'Amber',
-                         '1': 'Sapphire'}
+                         '1': 'Sapphire',
+                         'Team0': 'Amber',
+                         'Team1': 'Sapphire'}
 
 
     def createMatch(self, dl_match_id):
@@ -90,7 +92,6 @@ class MatchServices:
                     continue
                 else:
                     objEvent = ObjectiveEventSerializer(event).data
-                    objEvent['team'] = self.teamDict.get(event.team)
                     serializedEvents.append(objEvent)
             else:
                 continue

@@ -5,12 +5,12 @@ from rest_framework.decorators import api_view, throttle_classes
 from .serializers.PlayerRecordsSerializer import PlayerRecordsSerializer
 from .services import PlayersServices
 from proggbackend.services.SteamWebAPI import SteamWebAPIService
-from proggbackend.services.DeadlockAPIAssets import deadlockAPIAssetsService
 from proggbackend.services.DeadlockAPIAnalytics import deadlockAPIAnalyticsService
 from .serializers.PlayerModelSerializer import PlayerModelSerializer
 from .serializers.PlayerHeroModelSerializer import PlayerHeroModelSerializer
 from .serializers.PlayerMatchHistoryDataSerializer import MatchHistoryDataSerializer
 from .serializers.SearchHistoryPlayerSerializer import SearchHistoryPlayer
+from .serializers.PlayerHeatmapSerializer import PlayerHeatmapSerializer
 from ..matches.serializers.RecentMatchPlayerModelSerializer import RecentMatchPlayerModelSerializer
 from .Models.PlayerModel import PlayerModel
 from .Models.PlayerRecords import PlayerRecords
@@ -87,6 +87,17 @@ def matchHistory(request, steam_id3):
     serializer = RecentMatchPlayerModelSerializer(history, many=True)
     return Response(status=200, data=serializer.data)
 
+@api_view(['GET'])
+def matchHistoryHeatmap(request, steam_id3):
+    try:
+        player = PlayerModel.objects.get(steam_id3=steam_id3)
+    except PlayerModel.DoesNotExist:
+        return Response(
+            data={"detail": "Player not found."},
+            status=404
+        )
+    serializer = PlayerHeatmapSerializer(player)
+    return Response(status=200, data=serializer.data)
 
 @api_view(['GET'])
 def topPlayerHeroes(request, steam_id3):

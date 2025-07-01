@@ -142,7 +142,7 @@ class PlayerModel(models.Model):
             score = self.calculateScore(hero)
             hero_scores.append((hero, score))
 
-        hero_scores.sort(key=lambda x:x[1], reverse=True)
+        hero_scores.sort(key=lambda x:x[1], reverse=False)
         rank = 1
         for i, (hero, score) in enumerate(hero_scores):
             hero.tier = rank
