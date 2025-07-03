@@ -27,7 +27,7 @@ class PlayersServices:
         return player.getTopPlayerHeroes()
 
 
-    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True, fullHistory=False, batchSize=50):
+    def updateMatchHistory(self, steam_id3, newPlayer=False, first50Matches=True, fullHistory=False, batchSize=50):
         # Internal API Only
         if newPlayer:
             player = PlayerModel.objects.create(steam_id3=steam_id3)
@@ -96,7 +96,7 @@ class PlayersServices:
                 continue
             matchesToProcess.append(matchId)
 
-        if first100Matches:
+        if first50Matches:
             matchesToProcess = matchesToProcess[:batchSize]
 
         #match = metadataService.createNewMatchFromMetadata(matchMetadata)
@@ -104,6 +104,7 @@ class PlayersServices:
         for i in range(0, len(matchesToProcess), batch_size):
             batch = matchesToProcess[i:i + batch_size]
             print(f"Processing batch {i // batch_size + 1} with {len(batch)} matches")
+            print(f'matchesToProcess: {matchesToProcess}')
 
             batch_ids_str = ','.join(str(id) for id in batch)
             batch_metadata = self.DLAPIDataService.getMatchMetadataBatch(batch_ids_str)
