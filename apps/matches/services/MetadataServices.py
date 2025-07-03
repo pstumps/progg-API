@@ -564,6 +564,7 @@ class MetadataServices:
 
         pSlotToHeroID = {}
         playerDamageDict = {}
+        heroDict = {}
 
         for player in matchInfo['players']:
 
@@ -575,10 +576,11 @@ class MetadataServices:
         times = dmgMatrix.get("sample_time_s")
 
         playerDamageDict['times'] = times
+        playerDamageDict['heroes'] = {}
 
         for dd in dmgDealers:
             hero = pSlotToHeroID[dd.get('dealer_player_slot')]
-            playerDamageDict[hero] = {}
+            heroDict[hero] = {}
             damage_sources = dd.get('damage_sources')
             if not damage_sources:
                 continue
@@ -604,17 +606,16 @@ class MetadataServices:
                 if not damage_arrays:
                     continue
 
-
                 itemData = self.DLItemsDict.get(sourceName)
                 actual_name = itemData.get('name') if itemData else sourceName
-
 
                 max_length = max(len(a) for a in damage_arrays)
                 padded_arrays = [np.pad(a, (max_length - len(a), 0), constant_values=0) for a in damage_arrays]
                 damage_source_sum = np.sum(padded_arrays, axis=0)
                 # damage_source_sum_padded_with_none = [None if x == 0 else x for x in damage_source_sum]
 
-                playerDamageDict[hero][actual_name] = damage_source_sum
+                heroDict[hero][actual_name] = damage_source_sum
+            playerDamageDict['heroes'][hero] = heroDict[hero]
 
         return playerDamageDict
 
