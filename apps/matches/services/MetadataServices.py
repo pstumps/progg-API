@@ -158,8 +158,8 @@ class MetadataServices:
             self.parseMatchEventsFromMetadata(match, matchMetadata, legacyFourLaneMap)
 
             match.calculateTeamStats()
+            #print(f'Match {dl_match_id} created successfully!')
             match.save()
-            print(f'Match {dl_match_id} created successfully!')
 
             return match
         else:

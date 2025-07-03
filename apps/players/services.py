@@ -27,7 +27,7 @@ class PlayersServices:
         return player.getTopPlayerHeroes()
 
 
-    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True, fullHistory=False):
+    def updateMatchHistory(self, steam_id3, newPlayer=False, first100Matches=True, fullHistory=False, batchSize=50):
         # Internal API Only
         if newPlayer:
             player = PlayerModel.objects.create(steam_id3=steam_id3)
@@ -97,10 +97,10 @@ class PlayersServices:
             matchesToProcess.append(matchId)
 
         if first100Matches:
-            matchesToProcess = matchesToProcess[:100]
+            matchesToProcess = matchesToProcess[:batchSize]
 
         #match = metadataService.createNewMatchFromMetadata(matchMetadata)
-        batch_size = 100
+        batch_size = batchSize
         for i in range(0, len(matchesToProcess), batch_size):
             batch = matchesToProcess[i:i + batch_size]
             print(f"Processing batch {i // batch_size + 1} with {len(batch)} matches")
@@ -119,8 +119,9 @@ class PlayersServices:
 
         player.updated = time.time()
         player.save()
+        print(f'Updated player at time {time.time()} {steam_id3} with {len(matchesDiscovered)} new matches.')
 
-        return matchesDiscovered
+        return len(matchesDiscovered)
 
     def getOrCreateValidatedSteamPlayer(self, steam_id3):
         if PlayerModel.objects.filter(steam_id3=steam_id3).first():

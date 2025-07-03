@@ -32,15 +32,7 @@ class MatchServices:
         itemsDict = AssetsApi.getItemsDict()
         matchServices = MetadataServices(DLItemsDict=itemsDict)
         match = matchServices.createNewMatchFromMetadata(matchMetadata)
-        return match
-
-    def createTestMatch(self, dl_match_id):
-        DataAPI = deadlockAPIDataService()
-        matchMetadata = DataAPI.getMatchMetadataTest(dl_match_id)
-        AssetsApi = deadlockAPIAssetsService()
-        itemsDict = AssetsApi.getItemsDict()
-        matchServices = MetadataServices(DLItemsDict=itemsDict)
-        match = matchServices.createNewMatchFromMetadata(matchMetadata)
+        match.save()
         return match
 
 

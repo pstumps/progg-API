@@ -46,7 +46,7 @@ def stats(request, steam_id3):
             print('Player exists.')
             if (int(time.time()) - (player.updated or 0)) > (60 * 15):
                 print('Updating player...')
-                if playersService.updateMatchHistory(steam_id3):
+                if len(playersService.updateMatchHistory(steam_id3)) > 0:
                     player.updatePlayerFromSteamWebAPI()
                     player.updatePlayerStats()
                     player.save()
