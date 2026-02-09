@@ -398,19 +398,14 @@ class MetadataServices:
 
     def processItemEvents(self, itemEvents, matchPlayerData, account_id, playerEvents):
         def handleItemData(item_id):
-            idata = self.DLItemsDict.get(str(item_id))
-            if not idata:
-                print(f'item data not found for {item_id}')
-                try:
-                    idata = self.DLAPIAssets.getItemById(item_id)
-                    print(f'Item data fetched for {item_id}. Adding to ItemData_IDIndexed.json')
-                    self.updateItemDataJson(item_id, idata)
-                    self.updateItemDataClassNameJson(item_id, idata)
-                    return idata
-                except Exception as e:
-                    print(f'Error getting item data: {e}')
-                    return None
-            return idata
+            try:
+                idata = self.DLAPIAssets.getItemById(item_id)
+                #self.updateItemDataJson(item_id, idata)
+                #self.updateItemDataClassNameJson(item_id, idata)
+                return idata
+            except Exception as e:
+                print(f'Error getting item data: {e}')
+                return None
 
         playerDict = matchPlayerData[account_id]
         for item_events in itemEvents:
